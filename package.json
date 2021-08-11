@@ -1,7 +1,7 @@
 {
   "name": "peertube-plugin-quickstart",
   "description": "PeerTube plugin quickstart",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Chocobozzz",
   "bugs": "https://framagit.org/framasoft/peertube/peertube-plugin-quickstart/issues",
   "clientScripts": [
