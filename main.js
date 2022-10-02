@@ -1,6 +1,8 @@
 async function register ({
   registerHook,
   registerSetting,
+  getRouter,
+  peertubeHelpers,
   settingsManager,
   storageManager,
   videoCategoryManager,
