@@ -10,3 +10,4 @@ Streaming payments
 Storage charges
 Paid redundancy
 Paid transcoding
+more to come
