@@ -12,12 +12,8 @@ async function register({ registerHook, peertubeHelpers }) {
       <input type="text" id="message" name="message" maxLength="128"><br><br>
       <input type="text" id="sats" name="sats" maxLength="8">
       <label for="sats"> Sats</label><br>
-      <peertube-button data-href="https://trutube.online/signup" data-theme="primary" data-label="Login with Telegram">
-      <div _nghost-cav-c140="" ng-version="13.3.0">
-        <p id="satbutton" onclick="()">⚡️Send Sats⚡️</p>
-        </peertube-button>
-
-      </div>`
+      <p id="satbutton" onclick="()">⚡️Send Sats⚡️</p>
+      `
 
       panel.innerHTML = html;
 
