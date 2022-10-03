@@ -4,6 +4,35 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
+      let element = document.querySelector('.lightning-button')
+      if (element != null) {
+        element.remove();
+      }
+      console.log(path);
+      let paths = path.split("/");
+      let pageType = paths[1];
+      let pageId = paths[2];
+      var buttonText = "";
+      var accountName =undefined;
+      console.log(pageType, pageId);
+      buttonText = '<p id="satbutton">⚡️Send Sats⚡️</p>'
+      if (pageType == "a") {
+        console.log("on an account page", pageId);
+        buttonText = '<p id="satbutton">⚡️Tip ' + pageId + '⚡️</p>'
+        accountName = pageId;
+      }
+      if (pageType == "c") {
+        console.log("on a channel page", pageId);
+        //let channelData=axios.get()
+      }
+      if (pageType == "w") {
+        console.log("on a video page", pageId);
+
+      }
+      if (pageType == "my-account") {
+        console.log("on my account page");
+
+      }
       const panel = document.createElement('div');
       panel.setAttribute('class', 'lightning-button');
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -12,11 +41,9 @@ async function register({ registerHook, peertubeHelpers }) {
       <input type="text" id="message" name="message" maxLength="128"><br><br>
       <input type="text" id="sats" name="sats" maxLength="8">
       <label for="sats"> Sats</label><br>
-      <p id="satbutton" onclick="()">⚡️Send Sats⚡️</p>
-      `
-
+      `+ buttonText;
+      panel.id = pageType;
       panel.innerHTML = html;
-
       setInterval(async function () {
         if ((document.querySelector('.top-menu .lightning-button') === null)) {
           const topMenu = document.querySelector('.top-menu');
@@ -29,10 +56,14 @@ async function register({ registerHook, peertubeHelpers }) {
           document.getElementById("satbutton").onclick = function () {
             let amount = document.getElementById('sats').value
             let message = document.getElementById('message').value
-            SendSats(amount, message)
+            SendSats(amount, message, accountName)
           };
 
+        } else {
+
         }
+
+        /*
         if ((document.querySelector('.menu-wrapper .lightning-button') === null)) {
           const mainContent = document.querySelector('.menu-wrapper');
           console.log("maincontent", mainContent)
@@ -42,10 +73,11 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("Panel added to main content", panel);
           }
         }
+        */
       }, 1)
     }
   })
-  async function SendSats(amount, message) {
+  async function SendSats(amount, message, accountName) {
     if (!message) {
       message = ":)";
     }
@@ -58,7 +90,11 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     await webln.enable();
     console.log("---------------\n", "webln enabled");
-    let walletData = await axios.get("https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo");
+    let api = "https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo"
+    if (accountName){
+      api=api+"?account="+accountName;
+    }
+    let walletData = await axios.get(api);
     console.log(walletData.data);
 
     let pubKey = walletData.data.pubkey;
@@ -96,7 +132,11 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     await webln.enable();
     console.log("---------------\n", "webln enabled");
-    let walletData = await axios.get("https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo");
+    let api = "https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo"
+    if (accountName){
+      api=api+"?account="+accountName;
+    }
+    let walletData = await axios.get(api);
     console.log(walletData.data);
 
     let pubKey = walletData.data.pubkey;

@@ -69,10 +69,10 @@ async function register ({
   })
 
   router.use('/walletinfo', async (req, res) => {
-    
-
+    console.log("\n\n\n Request for wallet info\n",req.query)
+    if (req.query.account)
+      return res.status(200).send({"status":"OK","tag":"keysend","pubkey":"030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3","customData":[{"customKey":"696969","customValue":"LgG0L9WZICAZvKaJKKQS"}]});
     return res.status(200).send(walletData.data);
-
   })
   
 }
