@@ -4,6 +4,7 @@ Just starting the research part of the project at this point.
 
 Future desired features
 Boostagrams
+Splits
 Paid subscriptions
 Pay per View
 Streaming payments

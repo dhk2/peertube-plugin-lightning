@@ -1,50 +1,67 @@
 import axios from 'axios';
+
 async function register({ registerHook, peertubeHelpers }) {
-  console.log('Hello third world');
+  var basePath = await peertubeHelpers.getBaseRouterRoute();
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
+      var accountName, channelName, videoName, instanceName, buttonText;
       let element = document.querySelector('.lightning-button')
       if (element != null) {
         element.remove();
       }
+      let html = `
+      <label for="message">message:</label><br>
+      <input type="text" id="message" name="message" maxLength="128"><br><br>
+      <input type="text" id="sats" name="sats" maxLength="8">
+      <label for="sats"> Sats</label><br>`;
       console.log(path);
       let paths = path.split("/");
       let pageType = paths[1];
       let pageId = paths[2];
-      var buttonText = "";
-      var accountName =undefined;
-      console.log(pageType, pageId);
-      buttonText = '<p id="satbutton">⚡️Send Sats⚡️</p>'
+      let idParts = pageId.split("@");
+      instanceName = idParts[1];
+      console.log("path parsing info", pageType, pageId, idParts);
+      buttonText = '<p id="satbutton">⚡️Donate⚡️</p>'
       if (pageType == "a") {
         console.log("on an account page", pageId);
-        buttonText = '<p id="satbutton">⚡️Tip ' + pageId + '⚡️</p>'
-        accountName = pageId;
+        accountName = idParts[0];
+        buttonText = '<p id="satbutton">⚡️Tip ' + accountName + '⚡️</p>'
+
       }
       if (pageType == "c") {
         console.log("on a channel page", pageId);
-        //let channelData=axios.get()
+        channelName = idParts[0]
+        buttonText = '<p id="satbutton">⚡️Tip ' + channelName + '⚡️</p>'
       }
       if (pageType == "w") {
         console.log("on a video page", pageId);
-
+        videoName = idParts[0]
+        let videoData;
+        try {
+          videoData = await axios.get("/api/v1/videos/" + videoName);
+        } catch {
+          console.log("error getting data for video", videoName);
+        }
+        console.log(videoData.data);
+        accountName = videoData.data.account.name;
+        channelName = videoData.data.channel.name;
+        if (location.hostname != videoData.data.account.host) {
+          instanceName = videoData.data.account.host;
+        }
+        buttonText = '<p id="satbutton">⚡️Tip ' + accountName + '⚡️</p>'
       }
       if (pageType == "my-account") {
         console.log("on my account page");
 
       }
+      html = html + buttonText;
       const panel = document.createElement('div');
       panel.setAttribute('class', 'lightning-button');
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-      const html = `
-      <label for="message">message:</label><br>
-      <input type="text" id="message" name="message" maxLength="128"><br><br>
-      <input type="text" id="sats" name="sats" maxLength="8">
-      <label for="sats"> Sats</label><br>
-      `+ buttonText;
       panel.id = pageType;
       panel.innerHTML = html;
-      setInterval(async function () {
+      let timer = setInterval(async function () {
         if ((document.querySelector('.top-menu .lightning-button') === null)) {
           const topMenu = document.querySelector('.top-menu');
           console.log("topmenu", topMenu);
@@ -53,12 +70,51 @@ async function register({ registerHook, peertubeHelpers }) {
             topMenu.appendChild(panel);
           }
 
-          document.getElementById("satbutton").onclick = function () {
-            let amount = document.getElementById('sats').value
-            let message = document.getElementById('message').value
-            SendSats(amount, message, accountName)
-          };
+          document.getElementById("satbutton").onclick = async function () {
+            let amount = document.getElementById('sats').value;
+            let message = document.getElementById('message').value;
+            let walletApi = basePath + "/walletinfo";
+            if (videoName) {
+              if (instanceName) {
+                walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
+              } else {
+                walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
+              }
+            } else {
+              if (accountName) {
+                walletApi = walletApi + "?account=" + accountName;
+              }
+              if (channelName) {
+                walletApi = walletApi + "?channel=" + channelName;
+              }
+              if (instanceName) {
+                walletApi = walletApi + "@" + instanceName;
+              }
+            }
 
+            console.log("api call for wallet info", walletApi);
+            let walletData;
+            try {
+              walletData = await axios.get(walletApi);
+            } catch {
+              console.log("client unable to fetch wallet data\n", walletApi);
+              peertubeHelpers.showModal({
+                title: 'Unable to send tip',
+                content: 'Unable to find any wallet info for ' + accountName,
+                confirm: {
+                  value: 'OK'
+                }
+              })
+              return;
+            }
+            console.log("returned wallet data", walletData.data);
+            if (walletData.data.status != 'OK') {
+              console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
+              return;
+            }
+            SendSats(walletData, amount, message);
+          };
+          clearInterval(timer);
         } else {
 
         }
@@ -77,7 +133,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }, 1)
     }
   })
-  async function SendSats(amount, message, accountName) {
+  async function SendSats(walletData, amount, message, name) {
     if (!message) {
       message = ":)";
     }
@@ -90,12 +146,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     await webln.enable();
     console.log("---------------\n", "webln enabled");
-    let api = "https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo"
-    if (accountName){
-      api=api+"?account="+accountName;
-    }
-    let walletData = await axios.get(api);
-    console.log(walletData.data);
+    //TODO properly build this
 
     let pubKey = walletData.data.pubkey;
     let tag = walletData.data.tag;
@@ -133,8 +184,8 @@ async function register({ registerHook, peertubeHelpers }) {
     await webln.enable();
     console.log("---------------\n", "webln enabled");
     let api = "https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo"
-    if (accountName){
-      api=api+"?account="+accountName;
+    if (accountName) {
+      api = api + "?account=" + accountName;
     }
     let walletData = await axios.get(api);
     console.log(walletData.data);
