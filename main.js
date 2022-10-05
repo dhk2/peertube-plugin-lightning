@@ -58,7 +58,6 @@ async function register({
   let customValue = walletData.customData[0].customValue;
   */
   const router = getRouter();
-  peertubeHelpers.
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
     console.log(req.query);

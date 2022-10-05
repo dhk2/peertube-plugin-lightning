@@ -11,7 +11,9 @@ async function register({ registerHook, peertubeHelpers }) {
         element.remove();
       }
       let html = `
-      <label for="message">message:</label><br>
+      <label for="from">From:</label><br>
+      <input type="text" id="from" name="from" maxLength="28"><br><br>
+      <label for="message">Message:</label><br>
       <input type="text" id="message" name="message" maxLength="128"><br><br>
       <input type="text" id="sats" name="sats" maxLength="8">
       <label for="sats"> Sats</label><br>`;
@@ -34,10 +36,10 @@ async function register({ registerHook, peertubeHelpers }) {
         channelName = idParts[0]
         buttonText = '<p id="satbutton">⚡️Tip ' + channelName + '⚡️</p>'
       }
+      let videoData;
       if (pageType == "w") {
         console.log("on a video page", pageId);
         videoName = idParts[0]
-        let videoData;
         try {
           videoData = await axios.get("/api/v1/videos/" + videoName);
         } catch {
@@ -53,7 +55,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }
       if (pageType == "my-account") {
         console.log("on my account page");
-
+        //TODO add dialog to manually set address or pubkey info
       }
       html = html + buttonText;
       const panel = document.createElement('div');
@@ -73,6 +75,7 @@ async function register({ registerHook, peertubeHelpers }) {
           document.getElementById("satbutton").onclick = async function () {
             let amount = document.getElementById('sats').value;
             let message = document.getElementById('message').value;
+            let from = document.getElementById('from').value;
             let walletApi = basePath + "/walletinfo";
             if (videoName) {
               if (instanceName) {
@@ -112,7 +115,8 @@ async function register({ registerHook, peertubeHelpers }) {
               console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
               return;
             }
-            SendSats(walletData, amount, message);
+           // SendSats(walletData, amount, message);
+           boost(walletData.data,amount,message,from, videoData);
           };
           clearInterval(timer);
         } else {
@@ -167,7 +171,9 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("custom records", paymentInfo.customRecords);
     await webln.keysend(paymentInfo);
   }
-  async function boost(amount, message, from) {
+  async function boost(walletData, amount, message, from, videoData) {
+    await webln.enable();
+    console.log("boosting",walletData, amount,message,from,videoData);
     if (!message) {
       message = ":)";
     }
@@ -181,41 +187,41 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!from) {
       from = "Anon";
     }
-    await webln.enable();
-    console.log("---------------\n", "webln enabled");
-    let api = "https://lawsplaining.peertube.biz/plugins/lightning/router/walletinfo"
-    if (accountName) {
-      api = api + "?account=" + accountName;
-    }
-    let walletData = await axios.get(api);
-    console.log(walletData.data);
-
-    let pubKey = walletData.data.pubkey;
-    let tag = walletData.data.tag;
-    let customKey = walletData.data.customData[0].customKey;
-    let customValue = walletData.data.customData[0].customValue;
+    console.log("parameters normalized");
+    let pubKey = walletData.pubkey;
+    let tag = walletData.tag;
+    let customKey = walletData.customData[0].customKey;
+    let customValue = walletData.customData[0].customValue;
+    console.log("wallet variables set");
     const boost = {
-      696969: customValue,
       action: "boost",
-      value_msat: 1000,
-      value_msat_total: 1000,
+      value_msat: amount*1000,
+      value_msat_total: amount*1000,
       app_name: "PeerTube",
       app_version: "1.0",
       name: "PeerTube",
-      sender_name: "PeerTube",
-      message: message
+      sender_name: from,
+      message: message,
+
     };
+    console.log("basic boost created");
+    if (videoData){
+      boost.podcast= videoData.data.channel.name;
+      boost.episode= videoData.data.name;
+    }
+    console.log("video boost updated");
     let paymentInfo = {
       destination: pubKey,
       amount: amount,
       customRecords: {
-        7629169: boost,
-        696969: customValue,
+        7629169: JSON.stringify(boost),
+        "696969" : customValue,
       }
     };
     console.log("payment info", paymentInfo);
-    console.log("parts", paymentInfo.destination, paymentInfo.amount);
-    console.log("custom records", paymentInfo.customRecords);
+    //console.log("settings", await peertubeHelpers.getSettings());
+    //console.log("parts", paymentInfo.destination, paymentInfo.amount);
+    //console.log("custom records", paymentInfo.customRecords);
     await webln.keysend(paymentInfo);
   }
 }
