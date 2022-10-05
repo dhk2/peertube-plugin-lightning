@@ -7,9 +7,6 @@ async function register({
   peertubeHelpers,
   settingsManager,
   storageManager,
-  videoCategoryManager,
-  videoLicenceManager,
-  videoLanguageManager
 }) {
   /*
     registerSetting({
@@ -39,126 +36,171 @@ async function register({
     type: 'input',
     private: true
   })
+  var base = peertubeHelpers.config.getWebserverUrl();
   let lightningAddress = await settingsManager.getSetting("lightning-address");
-  let walletHost = lightningAddress.substring(lightningAddress.indexOf('@') + 1);
-  let walletUser = lightningAddress.substring(0, lightningAddress.indexOf('@'));
-  console.log("-------------------\n wallet host:", walletHost, "\n wallet user", walletUser);
-  let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
-  let walletData = await axios.get(apiRequest)
-  //console.log("-------------------\n Api data:",walletData);
-  if (walletData.data.status != "OK") {
-    console.log("------------------ \n Error getting lightning address data");
+  if (!lightningAddress) {
+    console.log("No wallet configured for system");
     return;
   }
-  let pubKey = walletData.data.pubkey;
-  let tag = walletData.data.tag;
-  let customKey = walletData.data.customData[0].customKey;
-  let customValue = walletData.data.customData[0].customValue;
+  if (lightningAddress.indexOf("@") < 1) {
+    console.log("malformed wallet address for system", lightningAddress);
+    return;
+  }
+  let hostWalletData = await getWalletInfo(lightningAddress);
+  if (!hostWalletData) {
+    console.log("failed to get system wallet data from provider");
+    return;
+  }
+  /*
+  let pubKey = walletData.pubkey;
+  let tag = walletData.tag;
+  let customKey = walletData.customData[0].customKey;
+  let customValue = walletData.customData[0].customValue;
+  */
   const router = getRouter();
-  router.use('/tip', async (req, res) => {
-
-    var tipHtml = "<html>\n<head>\n";
-    tipHtml = tipHtml + '<meta name=”lightning” content=”lnurlp:”' + lightningAddress + '/>';
-    tipHtml = tipHtml + '<meta property=”og:image” content=”https://commons.wikimedia.org/wiki/File:Logopeertube.png” /> '
-    tipHtml = tipHtml + "</head>\n";
-    tipHtml = tipHtml + "<body>key " + pubKey + "<br>tag " + tag + "<br> custom key " + customKey + "<br> custom value " + customValue;
-    tipHtml
-    tipHtml = tipHtml + "\n</body>\n</html>";
-    return res.status(200).send(tipHtml);
-
-  })
-
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
+    console.log(req.query);
+    if (Object.keys(req.query).length === 0){
+      console.log("returning instance wallet for donation");
+      return res.status(200).send(hostWalletData);
+    }
     //console.log("███wrecked", req);
+    if (req.query.account && !req.query.update) {
+      var accountLightning = await storageManager.getData("lightning" + "-" + req.query.account);
+      console.log("retrieved stored lighting info", accountLightning);
+      if (accountLightning) {
+        if (accountLightning) {
+          return res.status(200).send(accountLightning);
+        } else {
+          if (accountLightning.address) {
+            let walletData = await getWalletInfo(accountLightning.address);
+            if (!walletData) {
+              console.log("stored address configured, but failed to get data from provider", accountLightning.address);
+            } else {
+              if (walletData.status == "OK") {
+                storageManager.storeData("lightning" + "-" + req.query.account, walletData);
+                return res.status(200).send(walletData);
+              } else {
+                console.log("error returned from provider for stored address", walletData);
+              }
+            }
+          }
+        }
+      }
+    }
     if (req.query.video) {
-      apiCall = "https://lawsplaining.peertube.biz/api/v1/videos/" + req.query.video;
-      console.log("█", apiCall);
-      let videoData = await axios.get(apiCall);
-      //console.log("███",accountData);
-      let bolt = await findLightningAddress(videoData.data.description);
-      console.log("[" + bolt + ']');
-      let boltParts = bolt.toString().split("@");
-      console.log("boltparts",boltParts);
-      if (boltParts[1]) {
-        console.log("possible valid lighting address:", boltParts);
-        let walletHost = boltParts[1];
-        let walletUser = boltParts[0];
-        console.log("-------------------\n wallet host:", walletHost, "\n wallet user", walletUser);
-        let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
-        console.log(apiRequest);
-        let wallet = await axios.get(apiRequest);
-        console.log(wallet.data);
-        return res.status(200).send(wallet.data);
+      apiCall = base + "/api/v1/videos/" + req.query.video;
+      console.log("█ getting video data", apiCall);
+      let videoData;
+      try {
+         videoData = await axios.get(apiCall);
+      } catch {
+        console.log("failed to pull information for provided video id", apiCall);
       }
-      if (!req.query.channel) {
-        req.query.channel = videoData.channel.name;
-      }
-      if (!req.query.account) {
-        req.query.account = videoData.account.name;
+      if (videoData) {
+        let bolt = await findLightningAddress(videoData.data.description);
+        if (bolt) {
+          console.log("lightning address found in video description [" + bolt + ']');
+          let walletData = await getWalletInfo(bolt);
+          if (walletData) {
+            console.log("successfully retrieved data for wallet in video", videoData.data.account.name, walletData);
+            storageManager.storeData("lightning" + "-" + videoData.data.account.name, walletData);
+            return res.status(200).send(walletData);
+          } else {
+            console.log("failed to get wallet info from address in video",bolt);
+          }
+        } else {
+          console.log("no lightning address found in video description");
+        }
       }
     }
     if (req.query.channel) {
-      apiCall = "https://lawsplaining.peertube.biz/api/v1/video-channels/" + req.query.channel;
-      console.log("█", apiCall);
-      let channelData = await axios.get(apiCall);
-      //console.log("███",accountData);
-      let bolt = await findLightningAddress(channelData.data.description);
-      let boltParts = bolt.split("@");
-      console.log("boltparts:",boltParts);
-      if (boltParts[1]) {
-        console.log("possible valid lighting address:", boltParts);
-        let walletHost = boltParts[1];
-        let walletUser = boltParts[0];
-        console.log("-------------------\n wallet host:", walletHost, "\n wallet user", walletUser);
-        let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
-        let wallet = await axios.get(apiRequest);
-        console.log(wallet.data);
-        return res.status(200).send(wallet.data);
+      apiCall = base+"/api/v1/video-channels/" + req.query.channel;
+       console.log("█ getting channel data", apiCall);
+      let channelData;
+      try {
+         channelData = await axios.get(apiCall);
+      } catch {
+        console.log("failed to pull information for provided channel id", apiCall);
       }
-      if (!req.query.account) {
-        //req.query.account = channelData.
+      if (channelData) {
+        let bolt = await findLightningAddress(channelData.data.description);
+        if (bolt) {
+          console.log("lightning address found in channel description [" + bolt + ']');
+          let walletData = await getWalletInfo(bolt);
+          if (walletData) {
+            console.log("successfully retrieved data for wallet in channel", channelData.data.name, walletData);
+            return res.status(200).send(walletData);
+          } else {
+            console.log("failed to get wallet info from address in channel",bolt);
+          }
+        } else {
+          console.log("no lightning address found in channel description");
+        }
       }
     }
     if (req.query.account) {
-      apiCall = "https://lawsplaining.peertube.biz/api/v1/accounts/" + req.query.account;
-      console.log("█", apiCall);
-      let accountData = await axios.get(apiCall);
-      //console.log("███",accountData);
-      let bolt = await findLightningAddress(accountData.data.description);
-      console.log("returned address",bolt);
-      let boltParts = bolt.split("@");
-      if (boltParts[1]) {
-        console.log("possible valid lighting address:", boltParts);
-        let walletHost = boltParts[1];
-        let walletUser = boltParts[0];
-        console.log("-------------------\n wallet host:", walletHost, "\n wallet user", walletUser);
-        let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
-        let wallet = await axios.get(apiRequest);
-        console.log(wallet.data);
-        return res.status(200).send(wallet.data);
+      apiCall = base+"/api/v1/accounts/" + req.query.account;
+       console.log("█ getting account data", apiCall);
+      let accountData;
+      try {
+         accountData = await axios.get(apiCall);
+      } catch {
+        console.log("failed to pull information for provided account id", apiCall);
+      }
+      if (accountData) {
+        let bolt = await findLightningAddress(accountData.data.description);
+        if (bolt) {
+          console.log("lightning address found in account description [" + bolt + ']');
+          let walletData = await getWalletInfo(bolt);
+          if (walletData) {
+            storageManager.storeData("lightning" + "-" + req.query.account, walletData);
+            console.log("successfully retrieved data for wallet in account", req.query.account, walletData);
+            return res.status(200).send(walletData);
+          } else {
+            console.log("failed to get wallet info from address in account",bolt);
+          }
+        } else {
+          console.log("no lightning address found in account description");
+        }
       }
     }
-    return res.status(200).send(walletData.data);
-    /*
-    if (req.query.account) {
-      if (req.query.account == 'nick') {
-        return res.status(200).send({ "status": "OK", "tag": "keysend", "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3", "customData": [{ "customKey": "696969", "customValue": "LgG0L9WZICAZvKaJKKQS" }] });
-      } else {
-        return res.status(404).send({ "status": "404 not found" });
-      }
-    }
-    
-    */
+    console.log("no address found at all, sucka");
+    return res.status(400).send();
   })
+  async function getWalletInfo(address) {
+    if (!address){return};
+    console.log(address);
+    address = address.toString();
+    let walletParts = address.split("@");
+    let walletHost = walletParts[1];
+    let walletUser = walletParts[0];
+    let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
+    //console.log("requesting wallet data from provider",apiRequest);
+    let walletData;
+    try {
+      walletData = await axios.get(apiRequest);
+    } catch {
+      console.log("error attempting to get wallet info", apiRequest)
+      return;
+    }
+    if (walletData.data.status != "OK") {
+      console.log("------------------ \n Error in lightning address data", walletData.data);
+      return;
+    }
+    return walletData.data;
+  }
   async function findLightningAddress(textBlock) {
+    if (!textBlock){return};
     bolt = textBlock.indexOf('⚡️');
     console.log(bolt);
     let hack = textBlock.substring(bolt + 2);
     console.log('[' + hack + ']');
+    // regex found on stack overflow, it's all black magic to me, but works better than my attempt
     let hack2 = await hack.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi);
     console.log('[' + hack2 + ']');
-    return hack2.toString();
+    return hack2;
     /*
     let space = hack.indexOf(' ');
     if (space > 0) {

@@ -130,7 +130,7 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
         */
-      }, 1)
+      }, 1);
     }
   })
   async function SendSats(walletData, amount, message, name) {
