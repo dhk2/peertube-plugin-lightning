@@ -73,6 +73,7 @@ async function register({ registerHook, peertubeHelpers }) {
           }
 
           document.getElementById("satbutton").onclick = async function () {
+            
             let amount = document.getElementById('sats').value;
             let message = document.getElementById('message').value;
             let from = document.getElementById('from').value;
