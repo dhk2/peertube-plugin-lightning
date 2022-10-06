@@ -105,7 +105,7 @@ async function register({ registerHook, peertubeHelpers }) {
               console.log("client unable to fetch wallet data\n", walletApi);
               peertubeHelpers.showModal({
                 title: 'Unable to send tip',
-                content: 'Unable to find any wallet info for ' + accountName,
+                content: 'Unable to find any wallet info for ' + idParts[0],
                 confirm: {
                   value: 'OK'
                 }
