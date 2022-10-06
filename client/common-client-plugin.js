@@ -2,9 +2,11 @@ import axios from 'axios';
 
 async function register({ registerHook, peertubeHelpers }) {
   var basePath = await peertubeHelpers.getBaseRouterRoute();
+  var timer;
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
+      clearInterval(timer);
       var accountName, channelName, videoName, instanceName, buttonText;
       let element = document.querySelector('.lightning-button')
       if (element != null) {
@@ -18,7 +20,7 @@ async function register({ registerHook, peertubeHelpers }) {
       <input type="text" id="sats" name="sats" maxLength="8">
       <label for="sats"> Sats</label><br>`;
       console.log(path);
-      let paths = path.split("/");
+      let paths = (path+"/").split("/");
       let pageType = paths[1];
       let pageId = paths[2];
       let idParts = pageId.split("@");
@@ -63,7 +65,7 @@ async function register({ registerHook, peertubeHelpers }) {
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
       panel.id = pageType;
       panel.innerHTML = html;
-      let timer = setInterval(async function () {
+      timer = setInterval(async function () {
         if ((document.querySelector('.top-menu .lightning-button') === null)) {
           const topMenu = document.querySelector('.top-menu');
           console.log("topmenu", topMenu);
@@ -73,7 +75,6 @@ async function register({ registerHook, peertubeHelpers }) {
           }
 
           document.getElementById("satbutton").onclick = async function () {
-            
             let amount = document.getElementById('sats').value;
             let message = document.getElementById('message').value;
             let from = document.getElementById('from').value;
@@ -119,7 +120,7 @@ async function register({ registerHook, peertubeHelpers }) {
            // SendSats(walletData, amount, message);
            boost(walletData.data,amount,message,from, videoData);
           };
-          clearInterval(timer);
+
         } else {
 
         }
