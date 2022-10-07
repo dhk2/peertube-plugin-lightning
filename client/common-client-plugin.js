@@ -7,18 +7,27 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
       clearInterval(timer);
-      var accountName, channelName, videoName, instanceName, buttonText;
+      var accountName, channelName, videoName, instanceName, buttonText,button;
       let element = document.querySelector('.lightning-button')
       if (element != null) {
         element.remove();
       }
+
+
+
+      
       let html = `
+      <div _ngcontent-cav-c133="" class="lighting-buttons-block ng-star-inserted">
+        <p _ngcontent-cav-c133="" display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="Boostagram">boostagram</p>
+        </div>
+        <div id="satdialog">
       <label for="from">From:</label><br>
-      <input type="text" id="from" name="from" maxLength="28"><br><br>
+      <input type="text" id="from" name="from" maxLength="28"><br>
       <label for="message">Message:</label><br>
       <input type="text" id="message" name="message" maxLength="128"><br><br>
       <input type="text" id="sats" name="sats" maxLength="8">
-      <label for="sats"> Sats</label><br>`;
+      <label for="sats"> Sats</label><br><br>
+      `;
       console.log(path);
       let paths = (path+"/").split("/");
       let pageType = paths[1];
@@ -26,17 +35,17 @@ async function register({ registerHook, peertubeHelpers }) {
       let idParts = pageId.split("@");
       instanceName = idParts[1];
       console.log("path parsing info", pageType, pageId, idParts);
-      buttonText = '<p id="satbutton">⚡️Donate⚡️</p>'
+      buttonText = '⚡️Donate to '+location.hostname+'⚡️';
       if (pageType == "a") {
         console.log("on an account page", pageId);
         accountName = idParts[0];
-        buttonText = '<p id="satbutton">⚡️Tip ' + accountName + '⚡️</p>'
+        buttonText = '⚡️Boost ' + accountName + '⚡️'
 
       }
       if (pageType == "c") {
         console.log("on a channel page", pageId);
         channelName = idParts[0]
-        buttonText = '<p id="satbutton">⚡️Tip ' + channelName + '⚡️</p>'
+        buttonText = '⚡️Boost' + channelName + '⚡️'
       }
       let videoData;
       if (pageType == "w") {
@@ -47,19 +56,24 @@ async function register({ registerHook, peertubeHelpers }) {
         } catch {
           console.log("error getting data for video", videoName);
         }
-        console.log(videoData.data);
+        //console.log(videoData.data);
         accountName = videoData.data.account.name;
         channelName = videoData.data.channel.name;
         if (location.hostname != videoData.data.account.host) {
           instanceName = videoData.data.account.host;
         }
-        buttonText = '<p id="satbutton">⚡️Tip ' + accountName + '⚡️</p>'
+        buttonText = '⚡️Boost ' + accountName + '⚡️';
       }
+      button =` 
+      <div _ngcontent-cav-c133="" class="lighting-buttons-block ng-star-inserted">
+      <p id = "satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+buttonText+`</p>
+      </div>
+      `
       if (pageType == "my-account") {
         console.log("on my account page");
         //TODO add dialog to manually set address or pubkey info
       }
-      html = html + buttonText;
+      html = html + button+'</div>';
       const panel = document.createElement('div');
       panel.setAttribute('class', 'lightning-button');
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -73,50 +87,68 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("insterting panel into topmenu", panel)
             topMenu.appendChild(panel);
           }
+          let dialogElement = document.getElementById("satdialog");
+          dialogElement.style.display = "none"
+          console.log(dialogElement);
+          document.getElementById("boostagram").onclick = async function () {
+            console.log(dialogElement.style);
+            if (dialogElement.style.display !== "none") {
+              dialogElement.style.display = "none";
+            } else {
+              dialogElement.style.display = "block";
+            }
+          };
+          let walletApi = basePath + "/walletinfo";
+          if (videoName) {
+            if (instanceName) {
+              walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
+            } else {
+              walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
+            }
+          } else {
+            if (accountName) {
+              walletApi = walletApi + "?account=" + accountName;
+            }
+            if (channelName) {
+              walletApi = walletApi + "?channel=" + channelName;
+            }
+            if (instanceName) {
+              walletApi = walletApi + "@" + instanceName;
+            }
+          }
+
+          console.log("api call for wallet info", walletApi);
+          let walletData;
+          try {
+            walletData = await axios.get(walletApi);
+            document.getElementById("boostagram").style.display ="block";
+          } catch {
+            console.log("client unable to fetch wallet data\n", walletApi);
+            /*
+            peertubeHelpers.showModal({
+              title: 'Unable to send tip',
+              content: 'Unable to find any wallet info for ' + idParts[0],
+              confirm: {
+                value: 'OK'
+              }
+            })
+            */
+            document.getElementById("boostagram").style.display ="none";
+            return;
+          } 
+          console.log("returned wallet data", walletData.data);
+          if (walletData.data.status != 'OK') {
+            console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
+            return;
+          }
+
+
 
           document.getElementById("satbutton").onclick = async function () {
             let amount = document.getElementById('sats').value;
             let message = document.getElementById('message').value;
             let from = document.getElementById('from').value;
-            let walletApi = basePath + "/walletinfo";
-            if (videoName) {
-              if (instanceName) {
-                walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
-              } else {
-                walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
-              }
-            } else {
-              if (accountName) {
-                walletApi = walletApi + "?account=" + accountName;
-              }
-              if (channelName) {
-                walletApi = walletApi + "?channel=" + channelName;
-              }
-              if (instanceName) {
-                walletApi = walletApi + "@" + instanceName;
-              }
-            }
 
-            console.log("api call for wallet info", walletApi);
-            let walletData;
-            try {
-              walletData = await axios.get(walletApi);
-            } catch {
-              console.log("client unable to fetch wallet data\n", walletApi);
-              peertubeHelpers.showModal({
-                title: 'Unable to send tip',
-                content: 'Unable to find any wallet info for ' + idParts[0],
-                confirm: {
-                  value: 'OK'
-                }
-              })
-              return;
-            }
-            console.log("returned wallet data", walletData.data);
-            if (walletData.data.status != 'OK') {
-              console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
-              return;
-            }
            // SendSats(walletData, amount, message);
            boost(walletData.data,amount,message,from, videoData);
           };
