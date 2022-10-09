@@ -131,9 +131,9 @@ async function register({
           console.log("lightning address found in video description [" + bolt + ']');
           let walletData = await getWalletInfo(bolt);
           if (walletData) {
-            let videoLightning={};
-            videoLightning.address=bolt;
-            videoLightning.data=walletData;
+            let videoLightning = {};
+            videoLightning.address = bolt;
+            videoLightning.data = walletData;
             console.log("successfully retrieved data for wallet in video", videoData.data.channel.name, videoLightning);
             storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
             return res.status(200).send(walletData);
@@ -160,9 +160,9 @@ async function register({
           console.log("lightning address found in channel description [" + bolt + ']');
           let walletData = await getWalletInfo(bolt);
           if (walletData) {
-            let channelLightning={};
-            channelLightning.address=bolt;
-            channelLightning.data=walletData;
+            let channelLightning = {};
+            channelLightning.address = bolt;
+            channelLightning.data = walletData;
             console.log("successfully retrieved data for wallet in channel", channelLightning);
             storageManager.storeData("lightning" + "-" + channelData.data.name, channelLightning);
             return res.status(200).send(walletData);
@@ -189,9 +189,9 @@ async function register({
           console.log("lightning address found in account description [" + bolt + ']');
           let walletData = await getWalletInfo(bolt);
           if (walletData) {
-            let accountLightning={};
-            accountLightning.address=bolt;
-            accountLightning.data=walletData;
+            let accountLightning = {};
+            accountLightning.address = bolt;
+            accountLightning.data = walletData;
             storageManager.storeData("lightning" + "-" + req.query.account, accountLightning);
             console.log("successfully retrieved data for wallet in account", accountLightning);
             return res.status(200).send(walletData);
@@ -317,20 +317,20 @@ async function register({
 
   })
   router.use('/setWallet', async (req, res) => {
-    if (!req.query.key){
+    if (!req.query.key) {
       return res.status(400).send("missing key");
     }
-    if (req.query.address){
+    if (req.query.address) {
       let walletInfo = getWalletInfo(req.query.address);
-      if (walletInfo){
-        let lightning={};
-        lightning.address=req.query.address;
-        lightning.data=newData
-        console.log("███saving wallet data", req.query.key,lightning);
+      if (walletInfo) {
+        let lightning = {};
+        lightning.address = req.query.address;
+        lightning.data = newData
+        console.log("███saving wallet data", req.query.key, lightning);
         storageManager.storeData("lightning" + "-" + req.query.key, lightning);
         return res.status(200).send(lightning);
       } else {
-        console.log("failed to get wallet info for provided address",req.query.address);
+        console.log("failed to get wallet info for provided address", req.query.address);
         return res.status(400).send();
       }
     }
@@ -355,19 +355,58 @@ async function register({
         customKey: req.query.customkey,
         customValue: req.query.customvalue,
       }
-      let customDataArray =[];
+      let customDataArray = [];
       customDataArray.push(customData);
       newData.customData = customDataArray;
     }
-    let lightning={};
-    lightning.data=newData
-    console.log("███saving wallet data", req.query.key,lightning);
+    let lightning = {};
+    lightning.data = newData
+    console.log("███saving wallet data", req.query.key, lightning);
     storageManager.storeData("lightning" + "-" + req.query.key, lightning);
     return res.status(200).send(lightning);
   })
+  /*
+  router.use('/splitinfo', async (req, res) => {
+    console.log("█Request for split info\n", req.query)
+    if (req.query.key) {
+      var splitData[] = await storageManager.getData("lightningsplit" + "-" + req.query.key);
+      console.log("█retrieved split info", key);
+      if (splitData) {
+        console.log("returning stored data", splitData);
+        return res.status(200).send(splitData);
+      } else {
+        return res.status(400).send();
+      }
+    }
+    console.log("no key to lookup split info for");
+    return res.status(400).send();
+  })
+  router.use('/setWallet', async (req, res) => {
+    if (!req.query.key) {
+      return res.status(400).send("missing key");
+    }
+    if (req.query.address) {
+      let walletInfo = getWalletInfo(req.query.address);
+      if (walletInfo) {
+        let lightning = {};
+        lightning.address = req.query.address;
+        lightning.data = newData
+        console.log("███saving wallet data", req.query.key, lightning);
+        storageManager.storeData("lightning" + "-" + req.query.key, lightning);
+        return res.status(200).send(lightning);
+      } else {
+        console.log("failed to get wallet info for provided address", req.query.address);
+        return res.status(400).send();
+      }
+    }
+  })
+
+*/
+
+
   async function getWalletInfo(address) {
     if (!address) { return };
-    console.log("█ getting wallet data",address);
+    console.log("█ getting wallet data", address);
     address = address.toString();
     let walletParts = address.split("@");
     let walletHost = walletParts[1];

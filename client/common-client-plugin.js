@@ -3,9 +3,7 @@ import axios from 'axios';
 async function register({ registerHook, peertubeHelpers }) {
   var basePath = await peertubeHelpers.getBaseRouterRoute();
   var menuTimer, streamTimer, streamEnabled, wallet, streamAmount, currentTime, userName;
-  streamAmount = 10;
-  userName = "anon";
-
+  streamAmount = 69;
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -15,6 +13,9 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
+      if (streamTimer){
+        clearInterval(streamTimer);
+      }
       let videoEl = player.el().getElementsByTagName('video')[0]
       console.log("adding player info hopefully", video.account, video.channel);
       let instanceName;
@@ -27,16 +28,47 @@ async function register({ registerHook, peertubeHelpers }) {
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
       if (walletData) {
         console.log(walletData);
+        const elem = document.createElement('div')
+        elem.className = 'lighting-buttons-block'
+        elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️Boostagram</a>
+                          <a  display:none id = "stream" class="peertube-button orange-button ng-star-inserted" title="stream">⚡️Stream Sats</a>`
+        
+        document.getElementById('plugin-placeholder-player-next').appendChild(elem)
+        let dialogElement = document.getElementById("satdialog");
+        let streamButtonElement = document.getElementById("streamdialog");
+        document.getElementById("boostagram").onclick = async function () {
+          console.log(dialogElement.style);
+          if (dialogElement.style.display !== "none") {
+            dialogElement.style.display = "none";
+          } else {
+            dialogElement.style.display = "block";
+          }
+        };
+        document.getElementById("stream").onclick = async function () {
+          //console.log(streamButtonElement.style);
+          if (streamButtonElement.style.display !== "none") {
+            streamButtonElement.style.display = "none";
+          } else {
+            streamButtonElement.style.display = "block";
+          }
+        };
         let lastStream = 0;
         let delta = 0;
         lastStream = videoEl.currentTime;
         streamTimer = setInterval(async function () {
           currentTime = videoEl.currentTime;
-          delta = currentTime - lastStream;
+          delta = (currentTime - lastStream).toFixed();
           console.log(delta);
-          if (delta < 61 && delta > 59) {
+          if (delta == 60) {
             console.log("time to pay piggie", delta, walletData);
+            if (streamEnabled){
+              let currentStreamAmount= document.getElementById('streamamount');
+              if (currentStreamAmount){
+                streamAmount = parseInt(currentStreamAmount.value);
+                console.log("setting stream amount to",streamAmount);
+              }
             boost(walletData, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
+            }
             lastStream = currentTime;
           }
           if (delta > 62 || delta < 0) {
@@ -63,10 +95,12 @@ async function register({ registerHook, peertubeHelpers }) {
 
 
       let html = `
-      <br><div _ngcontent-cav-c133="" class="lighting-buttons-block ng-star-inserted">
-       <p _ngcontent-cav-c133="" display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="Boostagram">boostagram</p>
-        </div>
-        <div id="satdialog">
+      <div id="streamdialog">
+      <input type="checkbox" id="streamsats" name="streamsats" value="streamsats">
+      <label>Stream Stats while viewing</label><br>
+      <input type="text" id="streamamount" name="streamamount" value="`+streamAmount+`" maxLength="7"><br>
+      </div>
+      <div id="satdialog">
       <form><label for="from">From:</label><br>
       <input type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
       <label for="message">Message:</label><br>
@@ -115,6 +149,7 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("on my account page");
         //TODO add dialog to manually set address or pubkey info
       }
+      
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName);
       if (walletData) {
         if (walletData.status != 'OK') {
@@ -134,6 +169,7 @@ async function register({ registerHook, peertubeHelpers }) {
         panel.id = pageType;
         panel.innerHTML = html;
         menuTimer = setInterval(async function () {
+
           if ((document.querySelector('.top-menu .lightning-button') === null)) {
             const topMenu = document.querySelector('.top-menu');
             console.log("topmenu", topMenu);
@@ -143,16 +179,6 @@ async function register({ registerHook, peertubeHelpers }) {
 
               let dialogElement = document.getElementById("satdialog");
               dialogElement.style.display = "none"
-              console.log(dialogElement);
-              document.getElementById("boostagram").onclick = async function () {
-                console.log(dialogElement.style);
-                if (dialogElement.style.display !== "none") {
-                  dialogElement.style.display = "none";
-                } else {
-                  dialogElement.style.display = "block";
-                }
-              };
-              document.getElementById("boostagram").style.display = "block";
               document.getElementById("satbutton").onclick = async function () {
                 let amount = document.getElementById('sats').value;
                 let message = document.getElementById('message').value;
@@ -163,6 +189,21 @@ async function register({ registerHook, peertubeHelpers }) {
                   episode = videoData.data.name;
                 }
                 boost(walletData, amount, message, from, displayName, episode, "boost");
+                document.getElementById("satdialog").style.display="none";
+                document.getElementById("message").value = "";
+              };
+              let dialog2Element = document.getElementById("streamdialog");
+              dialog2Element.style.display = "none"
+              let checker = document.getElementById("streamsats")
+              checker.onclick = async function () {
+                console.log(checker.checked);
+                streamEnabled = checker.checked;
+                let currentStreamAmount= document.getElementById('streamamount');
+                if (currentStreamAmount){
+                  streamAmount = parseInt(currentStreamAmount.value);
+                  console.log("setting stream amount to",streamAmount);
+                }
+                
               };
             }
           }
@@ -308,6 +349,7 @@ async function register({ registerHook, peertubeHelpers }) {
     //console.log("parts", paymentInfo.destination, paymentInfo.amount);
     //console.log("custom records", paymentInfo.customRecords);
     await webln.keysend(paymentInfo);
+   // document.getElementById("satbutton").style.display="none";
   }
 
   async function getWalletInfo(videoName, accountName, channelName, instanceName) {
@@ -345,6 +387,9 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     return walletData.data;
   }
+}
+async function alertUnsupport(){
+  
 }
 export {
   register
