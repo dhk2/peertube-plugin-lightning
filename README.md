@@ -4,9 +4,9 @@ making good progress.
 ----------     
 
 - Podcast 2.0 rss feed in progress
-- Webln with getalby done
-- Boostagrams done
-- Streaming payments done
+- Webln with getalby **done**
+- Boostagrams **done**
+- Streaming payments **done**
 - Splits in progress
 - Getalby API
 - User config page
@@ -19,5 +19,4 @@ making good progress.
 - Storage charges
 - Paid redundancy
 - Paid transcoding
-- 
 
