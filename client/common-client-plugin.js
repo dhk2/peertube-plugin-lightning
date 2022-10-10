@@ -4,6 +4,9 @@ async function register({ registerHook, peertubeHelpers }) {
   var basePath = await peertubeHelpers.getBaseRouterRoute();
   var menuTimer, streamTimer, streamEnabled, wallet, streamAmount, currentTime, userName;
   streamAmount = 69;
+  if (userName == undefined) {
+    userName = "PeerTuber";
+  }
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -13,7 +16,7 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
-      if (streamTimer){
+      if (streamTimer) {
         clearInterval(streamTimer);
       }
       let videoEl = player.el().getElementsByTagName('video')[0]
@@ -27,12 +30,12 @@ async function register({ registerHook, peertubeHelpers }) {
       let videoName = video.uuid;
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
       if (walletData) {
-        console.log(walletData);
+        console.log("got wallet data for adding buttons", walletData);
         const elem = document.createElement('div')
         elem.className = 'lighting-buttons-block'
         elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️Boostagram</a>
                           <a  display:none id = "stream" class="peertube-button orange-button ng-star-inserted" title="stream">⚡️Stream Sats</a>`
-        
+
         document.getElementById('plugin-placeholder-player-next').appendChild(elem)
         let dialogElement = document.getElementById("satdialog");
         let streamButtonElement = document.getElementById("streamdialog");
@@ -56,24 +59,30 @@ async function register({ registerHook, peertubeHelpers }) {
         let delta = 0;
         lastStream = videoEl.currentTime;
         streamTimer = setInterval(async function () {
-          currentTime = videoEl.currentTime;
-          delta = (currentTime - lastStream).toFixed();
-          console.log(delta);
-          if (delta == 60) {
-            console.log("time to pay piggie", delta, walletData);
-            if (streamEnabled){
-              let currentStreamAmount= document.getElementById('streamamount');
-              if (currentStreamAmount){
-                streamAmount = parseInt(currentStreamAmount.value);
-                console.log("setting stream amount to",streamAmount);
+          if (streamEnabled) {
+            currentTime = videoEl.currentTime;
+            delta = (currentTime - lastStream).toFixed();
+            console.log(delta);
+            if (delta == 60) {
+              console.log("time to pay piggie", delta, walletData);
+              if (streamEnabled) {
+                let currentStreamAmount = document.getElementById('streamamount');
+                if (currentStreamAmount) {
+                  streamAmount = parseInt(currentStreamAmount.value);
+                  console.log("setting stream amount to", streamAmount);
+                }
+                if (walletData.keysend) {
+                  boost(walletData, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
+                } else if (walletData.lnurl) {
+                  sendSats(walletData.lnurl, amount, message, userName);
+                }
               }
-            boost(walletData, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
+              lastStream = currentTime;
             }
-            lastStream = currentTime;
-          }
-          if (delta > 62 || delta < 0) {
-            console.log("probably scrubbed, resetting stream clock");
-            lastStream = currentTime;
+            if (delta > 62 || delta < 0) {
+              console.log("probably scrubbed, resetting stream clock");
+              lastStream = currentTime;
+            }
           }
         }, 1000);
       }
@@ -87,18 +96,18 @@ async function register({ registerHook, peertubeHelpers }) {
       clearInterval(menuTimer);
       var accountName, channelName, videoName, instanceName, buttonText, button;
       let element = document.querySelector('.lightning-button')
-      if (element != null) {
+      /*if (element != null) {
         element.remove();
       }
+*/
 
 
-
-
+      console.log("creating html for left side menu", streamAmount, userName);
       let html = `
       <div id="streamdialog">
       <input type="checkbox" id="streamsats" name="streamsats" value="streamsats">
       <label>Stream Stats while viewing</label><br>
-      <input type="text" id="streamamount" name="streamamount" value="`+streamAmount+`" maxLength="7"><br>
+      <input type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" maxLength="7"><br>
       </div>
       <div id="satdialog">
       <form><label for="from">From:</label><br>
@@ -108,7 +117,7 @@ async function register({ registerHook, peertubeHelpers }) {
       <input type="text" id="sats" name="sats" maxLength="8">
       <label for="sats"> Sats</label><br><br></form>
       `;
-      console.log(path);
+      console.log("navigation path entered", path);
       let paths = (path + "/").split("/");
       let pageType = paths[1];
       let pageId = paths[2];
@@ -149,11 +158,12 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("on my account page");
         //TODO add dialog to manually set address or pubkey info
       }
-      
+      console.log("finished created left menu html", html);
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName);
       if (walletData) {
-        if (walletData.status != 'OK') {
-          console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
+        console.log("get wallet data for creating block on left menu", walletData);
+        if (!walletData.address) {
+          console.log("server Unable to get wallet for", accountName, "\n", walletData);
           return;
         }
         button = ` 
@@ -172,7 +182,7 @@ async function register({ registerHook, peertubeHelpers }) {
 
           if ((document.querySelector('.top-menu .lightning-button') === null)) {
             const topMenu = document.querySelector('.top-menu');
-            console.log("topmenu", topMenu);
+            //console.log("topmenu", topMenu);
             if (topMenu) {
               console.log("insterting panel into topmenu", panel)
               topMenu.appendChild(panel);
@@ -188,8 +198,13 @@ async function register({ registerHook, peertubeHelpers }) {
                   displayName = videoData.data.channel.displayName;
                   episode = videoData.data.name;
                 }
-                boost(walletData, amount, message, from, displayName, episode, "boost");
-                document.getElementById("satdialog").style.display="none";
+                if (walletData.keysend) {
+                  boost(walletData.keysend, amount, message, from, userName, episode, "boost");
+
+                } else if (walletData.lnurl) {
+                  sendSats(walletData.lnurl, amount, message, displayName);
+                }
+                document.getElementById("satdialog").style.display = "none";
                 document.getElementById("message").value = "";
               };
               let dialog2Element = document.getElementById("streamdialog");
@@ -198,12 +213,12 @@ async function register({ registerHook, peertubeHelpers }) {
               checker.onclick = async function () {
                 console.log(checker.checked);
                 streamEnabled = checker.checked;
-                let currentStreamAmount= document.getElementById('streamamount');
-                if (currentStreamAmount){
+                let currentStreamAmount = document.getElementById('streamamount');
+                if (currentStreamAmount) {
                   streamAmount = parseInt(currentStreamAmount.value);
-                  console.log("setting stream amount to",streamAmount);
+                  console.log("setting stream amount to", streamAmount);
                 }
-                
+
               };
             }
           }
@@ -211,7 +226,8 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
   })
-  async function SendSats(walletData, amount, message, name) {
+  async function sendSats(walletData, amount, message, from) {
+    let result;
     if (!message) {
       message = ":)";
     }
@@ -219,11 +235,27 @@ async function register({ registerHook, peertubeHelpers }) {
       amount = "69";
     }
     console.log("parsint", parseInt(amount));
-    if (parseInt(amount) < 1) {
-      amount = "69";
+    if (parseInt(amount) < parseInt(walletData.minSendable)) {
+      await peertubeHelpers.showModal({
+        title: 'boost doesnt meet minimum limit of ' + walletData.minSendable,
+        content: `Would you like to raise amount to the minimum allowed?`,
+        close: true,
+        cancel: { value: 'cancel', action: () => { return } },
+        confirm: { value: 'confirm', action: () => { amount = walletData.minSendable } },
+      })
+    }
+    if (parseInt(amount) > parseInt(walletData.maxSendable)) {
+      await peertubeHelpers.showModal({
+        title: 'boost is over the minimum limit of ' + walletData.maxSendable,
+        content: `Would you like to lower the amount to the minimum allowed?`,
+        close: true,
+        cancel: { value: 'cancel', action: () => { return } },
+        confirm: { value: 'confirm', action: () => { amount = walletData.maxSendable } },
+      })
     }
     try {
       let supported = await webln.enable();
+      console.log("webln is supported", supported, walletData);
     } catch {
       peertubeHelpers.showModal({
         title: 'No WebLN provider found',
@@ -240,25 +272,22 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     console.log("---------------\n", "webln enabled");
     //TODO properly build this
-
-    let pubKey = walletData.pubkey;
-    let tag = walletData.tag;
-    let customKey = walletData.customData[0].customKey;
-    let customValue = walletData.customData[0].customValue;
-    let paymentInfo = {
-      destination: pubKey,
-      amount: amount,
-      customRecords: {
-        "34349334": message,
-        "696969": customValue,
-      }
+    let urlCallback = encodeURI(walletData.callback);
+    let urlFrom = encodeURIComponent(from);
+    let urlMessage = encodeURIComponent(message);
+    let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount + "&name=" + urlFrom + "&message=" + urlMessage;
+    console.log("invoice api", invoiceApi);
+    try {
+      result = await axios.get(invoiceApi);
+    } catch (err) {
+      console.log("error getting lnurl invoice");
     }
+    console.log("result.data", result.data);
+    let invoice = result.data.pr;
+    console.log("invoice", invoice);
+    result = await window.webln.sendPayment(invoice);
+    console.log(result);
 
-
-    console.log("payment info", paymentInfo);
-    console.log("parts", paymentInfo.destination, paymentInfo.amount);
-    console.log("custom records", paymentInfo.customRecords);
-    await webln.keysend(paymentInfo);
   }
   async function boost(walletData, amount, message, from, channel, episode, type) {
     try {
@@ -295,7 +324,7 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!type) {
       type = "boost";
     }
-    console.log("parameters normalized");
+    console.log("parameters normalized", walletData);
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
     let customKey, customValue
@@ -313,10 +342,12 @@ async function register({ registerHook, peertubeHelpers }) {
       name: "PeerTube",
       sender_name: from,
       message: message,
-      ts: currentTime.toFixed()
     };
     console.log(boost);
     console.log("basic boost created");
+    if (currentTime) {
+      boost.ts = currentTime.toFixed();
+    }
     if (channel) {
       boost.podcast = channel;
     }
@@ -345,11 +376,16 @@ async function register({ registerHook, peertubeHelpers }) {
       };
     }
     console.log("payment info", paymentInfo);
-    //console.log("settings", await peertubeHelpers.getSettings());
-    //console.log("parts", paymentInfo.destination, paymentInfo.amount);
-    //console.log("custom records", paymentInfo.customRecords);
-    await webln.keysend(paymentInfo);
-   // document.getElementById("satbutton").style.display="none";
+    let result;
+    try {
+      result = await webln.keysend(paymentInfo);
+    } catch (err) {
+      console.log("error attempting to send sats", err.message);
+      //console.log("full error ",err);
+      //TODO add invoice dialog at this point
+    }
+    // document.getElementById("satbutton").style.display="none";
+    console.log(result);
   }
 
   async function getWalletInfo(videoName, accountName, channelName, instanceName) {
@@ -381,15 +417,17 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     console.log("returned wallet data", walletData.data);
-    if (walletData.data.status != 'OK') {
-      console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
-      return;
-    }
+    /*
+       if (walletData.data.status != 'OK') {
+         console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
+         return;
+       }
+    */
     return walletData.data;
   }
 }
-async function alertUnsupport(){
-  
+async function alertUnsupport() {
+
 }
 export {
   register
