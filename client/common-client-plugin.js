@@ -78,7 +78,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 if (walletData.keysend) {
                   boost(walletData.keysend, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
                 } else if (walletData.lnurl) {
-                  sendSats(walletData.lnurl, streamAmount, null, userName);
+                  sendSats(walletData.lnurl, streamAmount, "Streaming Sats", userName);
                   walletData = await refreshWalletInfo(walletData.address);
                 }
               }
@@ -207,7 +207,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   boost(walletData.keysend, amount, message, from, displayName, episode, "boost");
 
                 } else if (walletData.lnurl) {
-                  sendSats(walletData.lnurl, amount, message, displayName);
+                  sendSats(walletData.lnurl, amount, message, userName);
                   walletData = await refreshWalletInfo(walletData.address);
                 }
                 document.getElementById("satdialog").style.display = "none";
@@ -235,9 +235,15 @@ async function register({ registerHook, peertubeHelpers }) {
   })
   async function sendSats(walletData, amount, message, from) {
     let result;
-    if (!message) {
-      message = ":)";
+    if (!from) {
+      from = "";
+    } else {
+      from = from + ": ";
     }
+    if (!message) {
+      message = "";
+    }
+    let comment = from + message;
     if (!parseInt(amount)) {
       amount = "69";
     }
@@ -284,8 +290,11 @@ async function register({ registerHook, peertubeHelpers }) {
     let urlCallback = encodeURI(walletData.callback);
     //let urlFrom = encodeURIComponent(from);
 
-    let urlMessage = encodeURIComponent(from + ": " + message);
-    let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount + "&message=" + urlMessage;
+    let urlComment = encodeURIComponent(comment);
+    let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount;
+    if (comment != "") {
+      invoiceApi = invoiceApi + "&message=" + urlComment;
+    }
     console.log("invoice api", invoiceApi);
     try {
       result = await axios.get(invoiceApi);

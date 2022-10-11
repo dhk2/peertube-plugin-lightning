@@ -181,11 +181,11 @@ async function register({
             walletData.address = foundLightningAddress;
             if (keysendData) {
               walletData.keysend = keysendData;
-              console.log("successfully retrieved keysend data for wallet in account", channelData.data.name, keysendData);
+              console.log("successfully retrieved keysend data for wallet in account", accountData.data.name, keysendData);
             } 
             if (lnurlData) {
                 walletData.lnurl = lnurlData;
-                console.log("successfully retrieved lnurl data for wallet in account", channelData.data.name, lnurlData);
+                console.log("successfully retrieved lnurl data for wallet in account", accountData.data.name, lnurlData);
               }
             return res.status(200).send(walletData);
           } else {
@@ -365,7 +365,7 @@ async function register({
   //let callback = decodeURI(req.query.callback);
   //let name=encodeURIComponent(req.query.name);
   let message=encodeURIComponent(req.query.message);
-  let invoiceRequest = req.query.callback+"?amount="+req.query.amount+"&comment"+message;
+  let invoiceRequest = req.query.callback+"?amount="+req.query.amount+"&comment="+message;
   console.log("invoice request url",invoiceRequest);
   let result;
   try {
