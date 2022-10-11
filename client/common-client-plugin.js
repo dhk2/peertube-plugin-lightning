@@ -20,7 +20,7 @@ async function register({ registerHook, peertubeHelpers }) {
         clearInterval(streamTimer);
       }
       let videoEl = player.el().getElementsByTagName('video')[0]
-      console.log("adding player info hopefully", video.account, video.channel);
+      //console.log("adding player info hopefully", video.account, video.channel);
       let instanceName;
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
@@ -40,21 +40,25 @@ async function register({ registerHook, peertubeHelpers }) {
         let dialogElement = document.getElementById("satdialog");
         let streamButtonElement = document.getElementById("streamdialog");
         document.getElementById("boostagram").onclick = async function () {
-          console.log(dialogElement.style);
-          if (dialogElement.style.display !== "none") {
-            dialogElement.style.display = "none";
-          } else {
-            dialogElement.style.display = "block";
+          if (dialogElement) {
+            if (dialogElement.style.display !== "none") {
+              dialogElement.style.display = "none";
+            } else {
+              dialogElement.style.display = "block";
+            }
           }
         };
         document.getElementById("stream").onclick = async function () {
           //console.log(streamButtonElement.style);
-          if (streamButtonElement.style.display !== "none") {
-            streamButtonElement.style.display = "none";
-          } else {
-            streamButtonElement.style.display = "block";
+          if (streamButtonElement) {
+            if (streamButtonElement.style.display !== "none") {
+              streamButtonElement.style.display = "none";
+            } else {
+              streamButtonElement.style.display = "block";
+            }
           }
         };
+
         let lastStream = 0;
         let delta = 0;
         lastStream = videoEl.currentTime;
@@ -63,7 +67,7 @@ async function register({ registerHook, peertubeHelpers }) {
             currentTime = videoEl.currentTime;
             delta = (currentTime - lastStream).toFixed();
             console.log(delta);
-            if (delta == 60) {
+            if (delta > 60 && delta < 64) {
               console.log("time to pay piggie", delta, walletData);
               if (streamEnabled) {
                 let currentStreamAmount = document.getElementById('streamamount');
@@ -72,14 +76,15 @@ async function register({ registerHook, peertubeHelpers }) {
                   console.log("setting stream amount to", streamAmount);
                 }
                 if (walletData.keysend) {
-                  boost(walletData, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
+                  boost(walletData.keysend, streamAmount, null, userName, video.channel.displayName, video.name, "stream");
                 } else if (walletData.lnurl) {
-                  sendSats(walletData.lnurl, amount, message, userName);
+                  sendSats(walletData.lnurl, streamAmount, null, userName);
+                  walletData = await refreshWalletInfo(walletData.address);
                 }
               }
               lastStream = currentTime;
             }
-            if (delta > 62 || delta < 0) {
+            if (delta > 63 || delta < 0) {
               console.log("probably scrubbed, resetting stream clock");
               lastStream = currentTime;
             }
@@ -199,10 +204,11 @@ async function register({ registerHook, peertubeHelpers }) {
                   episode = videoData.data.name;
                 }
                 if (walletData.keysend) {
-                  boost(walletData.keysend, amount, message, from, userName, episode, "boost");
+                  boost(walletData.keysend, amount, message, from, displayName, episode, "boost");
 
                 } else if (walletData.lnurl) {
                   sendSats(walletData.lnurl, amount, message, displayName);
+                  walletData = await refreshWalletInfo(walletData.address);
                 }
                 document.getElementById("satdialog").style.display = "none";
                 document.getElementById("message").value = "";
@@ -210,15 +216,16 @@ async function register({ registerHook, peertubeHelpers }) {
               let dialog2Element = document.getElementById("streamdialog");
               dialog2Element.style.display = "none"
               let checker = document.getElementById("streamsats")
-              checker.onclick = async function () {
-                console.log(checker.checked);
-                streamEnabled = checker.checked;
-                let currentStreamAmount = document.getElementById('streamamount');
-                if (currentStreamAmount) {
-                  streamAmount = parseInt(currentStreamAmount.value);
-                  console.log("setting stream amount to", streamAmount);
+              if (checker) {
+                checker.onclick = async function () {
+                  console.log(checker.checked);
+                  streamEnabled = checker.checked;
+                  let currentStreamAmount = document.getElementById('streamamount');
+                  if (currentStreamAmount) {
+                    streamAmount = parseInt(currentStreamAmount.value);
+                    console.log("setting stream amount to", streamAmount);
+                  }
                 }
-
               };
             }
           }
@@ -234,6 +241,8 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!parseInt(amount)) {
       amount = "69";
     }
+    //fixing millisats for lnpay
+    amount = amount * 1000
     console.log("parsint", parseInt(amount));
     if (parseInt(amount) < parseInt(walletData.minSendable)) {
       await peertubeHelpers.showModal({
@@ -273,9 +282,10 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("---------------\n", "webln enabled");
     //TODO properly build this
     let urlCallback = encodeURI(walletData.callback);
-    let urlFrom = encodeURIComponent(from);
-    let urlMessage = encodeURIComponent(message);
-    let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount + "&name=" + urlFrom + "&message=" + urlMessage;
+    //let urlFrom = encodeURIComponent(from);
+
+    let urlMessage = encodeURIComponent(from + ": " + message);
+    let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount + "&message=" + urlMessage;
     console.log("invoice api", invoiceApi);
     try {
       result = await axios.get(invoiceApi);
@@ -425,7 +435,30 @@ async function register({ registerHook, peertubeHelpers }) {
     */
     return walletData.data;
   }
+  async function refreshWalletInfo(address) {
+    if (address) {
+      if (address.indexOf("@") < 1) {
+        console.log("not a valid address")
+        return;
+      }
+      let walletApi = basePath + "/walletinfo?address=" + address;
+      console.log("api call for video wallet refresh", walletApi);
+      let walletData;
+      try {
+        walletData = await axios.get(walletApi);
+      } catch {
+        console.log("client unable to fetch wallet data\n", walletApi);
+        return;
+      }
+      console.log("returned wallet data", walletData.data);
+      return walletData.data;
+    }
+  }
 }
+
+
+
+
 async function alertUnsupport() {
 
 }

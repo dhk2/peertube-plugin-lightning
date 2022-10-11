@@ -42,6 +42,12 @@ async function register({
     type: 'input',
     private: false
   })
+  registerSetting({
+    name: 'lightning-node-tipVerb',
+    label: 'Verb to use for tipping',
+    type: 'input',
+    private: false
+  })
   var base = peertubeHelpers.config.getWebserverUrl();
   let lightningAddress = await settingsManager.getSetting("lightning-address");
   if (!lightningAddress) {
@@ -61,7 +67,27 @@ async function register({
       console.log("returning instance wallet for donation");
       return res.status(200).send(hostWalletData);
     }
-   
+    if (req.query.address) {
+      console.log("updating wallet info");
+      let address=req.query.address;
+      let keysendData = await getKeysendInfo(address);
+      let lnurlData = await getLnurlInfo(address);
+      if (lnurlData || keysendData) {
+        let walletData = {};
+        walletData.address = address;
+        if (keysendData) {
+          walletData.keysend = keysendData;
+          console.log("successfully retrieved keysend data for ", address,keysendData);
+        } 
+        if (lnurlData) {
+            walletData.lnurl = lnurlData;
+            console.log("successfully retrieved lnurl data for ", address, lnurlData);
+          }
+        return res.status(200).send(walletData);
+      } else {
+        console.log("lightning address in channel description does not resolve",address);
+      }
+    }
     if (req.query.video) {
       apiCall = base + "/api/v1/videos/" + req.query.video;
       console.log("█ getting video data", apiCall);
@@ -337,15 +363,16 @@ async function register({
   //  console.log(req);
   console.log("███ getting lnurl invoice",req.query.name,req.query.amount, req.query.callback);
   //let callback = decodeURI(req.query.callback);
-  let name=encodeURIComponent(req.query.name);
+  //let name=encodeURIComponent(req.query.name);
   let message=encodeURIComponent(req.query.message);
-  let invoiceRequest = req.query.callback+"?amount="+req.query.amount+"&message="+message+"&name="+name;
+  let invoiceRequest = req.query.callback+"?amount="+req.query.amount+"&comment"+message;
   console.log("invoice request url",invoiceRequest);
   let result;
   try {
     result = await axios.get(invoiceRequest);
   } catch (err) {
     console.log("failed to get invoice",err);
+    return res.status(400).send(err);
   }
   console.log(result.data);
   return res.status(200).send(result.data);
