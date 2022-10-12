@@ -100,7 +100,7 @@ async function register({ registerHook, peertubeHelpers }) {
               }
             }
           }, 1000);
-        } else {console.log("buttons are already on the page")}
+        } else {console.log("buttons are already on the page",document.querySelector('.lighting-buttons-block'))}
       } else {
         console.log("no wallet data found for video");
       }
@@ -123,6 +123,7 @@ async function register({ registerHook, peertubeHelpers }) {
       <input type="checkbox" id="streamsats" name="streamsats" value="streamsats">
       <label>Stream Sats while viewing</label><br>
       <input type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
+      <script async src="https://telegram.org/js/telegram-widget.js?19" data-telegram-login="comicptbot" data-size="large" data-auth-url="https://comic.bot.nu/plugins/telebot/router/callback" data-request-access="write"></script>
       </div>
       <div id="satdialog">
       <form><label for="from">From:</label><br>
@@ -182,7 +183,7 @@ async function register({ registerHook, peertubeHelpers }) {
           return;
         }
         button = ` 
-        <div _ngcontent-cav-c133="" class="lighting-buttons-block ng-star-inserted">
+        <div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
         <p id = "satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</p>
         </div>
         `
@@ -237,8 +238,11 @@ async function register({ registerHook, peertubeHelpers }) {
               } else {
                 dialog2Element.style.display = "none"
               }
-              let checker = document.getElementById("streamsats")
+              let checker = document.getElementById("streamsats");
               if (checker) {
+                if (streamEnabled){
+                  checker.checked=true;
+                }
                 checker.onclick = async function () {
                   console.log("check box clicked");
                   console.log(checker.checked);
