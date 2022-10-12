@@ -37,13 +37,13 @@ async function register({
     private: false
   })
   registerSetting({
-    name: 'lightning-node-split',
+    name: 'lightning-split',
     label: 'Requires split for host',
     type: 'input',
     private: false
   })
   registerSetting({
-    name: 'lightning-node-tipVerb',
+    name: 'lightning-tipVerb',
     label: 'Verb to use for tipping',
     type: 'input',
     private: false
@@ -69,7 +69,7 @@ async function register({
     }
     if (req.query.address) {
       console.log("updating wallet info");
-      let address=req.query.address;
+      let address = req.query.address;
       let keysendData = await getKeysendInfo(address);
       let lnurlData = await getLnurlInfo(address);
       if (lnurlData || keysendData) {
@@ -77,15 +77,15 @@ async function register({
         walletData.address = address;
         if (keysendData) {
           walletData.keysend = keysendData;
-          console.log("successfully retrieved keysend data for ", address,keysendData);
-        } 
+          console.log("successfully retrieved keysend data for ", address, keysendData);
+        }
         if (lnurlData) {
-            walletData.lnurl = lnurlData;
-            console.log("successfully retrieved lnurl data for ", address, lnurlData);
-          }
+          walletData.lnurl = lnurlData;
+          console.log("successfully retrieved lnurl data for ", address, lnurlData);
+        }
         return res.status(200).send(walletData);
       } else {
-        console.log("lightning address in channel description does not resolve",address);
+        console.log("lightning address in channel description does not resolve", address);
       }
     }
     if (req.query.video) {
@@ -98,7 +98,7 @@ async function register({
         console.log("failed to pull information for provided video id", apiCall);
       }
       if (videoData) {
-        let foundLightningAddress = await findLightningAddress(videoData.data.description +" "+ videoData.data.support);
+        let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support);
         if (foundLightningAddress) {
           console.log("lightning address found in video description [" + foundLightningAddress + ']');
           let keysendData = await getKeysendInfo(foundLightningAddress);
@@ -110,16 +110,16 @@ async function register({
               walletData.keysend = keysendData;
               console.log("successfully retrieved keysend data for wallet in video", videoData.data.channel.name, keysendData);
               //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-            } 
+            }
             if (lnurlData) {
-                walletData.lnurl = lnurlData;
-                console.log("successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
-                //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-                
-              }
+              walletData.lnurl = lnurlData;
+              console.log("successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
+              //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
+
+            }
             return res.status(200).send(walletData);
           } else {
-            console.log("lightning address in video description does not resolve",foundLightningAddress);
+            console.log("lightning address in video description does not resolve", foundLightningAddress);
           }
         } else {
           console.log("no lightning address found in video description");
@@ -136,7 +136,7 @@ async function register({
         console.log("failed to pull information for provided channel id", apiCall);
       }
       if (channelData) {
-        let foundLightningAddress = await findLightningAddress(channelData.data.description +" "+ channelData.data.support);
+        let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
         if (foundLightningAddress) {
           console.log("lightning address found in channel description [" + foundLightningAddress + ']');
           let keysendData = await getKeysendInfo(foundLightningAddress);
@@ -147,14 +147,14 @@ async function register({
             if (keysendData) {
               walletData.keysend = keysendData;
               console.log("successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
-            } 
+            }
             if (lnurlData) {
-                walletData.lnurl = lnurlData;
-                console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
-              }
+              walletData.lnurl = lnurlData;
+              console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
+            }
             return res.status(200).send(walletData);
           } else {
-            console.log("lightning address in channel description does not resolve",foundLightningAddress);
+            console.log("lightning address in channel description does not resolve", foundLightningAddress);
           }
         } else {
           console.log("no lightning address found in channel description");
@@ -182,14 +182,14 @@ async function register({
             if (keysendData) {
               walletData.keysend = keysendData;
               console.log("successfully retrieved keysend data for wallet in account", accountData.data.name, keysendData);
-            } 
+            }
             if (lnurlData) {
-                walletData.lnurl = lnurlData;
-                console.log("successfully retrieved lnurl data for wallet in account", accountData.data.name, lnurlData);
-              }
+              walletData.lnurl = lnurlData;
+              console.log("successfully retrieved lnurl data for wallet in account", accountData.data.name, lnurlData);
+            }
             return res.status(200).send(walletData);
           } else {
-            console.log("lightning address in account description does not resolve",foundLightningAddress);
+            console.log("lightning address in account description does not resolve", foundLightningAddress);
           }
         } else {
           console.log("no lightning address found in account description");
@@ -214,6 +214,7 @@ async function register({
       instanceUrl = "https://" + instance;
       channel = channelParts[0];
     }
+    console.log("channel", channel, "instance", instance, instanceUrl);
     if (!instance) {
       instanceUrl = base;
     }
@@ -225,6 +226,7 @@ async function register({
       console.log("unable to load channel info", apiUrl);
       return res.status(400).send();
     }
+    console.log("loaded channel data from", apiUrl);
     let rssUrl = instanceUrl + "/feeds/videos.xml?videoChannelId=" + channelData.data.id;
     let rssData;
     try {
@@ -233,20 +235,27 @@ async function register({
       console.log("unable to load rss feed for channel", rssUrl);
       return res.status(400).send();
     }
+    console.log("loaded rss feed from", rssUrl);
     apiUrl = base + "/plugins/lightning/router/walletinfo?channel=" + req.query.channel;
     let lightningData
     try {
       lightningData = await axios.get(apiUrl);
     } catch {
       console.log("unable to load lightning wallet info for channel", apiUrl);
+      lightningData = { data: {} };
     }
+    console.log("loaded wallet information for channel", apiUrl);
     console.log(lightningData);
     let pubKey, tag, customKey, customValue;
     if (lightningData.data.keysend) {
       pubKey = lightningData.data.keysend.pubkey;
       tag = lightningData.data.keysend.tag;
-      customKey = lightningData.data.keysend.customData[0].customKey;
-      customValue = lightningData.data.keysend.customData[0].customValue;
+      if (lightningData.data.keysend.customData[0]) {
+        customKey = lightningData.data.keysend.customData[0].customKey;
+        customValue = lightningData.data.keysend.customData[0].customValue;
+      }
+    } else {
+      console.log("no keysend data available for wallet")
     }
     let counter = 0;
     let fixed = "";
@@ -279,9 +288,13 @@ async function register({
         fixed = fixed + spacer + '\t<itunes:name>' + channel + '</itunes:name>\n'
         fixed = fixed + spacer + '</itunes:owner>\n';
         fixed = fixed + spacer + '<itunes:author>' + displayName + '</itunes:author>\n'
-        if (lightningData) {
+        if (pubkey) {
           fixed = fixed + spacer + '<podcast:value type="lightning" method="' + tag + '" suggested="0.00000000069">\n';
-          fixed = fixed + spacer + '\t<podcast:valueRecipient name="' + displayName + '" type="node" address="' + pubKey + '" customKey="' + customKey + '" customValue="' + customValue + '" split="100" />\n';
+          fixed = fixed + spacer + '\t<podcast:valueRecipient name="' + displayName + '" type="node" address="' + pubKey + '"';
+          if (customKey){
+            fixed=fixed+' customKey="' + customKey + '" customValue="' + customValue + '"'
+           }
+           fixed = fiexed+' split="100" />\n';
           fixed = fixed + spacer + '</podcast:value>';
         }
       }
@@ -360,22 +373,22 @@ async function register({
     return res.status(200).send(lightning);
   })
   router.use('/getinvoice', async (req, res) => {
-  //  console.log(req);
-  console.log("███ getting lnurl invoice",req.query.name,req.query.amount, req.query.callback);
-  //let callback = decodeURI(req.query.callback);
-  //let name=encodeURIComponent(req.query.name);
-  let message=encodeURIComponent(req.query.message);
-  let invoiceRequest = req.query.callback+"?amount="+req.query.amount+"&comment="+message;
-  console.log("invoice request url",invoiceRequest);
-  let result;
-  try {
-    result = await axios.get(invoiceRequest);
-  } catch (err) {
-    console.log("failed to get invoice",err);
-    return res.status(400).send(err);
-  }
-  console.log(result.data);
-  return res.status(200).send(result.data);
+    //  console.log(req);
+    console.log("███ getting lnurl invoice", req.query.name, req.query.amount, req.query.callback);
+    //let callback = decodeURI(req.query.callback);
+    //let name=encodeURIComponent(req.query.name);
+    let message = encodeURIComponent(req.query.message);
+    let invoiceRequest = req.query.callback + "?amount=" + req.query.amount + "&comment=" + message;
+    console.log("███invoice request url", invoiceRequest);
+    let result;
+    try {
+      result = await axios.get(invoiceRequest);
+    } catch (err) {
+      console.log("failed to get invoice", err);
+      return res.status(400).send(err);
+    }
+    console.log(result.data);
+    return res.status(200).send(result.data);
   })
 
 
@@ -464,7 +477,7 @@ async function register({
     return walletData.data;
   }
   async function findLightningAddress(textblock) {
-    if (!textblock){
+    if (!textblock) {
       return;
     }
     text = textblock.toString();

@@ -12,7 +12,7 @@ making good progress.
 - User config page
 - Automatic podcast index registration
 - Podping support
-- Lnurl support
+- Lnurl support **done**
 - Direct lightning node connection
 - Paid subscriptions
 - Pay per View
