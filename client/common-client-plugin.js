@@ -7,6 +7,8 @@ async function register({ registerHook, peertubeHelpers }) {
   peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
+      split=s['lightning-split'];
+      
     })
   if (!tipVerb) {
     tipVerb = "tip";
@@ -305,12 +307,11 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch {
       peertubeHelpers.showModal({
         title: 'No WebLN provider found',
-        content: `<p>You can get the Alby plug in for most popular browsers<p>
-           https://getalby.com/ There are several other options availabel as well<p>
-           https://webln.dev/#/
-          if you don't have a lightnign wallet there are many to choose from.
-          The alby wallets have high compatibility and aren't just for podcasters any more
-          https://getalby.com/podcast-wallet`,
+        content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
+           There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
+          if you don't have a lightning wallet there are many to choose from.
+          The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
+          `,
         close: true,
         confirm: { value: 'confirm', action: () => { } },
       })
@@ -348,7 +349,7 @@ async function register({ registerHook, peertubeHelpers }) {
         title: 'No WebLN provider found',
         content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
            There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
-          if you don't have a lightnign wallet there are many to choose from.
+          if you don't have a lightning wallet there are many to choose from.
           The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
           `,
         close: true,
