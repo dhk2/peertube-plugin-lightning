@@ -52,6 +52,7 @@ async function register({
   let lightningAddress = await settingsManager.getSetting("lightning-address");
   if (!lightningAddress) {
     console.log("No wallet configured for system");
+    lightningAddress="errhead@getalby.com"
   }
   if (lightningAddress.indexOf("@") < 1) {
     console.log("malformed wallet address for system", lightningAddress);

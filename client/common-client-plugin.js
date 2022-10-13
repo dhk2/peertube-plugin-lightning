@@ -7,8 +7,8 @@ async function register({ registerHook, peertubeHelpers }) {
   peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
-      split=s['lightning-split'];
-      
+      split = s['lightning-split'];
+
     })
   if (!tipVerb) {
     tipVerb = "tip";
@@ -102,7 +102,7 @@ async function register({ registerHook, peertubeHelpers }) {
               }
             }
           }, 1000);
-        } else {console.log("buttons are already on the page",document.querySelector('.lighting-buttons-block'))}
+        } else { console.log("buttons are already on the page", document.querySelector('.lighting-buttons-block')) }
       } else {
         console.log("no wallet data found for video");
       }
@@ -242,8 +242,8 @@ async function register({ registerHook, peertubeHelpers }) {
               }
               let checker = document.getElementById("streamsats");
               if (checker) {
-                if (streamEnabled){
-                  checker.checked=true;
+                if (streamEnabled) {
+                  checker.checked = true;
                 }
                 checker.onclick = async function () {
                   console.log("check box clicked");
@@ -283,38 +283,11 @@ async function register({ registerHook, peertubeHelpers }) {
     //fixing millisats for lnpay
     amount = amount * 1000
     console.log("parsint", parseInt(amount));
-    if (parseInt(amount) < parseInt(walletData.minSendable)) {
-      await peertubeHelpers.showModal({
-        title: 'boost doesnt meet minimum limit of ' + walletData.minSendable,
-        content: `Would you like to raise amount to the minimum allowed?`,
-        close: true,
-        cancel: { value: 'cancel', action: () => { return } },
-        confirm: { value: 'confirm', action: () => { amount = walletData.minSendable } },
-      })
-    }
-    if (parseInt(amount) > parseInt(walletData.maxSendable)) {
-      await peertubeHelpers.showModal({
-        title: 'boost is over the minimum limit of ' + walletData.maxSendable,
-        content: `Would you like to lower the amount to the minimum allowed?`,
-        close: true,
-        cancel: { value: 'cancel', action: () => { return } },
-        confirm: { value: 'confirm', action: () => { amount = walletData.maxSendable } },
-      })
-    }
     try {
       let supported = await webln.enable();
       console.log("webln is supported", supported, walletData);
     } catch {
-      peertubeHelpers.showModal({
-        title: 'No WebLN provider found',
-        content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
-           There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
-          if you don't have a lightning wallet there are many to choose from.
-          The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
-          `,
-        close: true,
-        confirm: { value: 'confirm', action: () => { } },
-      })
+      await alertUnsupported();
       return
     }
     console.log("---------------\n", "webln enabled");
@@ -345,16 +318,8 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       let supported = await webln.enable();
     } catch {
-      peertubeHelpers.showModal({
-        title: 'No WebLN provider found',
-        content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
-           There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
-          if you don't have a lightning wallet there are many to choose from.
-          The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
-          `,
-        close: true,
-        confirm: { value: 'confirm', action: () => { return } },
-      })
+      await alertUnsupported();
+      return;
     }
     console.log("boosting", walletData, amount, message, from, channel, episode);
     if (!message) {
@@ -496,14 +461,24 @@ async function register({ registerHook, peertubeHelpers }) {
       return walletData.data;
     }
   }
+  async function alertUnsupported() {
+    peertubeHelpers.showModal({
+      title: 'No WebLN provider found',
+      content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
+         There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
+        if you don't have a lightning wallet there are many to choose from.
+        The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
+        `,
+      close: true,
+      confirm: { value: 'confirm', action: () => { } },
+    })
+  }
 }
 
 
 
 
-async function alertUnsupport() {
 
-}
 export {
   register
 }
