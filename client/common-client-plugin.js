@@ -122,17 +122,17 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("creating html for left side menu", streamAmount, userName);
       let html = `
       <div id="streamdialog">
-      <input type="checkbox" id="streamsats" name="streamsats" value="streamsats">
+      <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="streamsats" name="streamsats" value="streamsats">
       <label>Stream Sats while viewing</label><br>
-      <input type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
+      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
       <script async src="https://telegram.org/js/telegram-widget.js?19" data-telegram-login="comicptbot" data-size="large" data-auth-url="https://comic.bot.nu/plugins/telebot/router/callback" data-request-access="write"></script>
       </div>
       <div id="satdialog">
       <form><label for="from">From:</label><br>
-      <input type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
+      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
       <label for="message">Message:</label><br>
-      <input type="text" id="message" name="message" maxLength="128"><br><br>
-      <input type="text" id="sats" name="sats" size="8">
+      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="message" name="message" maxLength="128"><br><br>
+      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="sats" name="sats" size="8">
       <label for="sats"> Sats</label><br><br></form>
       `;
       console.log("navigation path entered", path);
@@ -217,14 +217,17 @@ async function register({ registerHook, peertubeHelpers }) {
                 let amount = document.getElementById('sats').value;
                 let message = document.getElementById('message').value;
                 let from = document.getElementById('from').value;
-                let displayName, episode;
+                let displayName, episode, feedID, itemID;
                 if (videoData) {
+
                   displayName = videoData.data.channel.displayName;
                   episode = videoData.data.name;
+                  itemID = videoData.data.shortUUID;
+                  feedID = videoData.data.channel.name + "@" + videoData.data.channel.host;
                 }
                 if (walletData.keysend) {
                   console.log("sending keysend boost");
-                  boost(walletData.keysend, amount, message, from, displayName, episode, "boost");
+                  boost(walletData.keysend, amount, message, from, displayName, episode, "boost", itemID, feedID);
 
                 } else if (walletData.lnurl) {
                   console.log("sending lnurl boost");
@@ -314,7 +317,7 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log(result);
 
   }
-  async function boost(walletData, amount, message, from, channel, episode, type) {
+  async function boost(walletData, amount, message, from, channel, episode, type, itemID, feedID) {
     try {
       let supported = await webln.enable();
     } catch {
@@ -371,7 +374,13 @@ async function register({ registerHook, peertubeHelpers }) {
     if (episode) {
       boost.episode = episode;
     }
+    if (feedID) {
+      boost.feedID = feedID;
+    }
+    if (itemID) {
+      boost.itemID = itemID;
 
+    }
     let paymentInfo;
     console.log("video boost updated");
     if (customValue) {

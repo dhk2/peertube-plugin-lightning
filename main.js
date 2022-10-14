@@ -289,13 +289,13 @@ async function register({
         fixed = fixed + spacer + '\t<itunes:name>' + channel + '</itunes:name>\n'
         fixed = fixed + spacer + '</itunes:owner>\n';
         fixed = fixed + spacer + '<itunes:author>' + displayName + '</itunes:author>\n'
-        if (pubkey) {
+        if (pubKey) {
           fixed = fixed + spacer + '<podcast:value type="lightning" method="' + tag + '" suggested="0.00000000069">\n';
           fixed = fixed + spacer + '\t<podcast:valueRecipient name="' + displayName + '" type="node" address="' + pubKey + '"';
           if (customKey){
             fixed=fixed+' customKey="' + customKey + '" customValue="' + customValue + '"'
            }
-           fixed = fiexed+' split="100" />\n';
+           fixed = fixed+' split="100" />\n';
           fixed = fixed + spacer + '</podcast:value>';
         }
       }
