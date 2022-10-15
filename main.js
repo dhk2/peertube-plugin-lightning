@@ -435,6 +435,10 @@ async function register({
 
   async function getKeysendInfo(address) {
     if (!address) { return };
+    var storedLightning = await storageManager.getData("lightning" + "-" + address);
+    if (storedLightning) {
+      return storedLightning;
+    }
     console.log("█ getting wallet data", address);
     address = address.toString();
     let walletParts = address.split("@");
@@ -445,14 +449,15 @@ async function register({
     let walletData;
     try {
       walletData = await axios.get(apiRequest);
-    } catch {
-      console.log("error attempting to get wallet info", apiRequest)
+    } catch (err) {
+      console.log("error attempting to get wallet info", apiRequest,err.message)
       return;
     }
     if (walletData.data.status != "OK") {
       console.log("------------------ \n Error in lightning address data", walletData.data);
       return;
     }
+    storageManager.storeData("lightning" + "-" + address, walletData);
     return walletData.data;
   }
   async function getLnurlInfo(address) {
