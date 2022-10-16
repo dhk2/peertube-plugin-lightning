@@ -52,27 +52,30 @@ async function register({
   let lightningAddress = await settingsManager.getSetting("lightning-address");
   if (!lightningAddress) {
     console.log("No wallet configured for system");
-    lightningAddress="errhead@getalby.com"
+    lightningAddress = "errhead@getalby.com"
   }
   if (lightningAddress.indexOf("@") < 1) {
     console.log("malformed wallet address for system", lightningAddress);
   }
-  let hostWalletData = await getKeysendInfo(lightningAddress);
-  if (!hostWalletData) {
-    console.log("failed to get system wallet data from provider");
-  }
+ // let hostWalletData = await getKeysendInfo(lightningAddress);
+ // if (!hostWalletData) {
+ //   console.log("failed to get system wallet data from provider");
+ // }
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
-    if (Object.keys(req.query).length === 0) {
-      console.log("returning instance wallet for donation");
-      return res.status(200).send(hostWalletData);
-    }
+//    if (Object.keys(req.query).length === 0) {
+//      console.log("returning instance wallet for donation");
+//     return res.status(200).send(hostWalletData);
+//    }
     if (req.query.address) {
       console.log("updating wallet info");
       let address = req.query.address;
       let keysendData = await getKeysendInfo(address);
-      let lnurlData = await getLnurlInfo(address);
+      let lnurlData;
+      if (!keysendData) {
+        lnurlData = await getLnurlInfo(address);
+      }
       if (lnurlData || keysendData) {
         let walletData = {};
         walletData.address = address;
@@ -245,8 +248,7 @@ async function register({
       console.log("unable to load lightning wallet info for channel", apiUrl);
       lightningData = { data: {} };
     }
-    console.log("loaded wallet information for channel", apiUrl);
-    console.log(lightningData);
+    console.log("loaded wallet information for channel", apiUrl,lightningData.data);
     let pubKey, tag, customKey, customValue;
     if (lightningData.data.keysend) {
       pubKey = lightningData.data.keysend.pubkey;
@@ -292,10 +294,10 @@ async function register({
         if (pubKey) {
           fixed = fixed + spacer + '<podcast:value type="lightning" method="' + tag + '" suggested="0.00000000069">\n';
           fixed = fixed + spacer + '\t<podcast:valueRecipient name="' + displayName + '" type="node" address="' + pubKey + '"';
-          if (customKey){
-            fixed=fixed+' customKey="' + customKey + '" customValue="' + customValue + '"'
-           }
-           fixed = fixed+' split="100" />\n';
+          if (customKey) {
+            fixed = fixed + ' customKey="' + customKey + '" customValue="' + customValue + '"'
+          }
+          fixed = fixed + ' split="100" />\n';
           fixed = fixed + spacer + '</podcast:value>';
         }
       }
@@ -335,7 +337,7 @@ async function register({
         lightning.address = req.query.address;
         lightning.data = newData
         console.log("███saving wallet data", req.query.key, lightning);
-        storageManager.storeData("lightning" + "-" + req.query.key, lightning);
+        //storageManager.storeData("lightning" + "-" + req.query.key, lightning);
         return res.status(200).send(lightning);
       } else {
         console.log("failed to get wallet info for provided address", req.query.address);
@@ -435,8 +437,12 @@ async function register({
 
   async function getKeysendInfo(address) {
     if (!address) { return };
-    var storedLightning = await storageManager.getData("lightning" + "-" + address);
+    console.log("Getting Address");
+    var storedLightning;
+    //TODO fix local caching to remove circular loop errors
+   // var storedLightning = await storageManager.getData("lightning" + "-" + address);
     if (storedLightning) {
+      console.log("returning stored lightning address");
       return storedLightning;
     }
     console.log("█ getting wallet data", address);
@@ -450,14 +456,14 @@ async function register({
     try {
       walletData = await axios.get(apiRequest);
     } catch (err) {
-      console.log("error attempting to get wallet info", apiRequest,err.message)
+      console.log("error attempting to get wallet info", apiRequest, err.message)
       return;
     }
     if (walletData.data.status != "OK") {
       console.log("------------------ \n Error in lightning address data", walletData.data);
       return;
     }
-    storageManager.storeData("lightning" + "-" + address, walletData);
+    //storageManager.storeData("lightning" + "-" + address, walletData);
     return walletData.data;
   }
   async function getLnurlInfo(address) {
