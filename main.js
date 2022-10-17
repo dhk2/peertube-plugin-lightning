@@ -57,17 +57,17 @@ async function register({
   if (lightningAddress.indexOf("@") < 1) {
     console.log("malformed wallet address for system", lightningAddress);
   }
- // let hostWalletData = await getKeysendInfo(lightningAddress);
- // if (!hostWalletData) {
- //   console.log("failed to get system wallet data from provider");
- // }
+  // let hostWalletData = await getKeysendInfo(lightningAddress);
+  // if (!hostWalletData) {
+  //   console.log("failed to get system wallet data from provider");
+  // }
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
-//    if (Object.keys(req.query).length === 0) {
-//      console.log("returning instance wallet for donation");
-//     return res.status(200).send(hostWalletData);
-//    }
+    //    if (Object.keys(req.query).length === 0) {
+    //      console.log("returning instance wallet for donation");
+    //     return res.status(200).send(hostWalletData);
+    //    }
     if (req.query.address) {
       console.log("updating wallet info");
       let address = req.query.address;
@@ -248,7 +248,7 @@ async function register({
       console.log("unable to load lightning wallet info for channel", apiUrl);
       lightningData = { data: {} };
     }
-    console.log("loaded wallet information for channel", apiUrl,lightningData.data);
+    console.log("loaded wallet information for channel", apiUrl, lightningData.data);
     let pubKey, tag, customKey, customValue;
     if (lightningData.data.keysend) {
       pubKey = lightningData.data.keysend.pubkey;
@@ -393,7 +393,71 @@ async function register({
     console.log(result.data);
     return res.status(200).send(result.data);
   })
+  router.use('/getfeedid', async (req, res) => {
+    console.log("███getting feed id", req.query.channel);
+    let channel = req.query.channel;
+    let feed;
+    if (channel) {
+      try {
+        feed = await storageManager.getData("podcast" + "-" + channel)
+      } catch (err) {
+        console.log("error getting feedid", channel);
+      }
+    }
+    console.log("feed",feed);
+    if (feed) {
+      return res.status(200).send(feed.toString());
+    } else {
+      return res.status(400).send();
+    }
+  })
+  router.use('/setfeedid', async (req, res) => {
+    console.log("███setting feed id", req.query.channel);
+    let channel = req.query.channel;
+    let feedID = req.query.feedid;
+    if (channel) {
+      try {
+        await storageManager.storeData("podcast" + "-" + channel, feedID);
+        return res.status(200).send();
+      } catch (err) {
+        console.log("error getting feedid", channel);
+        return res.status(400).send();
+      }
+    }
+  })
 
+  router.use('/getitemid', async (req, res) => {
+    console.log("███getting item id", req.query.uuid);
+    let uuid = req.query.uuid;
+    let item;
+    if (uuid) {
+      try {
+        item = await storageManager.getData("podcast" + "-" + uuid);
+      } catch (err) {
+        console.log("error getting itemid", uuid);
+      }
+    }
+    console.log("item",item);
+    if (item) {
+      return res.status(200).send(item.toString());
+    } else {
+      return res.status(400).send();
+    }
+  })
+  router.use('/setitemid', async (req, res) => {
+    console.log("███setting item id", req.query.uuid);
+    let uuid = req.query.uuid;
+    let itemID = req.query.itemid;
+    if (uuid) {
+      try {
+        await storageManager.storeData("podcast" + "-" + uuid, itemID);
+        return res.sendStatus(200);
+      } catch (err) {
+        console.log("error setting item id", uuid);
+        return res.sendStatus(400).send();
+      }
+    }
+  })
 
 
   /*
@@ -440,7 +504,7 @@ async function register({
     console.log("Getting Address");
     var storedLightning;
     //TODO fix local caching to remove circular loop errors
-   // var storedLightning = await storageManager.getData("lightning" + "-" + address);
+    // var storedLightning = await storageManager.getData("lightning" + "-" + address);
     if (storedLightning) {
       console.log("returning stored lightning address");
       return storedLightning;

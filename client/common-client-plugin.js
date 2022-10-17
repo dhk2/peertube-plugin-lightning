@@ -5,6 +5,7 @@ async function register({ registerHook, peertubeHelpers }) {
   //console.log(peertubeHelpers.getSettings())
   let tipVerb, split;
   let lastTip = 69
+  let convertRate = .00019123
   const { notifier } = peertubeHelpers
 
 
@@ -49,33 +50,26 @@ async function register({ registerHook, peertubeHelpers }) {
         if (!document.querySelector('.lighting-buttons-block')) {
           const elem = document.createElement('div')
           elem.className = 'lighting-buttons-block'
-          elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>
-                          <a  display:none id = "stream" class="peertube-button orange-button ng-star-inserted" title="stream">⚡️Stream Sats</a>`
-
+          elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
           document.getElementById('plugin-placeholder-player-next').appendChild(elem)
           document.getElementById("boostagram").onclick = async function () {
-            let dialogElement = document.getElementById("satdialog");
-            console.log("clicked on tip", dialogElement);
-            if (dialogElement) {
-              if (dialogElement.style.display !== "none") {
-                dialogElement.style.display = "none";
-              } else {
-                dialogElement.style.display = "block";
-              }
-            }
+            /* let dialogElement = document.getElementById("satdialog");
+             console.log("clicked on tip", dialogElement);
+             if (dialogElement) {
+               if (dialogElement.style.display !== "none") {
+                 dialogElement.style.display = "none";
+               } else {
+                 dialogElement.style.display = "block";
+               }
+             }
+             */
+            peertubeHelpers.showModal({
+              title: 'Support ' + channelName,
+              content: ` `,
+              close: true,
+              confirm: { value: 'confirm', action: () => { } },
+            })
           };
-          document.getElementById("stream").onclick = async function () {
-            let streamButtonElement = document.getElementById("streamdialog");
-            //console.log(streamButtonElement.style);
-            if (streamButtonElement) {
-              if (streamButtonElement.style.display !== "none") {
-                streamButtonElement.style.display = "none";
-              } else {
-                streamButtonElement.style.display = "block";
-              }
-            }
-          };
-
           let lastStream = 0;
           let delta = 0;
           lastStream = videoEl.currentTime;
@@ -117,7 +111,14 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   })
 
+  registerHook({
+    target: 'action:video-channel-update.video-channel.loaded',
+    handler: async () => {
+      console.log("req", window.Location);
+      console.log(document.getElementsByClassName("ng-untouched"));
 
+    }
+  })
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
@@ -137,11 +138,11 @@ async function register({ registerHook, peertubeHelpers }) {
       </div>
       <div id="satdialog">
       <h2><center>`+ tipVerb + `</center></h2>
-      <form><label for="from">From:</label><br>
+      <form><label for="from">From:</label>
       <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
       <label for="message">Message:</label><br>
-      <br><textarea STYLE="color: #000000; background-color: #ffffff;" rows="3" id="message" name="message" maxLength="128"></textarea>
-      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="sats" name="sats" size="8" value="`+ lastTip + `">
+      <textarea STYLE="color: #000000; background-color: #ffffff;" rows="3" id="message" name="message" maxLength="128"></textarea>
+      <br><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="sats" name="sats" size="8" value="`+ lastTip + `">
       <label for="sats"> Sats</label><br><br></form>
       `;
       console.log("navigation path entered", path);
@@ -205,42 +206,77 @@ async function register({ registerHook, peertubeHelpers }) {
         panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
         panel.id = pageType;
         panel.innerHTML = html;
-        let hack = false;
+        let hack = true;
         menuTimer = setInterval(async function () {
           let modalTitle = document.getElementsByClassName('modal-title');
           if (modalTitle.length > 0) {
             if (modalTitle[0].textContent.substring(0, 7) == "Support") {
-              console.log("support modal", hack);
+              //console.log("support modal", hack);
               let modal = (document.getElementsByClassName('modal-body'))
-              if (modal.length > 0 && hack == false) {
-                console.log("open model info", modal);
+              if (modal.length > 0 && !hack) {
+                //console.log("open model info", modal);
                 hack = true;
                 let hack3 = `
-                  <table border = "1"><tr><td border="1" style="vertical-align:top"><div id="modal-streamdialog">
+                  <div id="modal-streamdialog">
                   <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
-                  <label>Stream Sats</label><br>
-                  <label for="sats"> Sats per minute</label><br>
+                  <label>Stream Sats per minute:</label>
                   <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
+                  / $
+                  <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
                   </div>
-                  </td><td border="1">
-                  <div id="satdialog">
+                 <hr>
+                  <div id="satdialog" ><center>
                   <h2><center>`+ tipVerb + `</center></h2>
                   <label for="from">From:</label>
                   <input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28">
                   <br><label for="sats"> Sats:</label><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="`+ lastTip + `" size="8">
+                  / $
+                  <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashtip" name="modal-cashtip" value="`+ (lastTip * convertRate).toFixed(3) + `" size="6">
+
                   <br><label for="message">Message:</label>
-                  <br><textarea STYLE="color: #000000; background-color: #ffffff;" rows="3" id="modal-message" name="modal-message" maxLength="128"></textarea>
-                  </div><div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
+                  <br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=64 id="modal-message" name="modal-message" maxLength="128"></textarea>
+                  </center></div><div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
                   <p id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</p>
                   </div>
-                  ` + `</td></table>
                   `;
                 let hack2 = modal[0].innerHTML + hack3;
                 modal[0].innerHTML = hack2;
-                let supportTipButton = document.getElementById("modal-satbutton");
-                if (supportTipButton) {
-                  supportTipButton.onclick = async function () {
-                    walletData = await buildTip(videoData.data, walletData);
+                let modalSatStream = document.getElementById("modal-streamamount");
+                let modalCashStream = document.getElementById("modal-cashamount");
+                let modalSatTip = document.getElementById("modal-sats");
+                let modalCashTip = document.getElementById("modal-cashtip");
+                if (modalSatStream) {
+                  modalSatStream.onchange = async function () {
+                    console.log("changed sats");
+                    modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);
+                  }
+                }
+                if (modalCashStream) {
+                  modalCashStream.onchange = async function () {
+                    console.log("changed cash");
+                    modalSatStream.value = (modalCashStream.value / convertRate).toFixed();
+                  }
+                }
+                if (modalSatTip) {
+                  modalSatTip.onchange = async function () {
+                    console.log("changed sats");
+                    modalCashTip.value = (modalSatTip.value * convertRate).toFixed(2);
+                  }
+                }
+                if (modalCashTip) {
+                  modalCashTip.onchange = async function () {
+                    console.log("changed cash");
+                    modalSatTip.value = (modalCashTip.value / convertRate).toFixed();
+                  }
+                  let supportTipButton = document.getElementById("modal-satbutton");
+                  if (supportTipButton) {
+                    supportTipButton.onclick = async function () {
+                      if (videoData) {
+                        walletData = await buildTip(videoData.data, walletData);
+                      } else {
+                        walletData = await buildTip(null, walletData);
+                      }
+                    }
                   }
                 }
                 let modalChecker = document.getElementById("modal-streamsats");
@@ -249,7 +285,7 @@ async function register({ registerHook, peertubeHelpers }) {
                     modalChecker.checked = true;
                   }
                   modalChecker.onclick = async function () {
-                    let modalChecker = document.getElementById("modal-streamsats");
+                    //let modalChecker = document.getElementById("modal-streamsats");
                     let menuChecker = document.getElementById("streamsats");
                     streamEnabled = modalChecker.checked;
                     if (menuChecker) {
@@ -295,6 +331,7 @@ async function register({ registerHook, peertubeHelpers }) {
               console.log("panel inserted", topMenu);
               let dialogElement = document.getElementById("satdialog");
               dialogElement.style.display = "none"
+              console.log("panel hidden");
               document.getElementById("satbutton").onclick = async function () {
                 console.log("clicked on tip button");
                 let amount = document.getElementById('sats').value;
@@ -321,12 +358,14 @@ async function register({ registerHook, peertubeHelpers }) {
                 document.getElementById("satdialog").style.display = "none";
                 document.getElementById("message").value = "";
               };
+              console.log("hiding stream if not defined");
               let dialog2Element = document.getElementById("streamdialog");
               if (streamEnabled) {
                 dialog2Element.style.display = "block";
               } else {
                 dialog2Element.style.display = "none"
               }
+              console.log("settinhg checkbox status and creating onclick");
               let checker = document.getElementById("streamsats");
               if (checker) {
                 if (streamEnabled) {
@@ -402,8 +441,10 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       result = await window.webln.sendPayment(invoice);
       lastTip = amount / 1000
+      notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
       return result;
     } catch (err) {
+      notifier.error("failed sending " + tipVerb + "\n" + err.message);
       return;
     }
     console.log(result);
@@ -454,9 +495,10 @@ async function register({ registerHook, peertubeHelpers }) {
       app_name: "PeerTube",
       app_version: "1.1",
       name: "Channel",
-      seconds_back: 60,
     };
-
+    if (type == "stream") {
+      boost.seconds_back = 60;
+    }
     //if (channel = "clip channel") {
     //  boost.feedID = 5714728
     //}
@@ -492,15 +534,40 @@ async function register({ registerHook, peertubeHelpers }) {
     if (channelName) {
       boost.url = window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
     }
+    
     if (itemID) {
       boost.itemID = itemID;
     }
-    console.log("url should be ", window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName);
-    console.log("other url should be", window.location.href + "?start=" + currentTime.toFixed());
+    let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
+    console.log("item api",itemApi);
+    try {
+      let itemId = await axios.get(itemApi);
+      console.log("got item",itemId);
+      if (itemId) {
+        console.log("found item id ",itemId.data);
+        boost.itemID = itemId.data;
+      }
+    } catch (err) {
+      console.log("error attempting to fetch item id", err);
+    }
+    let feedApi = basePath + "/getfeedid?channel=" + channelName;
+    console.log("feed api",feedApi);
+    try {
+      let feedId = await axios.get(feedApi);
+      console.log("got feed",feedId);
+      if (feedId) {
+        console.log("found feed id ",feedId.data);
+        boost.feedID = feedId.data;
+      }
+    } catch (err) {
+      console.log("error attempting to fetch feed id", err);
+    }
+    //console.log("url should be ", window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName);
+    //console.log("other url should be", window.location.href + "?start=" + currentTime.toFixed());
     let paymentInfo;
     console.log("video boost updated", boost);
-    console.log(peertubeHelpers.getBaseStaticRoute());
-    console.log(peertubeHelpers.getBaseRouterRoute())
+    //console.log(peertubeHelpers.getBaseStaticRoute());
+    //console.log(peertubeHelpers.getBaseRouterRoute())
     if (customValue) {
       paymentInfo = {
         destination: pubKey,
@@ -524,10 +591,11 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       result = await webln.keysend(paymentInfo);
       lastTip = amount
+      notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
       return result;
     } catch (err) {
       console.log("error attempting to send sats", err.message);
-      //console.log("full error ",err);
+      notifier.error("failed sending " + tipVerb + "\n" + err.message);
       //TODO add invoice dialog at this point
       return;
     }
@@ -592,14 +660,14 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function alertUnsupported() {
     peertubeHelpers.showModal({
-      title: 'No WebLN provider found',
+      title: 'Support has found No WebLN provider found',
       content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
          There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
         if you don't have a lightning wallet there are many to choose from.
         The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
         `,
       close: true,
-      confirm: { value: 'confirm', action: () => { } },
+      //cancel: { value: 'confirm', action: () => { } },
     })
   }
   async function buildTip(videoData, walletData) {
@@ -627,11 +695,9 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     if (result) {
       document.getElementById("modal-message").value = "";
-      notifier.success(tipVerb + " sent");
       return walletData;
     } else {
       document.getElementById("modal-message").value = "error attempting send " + tipVerb;
-      notifier.error("failed sending " + tipVerb);
       return walletData;
     }
   }
