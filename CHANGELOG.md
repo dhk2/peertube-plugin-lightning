@@ -1,0 +1,9 @@
+v0.2.0
+Beta 1 release candidate 1
+
+- Fixed visual irregularities with dynamic changes to streaming amount. Added visual update for changed values from left menu.
+- added basic wallet and rss feed info to channel update interface as well as ability to specify podcast index feed id for interoperability.
+
+v0.1.9
+
+- created changelog

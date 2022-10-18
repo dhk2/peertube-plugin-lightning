@@ -108,10 +108,37 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async () => {
       console.log("req", window.Location);
-      console.log(document.getElementsByClassName("ng-untouched"));
-
+      let channelUpdate = document.getElementsByClassName("margin-content");
+      console.log(channelUpdate[0]);
+      let channel = (window.location.href).split("/").pop();
+      let walletInfo = await getWalletInfo(null, null, channel);
+      console.log(walletInfo);
+      let feedID = await getFeedID(channel);
+      let html="podcast RSS feed URL: "+window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+      if (walletInfo) {
+        html = html + "<br> Wallet Address: " + walletInfo.address
+        if (walletInfo.keysend) {
+          html = html + "<br> Keysend: " + walletInfo.keysend.status;
+          html = html + "<br> Keysend pubkey: " + walletInfo.keysend.pubkey
+        }
+        if (walletInfo.lnurl) {
+          html = html + "<br> LNURL callback: " + walletInfo.lnurl.callback;
+        }
+      }
+      html = html + "<br> Podcast Index Feed ID:";
+      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
+      html = html + `<button type="button" id="update" name="update">Update</button>`
+      const panel = document.createElement('div');
+      panel.setAttribute('class', 'lightning-button');
+      panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+      panel.innerHTML = html;
+      channelUpdate[0].appendChild(panel);
+      document.getElementById("update").onclick = async function () {
+        setFeedID(channel, id.value);
+      }
     }
   })
+
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
@@ -123,21 +150,21 @@ async function register({ registerHook, peertubeHelpers }) {
       }
       console.log("creating html for left side menu", streamAmount, userName);
       let html = `
-      <div id="streamdialog">
-      <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="streamsats" name="streamsats" value="streamsats">
-      <label>Stream Sats while viewing</label><br>
-      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
-      <script async src="https://telegram.org/js/telegram-widget.js?19" data-telegram-login="comicptbot" data-size="large" data-auth-url="https://comic.bot.nu/plugins/telebot/router/callback" data-request-access="write"></script>
-      </div>
-      <div id="satdialog">
-      <h2><center>`+ tipVerb + `</center></h2>
-      <form><label for="from">From:</label>
-      <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
-      <label for="message">Message:</label><br>
-      <textarea STYLE="color: #000000; background-color: #ffffff;" rows="3" id="message" name="message" maxLength="128"></textarea>
-      <br><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="sats" name="sats" size="8" value="`+ lastTip + `">
-      <label for="sats"> Sats</label><br><br></form>
-      `;
+          <div id="streamdialog">
+          <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="streamsats" name="streamsats" value="streamsats">
+          <label>Stream Sats while viewing</label><br>
+          <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
+          <script async src="https://telegram.org/js/telegram-widget.js?19" data-telegram-login="comicptbot" data-size="large" data-auth-url="https://comic.bot.nu/plugins/telebot/router/callback" data-request-access="write"></script>
+          </div>
+          <div id="satdialog">
+          <h2><center>`+ tipVerb + `</center></h2>
+          <form><label for="from">From:</label>
+          <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="from" name="from" value="`+ userName + `" autocomplete="on" maxLength="28"><br>
+          <label for="message">Message:</label><br>
+          <textarea STYLE="color: #000000; background-color: #ffffff;" rows="3" id="message" name="message" maxLength="128"></textarea>
+          <br><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="sats" name="sats" size="8" value="`+ lastTip + `">
+          <label for="sats"> Sats</label><br><br></form>
+          `;
       console.log("navigation path entered", path);
       let paths = (path + "/").split("/");
       let pageType = paths[1];
@@ -385,7 +412,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 console.log("no click box found");
               }
               if (currentStreamAmount) {
-                currentStreamAmount.value=streamAmount;
+                currentStreamAmount.value = streamAmount;
                 currentStreamAmount.onchange = async function () {
                   streamAmount = currentStreamAmount.value;
                   notifier.success("Stream amount changed to ⚡" + streamAmount + "($" + (streamAmount * convertRate).toFixed(2) + ")");
@@ -608,7 +635,26 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     // document.getElementById("satbutton").style.display="none";
   }
-
+  async function getFeedID(channel) {
+    let feedApi = basePath + "/getfeedid?channel=" + channel;
+    try {
+      let feedId = await axios.get(feedApi);
+      if (feedId) {
+        return feedId.data;
+      }
+    } catch (err) {
+      console.log("error attempting to fetch feed id", err);
+      return;
+    }
+  }
+  async function setFeedID(channel, feedID) {
+    let feedApi = basePath + "/setfeedid?channel=" + channel + "&feedid=" + feedID;
+    try {
+      await axios.get(feedApi);
+    } catch (err) {
+      console.log("error attempting to fetch feed id", err);
+    }
+  }
   async function getWalletInfo(videoName, accountName, channelName, instanceName) {
     console.log(videoName, accountName, channelName, instanceName);
     let walletApi = basePath + "/walletinfo";
