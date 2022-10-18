@@ -82,13 +82,6 @@ async function register({ registerHook, peertubeHelpers }) {
               if (delta > 60 && delta < 64) {
                 console.log("time to pay piggie", delta, walletData);
                 if (streamEnabled) {
-                  /*
-                  let currentStreamAmount = document.getElementById('streamamount');
-                  if (currentStreamAmount) {
-                    streamAmount = parseInt(currentStreamAmount.value);
-                    console.log("setting stream amount to", streamAmount);
-                  }
-                  */
                   if (walletData.keysend) {
                     boost(walletData.keysend, streamAmount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, video.id);
                   } else if (walletData.lnurl) {
@@ -245,27 +238,34 @@ async function register({ registerHook, peertubeHelpers }) {
                 let modalCashStream = document.getElementById("modal-cashamount");
                 let modalSatTip = document.getElementById("modal-sats");
                 let modalCashTip = document.getElementById("modal-cashtip");
+                let menuStreamAmount = document.getElementById('streamamount');
                 if (modalSatStream) {
                   modalSatStream.onchange = async function () {
-                    console.log("changed sats");
                     modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);
+                    streamAmount = modalSatStream.value
+                    if (menuStreamAmount) {
+                      console.log(menuStreamAmount);
+                      menuStreamAmount.value = streamAmount;
+                    }
                   }
                 }
                 if (modalCashStream) {
                   modalCashStream.onchange = async function () {
-                    console.log("changed cash");
                     modalSatStream.value = (modalCashStream.value / convertRate).toFixed();
+                    streamAmount = modalSatStream.value;
+                    if (menuStreamAmount) {
+                      console.log(menuStreamAmount);
+                      menuStreamAmount.value = streamAmount;
+                    }
                   }
                 }
                 if (modalSatTip) {
                   modalSatTip.onchange = async function () {
-                    console.log("changed sats");
                     modalCashTip.value = (modalSatTip.value * convertRate).toFixed(2);
                   }
                 }
                 if (modalCashTip) {
                   modalCashTip.onchange = async function () {
-                    console.log("changed cash");
                     modalSatTip.value = (modalCashTip.value / convertRate).toFixed();
                   }
                   let supportTipButton = document.getElementById("modal-satbutton");
@@ -296,10 +296,8 @@ async function register({ registerHook, peertubeHelpers }) {
                     if (currentStreamAmount) {
                       streamAmount = parseInt(currentStreamAmount.value);
                       console.log("setting moidal stream amount to", streamAmount);
-                      let menuStreamAmount = document.getElementById('streamamount');
                       if (menuStreamAmount) {
-                        menuStreamAmount = streamAmount;
-                        console.log("setting top menu stream amount to", streamAmount);
+                        menuStreamAmount.value = streamAmount;
                       }
                       let dialog2Element = document.getElementById("streamdialog");
                       if (dialog2Element) {
@@ -309,6 +307,8 @@ async function register({ registerHook, peertubeHelpers }) {
                           dialog2Element.style.display = "none"
                         }
                       }
+                    } else {
+                      console.log("really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
                     }
                   }
                 }
@@ -367,6 +367,7 @@ async function register({ registerHook, peertubeHelpers }) {
               }
               console.log("settinhg checkbox status and creating onclick");
               let checker = document.getElementById("streamsats");
+              let currentStreamAmount = document.getElementById('streamamount');
               if (checker) {
                 if (streamEnabled) {
                   checker.checked = true;
@@ -375,7 +376,6 @@ async function register({ registerHook, peertubeHelpers }) {
                   console.log("check box clicked");
                   console.log(checker.checked);
                   streamEnabled = checker.checked;
-                  let currentStreamAmount = document.getElementById('streamamount');
                   if (currentStreamAmount) {
                     streamAmount = parseInt(currentStreamAmount.value);
                     console.log("setting stream amount to", streamAmount);
@@ -383,6 +383,13 @@ async function register({ registerHook, peertubeHelpers }) {
                 }
               } else {
                 console.log("no click box found");
+              }
+              if (currentStreamAmount) {
+                currentStreamAmount.value=streamAmount;
+                currentStreamAmount.onchange = async function () {
+                  streamAmount = currentStreamAmount.value;
+                  notifier.success("Stream amount changed to ⚡" + streamAmount + "($" + (streamAmount * convertRate).toFixed(2) + ")");
+                }
               }
             }
           }
@@ -534,29 +541,29 @@ async function register({ registerHook, peertubeHelpers }) {
     if (channelName) {
       boost.url = window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
     }
-    
+
     if (itemID) {
       boost.itemID = itemID;
     }
     let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
-    console.log("item api",itemApi);
+    console.log("item api", itemApi);
     try {
       let itemId = await axios.get(itemApi);
-      console.log("got item",itemId);
+      console.log("got item", itemId);
       if (itemId) {
-        console.log("found item id ",itemId.data);
+        console.log("found item id ", itemId.data);
         boost.itemID = itemId.data;
       }
     } catch (err) {
       console.log("error attempting to fetch item id", err);
     }
     let feedApi = basePath + "/getfeedid?channel=" + channelName;
-    console.log("feed api",feedApi);
+    console.log("feed api", feedApi);
     try {
       let feedId = await axios.get(feedApi);
-      console.log("got feed",feedId);
+      console.log("got feed", feedId);
       if (feedId) {
-        console.log("found feed id ",feedId.data);
+        console.log("found feed id ", feedId.data);
         boost.feedID = feedId.data;
       }
     } catch (err) {
