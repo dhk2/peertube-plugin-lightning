@@ -46,10 +46,12 @@ async function register({ registerHook, peertubeHelpers }) {
       let videoName = video.uuid;
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
       if (walletData) {
+        console.log("wallet data retrieved", walletData);
         wallet = walletData;
-        if (!document.querySelector('.lighting-buttons-block')) {
+        if (!document.querySelector('.lightning-buttons-block')) {
+          console.log("no " + tipVerb + " button in document");
           const elem = document.createElement('div')
-          elem.className = 'lighting-buttons-block'
+          elem.className = 'lightning-buttons-block'
           elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
           document.getElementById('plugin-placeholder-player-next').appendChild(elem)
           document.getElementById("boostagram").onclick = async function () {
@@ -97,9 +99,17 @@ async function register({ registerHook, peertubeHelpers }) {
               }
             }
           }, 1000);
-        } else { console.log("buttons are already on the page", document.querySelector('.lighting-buttons-block')) }
+        } else {
+          console.log("buttons are already on the page", document.querySelector('.lightning-buttons-block'))
+        }
       } else {
         console.log("no wallet data found for video");
+        let buttonBlock = document.getElementsByClassName('lightning-buttons-block')
+        if (buttonBlock.length > 0) {
+          console.log("attempting to remove button due to no wallet data", buttonBlock[0]);
+          buttonBlock[0].remove();
+        }
+
       }
     }
   })
@@ -107,14 +117,13 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async () => {
-      console.log("req", window.Location);
       let channelUpdate = document.getElementsByClassName("margin-content");
       console.log(channelUpdate[0]);
       let channel = (window.location.href).split("/").pop();
       let walletInfo = await getWalletInfo(null, null, channel);
       console.log(walletInfo);
       let feedID = await getFeedID(channel);
-      let html="podcast RSS feed URL: "+window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+      let html = "podcast RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
       if (walletInfo) {
         html = html + "<br> Wallet Address: " + walletInfo.address
         if (walletInfo.keysend) {
@@ -200,7 +209,7 @@ async function register({ registerHook, peertubeHelpers }) {
         if (location.hostname != videoData.data.account.host) {
           instanceName = videoData.data.account.host;
         }
-        buttonText = '⚡️' + tipVerb + " " + accountName + '⚡️';
+        buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
       }
       if (pageType == "my-account") {
         console.log("on my account page");
@@ -215,7 +224,7 @@ async function register({ registerHook, peertubeHelpers }) {
           return;
         }
         button = ` 
-        <div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
+        <div _ngcontent-cav-c133="" class="lightning-pay-button ng-star-inserted">
         <p id = "satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</p>
         </div>
         `
@@ -266,6 +275,8 @@ async function register({ registerHook, peertubeHelpers }) {
                 let modalSatTip = document.getElementById("modal-sats");
                 let modalCashTip = document.getElementById("modal-cashtip");
                 let menuStreamAmount = document.getElementById('streamamount');
+                let footer = document.getElementsByClassName('modal-footer');
+                footer[0].remove();
                 if (modalSatStream) {
                   modalSatStream.onchange = async function () {
                     modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);

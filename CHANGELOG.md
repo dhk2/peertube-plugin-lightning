@@ -1,3 +1,6 @@
+- fixed error where tip button wasn't being removed for non-wallet creators.
+- removed confirm and maybe later buttons from support dialogs
+
 v0.2.0
 Beta 1 release candidate 1
 
