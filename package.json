@@ -42,8 +42,8 @@
     "esbuild": "^0.14.36"
   },
   "dependencies": {
-    "axios": "^0.27.2"
-    
+    "axios": "^0.27.2",
+    "qrious": "^4.0.0"
   }
  
 }
