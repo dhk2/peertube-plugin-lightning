@@ -1,5 +1,7 @@
 import axios from 'axios';
-
+import QRious from 'qrious';
+//import QRCode from 'qrcode';
+//var qrcode = new QRCode("qrcode");
 async function register({ registerHook, peertubeHelpers }) {
   var basePath = await peertubeHelpers.getBaseRouterRoute();
   //console.log(peertubeHelpers.getSettings())
@@ -266,10 +268,11 @@ async function register({ registerHook, peertubeHelpers }) {
                   <br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=64 id="modal-message" name="modal-message" maxLength="128"></textarea>
                   </center></div><div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
                   <p id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</p>
-                  </div>
+                  </div><div id="qr-holder"><canvas id="qr"></canvas></div>
                   `;
                 let hack2 = modal[0].innerHTML + hack3;
                 modal[0].innerHTML = hack2;
+                document.getElementById('qr-holder').style.visibility="none";
                 let modalSatStream = document.getElementById("modal-streamamount");
                 let modalCashStream = document.getElementById("modal-cashamount");
                 let modalSatTip = document.getElementById("modal-sats");
@@ -456,12 +459,13 @@ async function register({ registerHook, peertubeHelpers }) {
     //fixing millisats for lnpay
     amount = amount * 1000
     console.log("parsint", parseInt(amount));
+    let supported = true;
     try {
-      let supported = await webln.enable();
+      await webln.enable();
       console.log("webln is supported", supported, walletData);
     } catch {
-      await alertUnsupported();
-      return
+      //await alertUnsupported();
+      supported = false;
     }
     console.log("---------------\n", "webln enabled");
     //TODO properly build this
@@ -484,16 +488,25 @@ async function register({ registerHook, peertubeHelpers }) {
     let invoice = result.data.pr;
     console.log("invoice", invoice);
     try {
-      result = await window.webln.sendPayment(invoice);
-      lastTip = amount / 1000
-      notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
-      return result;
+      if (supported) {
+        result = await window.webln.sendPayment(invoice);
+        lastTip = amount / 1000
+        notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+        return result;
+      } else {
+        var qr = new QRious({
+          element: document.querySelector('qr'),
+          value: invoice,
+          size: 256,
+        });
+        document.getElementById("modal-message").value="Unable to send with browser or plugin\nscan QR code with wallet or paste the following code into a wallet\n"+invoice;
+        document.getElementById('qr-holder').appendChild(qr.image);
+        return;
+      }
     } catch (err) {
       notifier.error("failed sending " + tipVerb + "\n" + err.message);
       return;
     }
-    console.log(result);
-
   }
   async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, guid, channelName, itemID) {
     console.log("maybe the url:", window.location.href);
@@ -607,12 +620,8 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       console.log("error attempting to fetch feed id", err);
     }
-    //console.log("url should be ", window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName);
-    //console.log("other url should be", window.location.href + "?start=" + currentTime.toFixed());
     let paymentInfo;
     console.log("video boost updated", boost);
-    //console.log(peertubeHelpers.getBaseStaticRoute());
-    //console.log(peertubeHelpers.getBaseRouterRoute())
     if (customValue) {
       paymentInfo = {
         destination: pubKey,
@@ -641,10 +650,8 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       console.log("error attempting to send sats", err.message);
       notifier.error("failed sending " + tipVerb + "\n" + err.message);
-      //TODO add invoice dialog at this point
       return;
     }
-    // document.getElementById("satbutton").style.display="none";
   }
   async function getFeedID(channel) {
     let feedApi = basePath + "/getfeedid?channel=" + channel;
@@ -695,12 +702,6 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     console.log("returned wallet data", walletData.data);
-    /*
-       if (walletData.data.status != 'OK') {
-         console.log("server Unable to get wallet for", accountName, "\n", walletData.data);
-         return;
-       }
-    */
     return walletData.data;
   }
   async function refreshWalletInfo(address) {
@@ -723,6 +724,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function alertUnsupported() {
+
     peertubeHelpers.showModal({
       title: 'Support has found No WebLN provider found',
       content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
@@ -731,7 +733,6 @@ async function register({ registerHook, peertubeHelpers }) {
         The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
         `,
       close: true,
-      //cancel: { value: 'confirm', action: () => { } },
     })
   }
   async function buildTip(videoData, walletData) {
@@ -748,8 +749,16 @@ async function register({ registerHook, peertubeHelpers }) {
       channelName = videoData.channel.name;
       guid = channelName + "@" + videoData.channel.host;
     }
+    let plugin;
+    try {
+      await webln.enable();
+      plugin=true;
+    } catch {
+      console.log("no browser");
+      plugin=false;
+    }
     let result;
-    if (walletData.keysend) {
+    if (walletData.keysend && plugin) {
       console.log("sending keysend boost");
       result = await boost(walletData.keysend, amount, message, from, displayName, episode, "boost", episodeGuid, guid, channelName, itemID);
     } else if (walletData.lnurl) {
@@ -761,7 +770,7 @@ async function register({ registerHook, peertubeHelpers }) {
       document.getElementById("modal-message").value = "";
       return walletData;
     } else {
-      document.getElementById("modal-message").value = "error attempting send " + tipVerb;
+      //document.getElementById("modal-message").value = "error attempting send " + tipVerb;
       return walletData;
     }
   }
