@@ -1,3 +1,8 @@
+v0.2.3
+- cleaned up initial variable assignment block
+- removed remnants of left side tip option
+- moved html generation into discrete functions to ease collaboration.
+
 v0.2.2
 - added QR code and LNURL paste fallback option if webLN.enable fails.
 
