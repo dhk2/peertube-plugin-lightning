@@ -72,10 +72,7 @@ async function register({
       console.log("updating wallet info");
       let address = req.query.address;
       let keysendData = await getKeysendInfo(address);
-      let lnurlData;
-      if (!keysendData) {
-        lnurlData = await getLnurlInfo(address);
-      }
+      let lnurlData = await getLnurlInfo(address);
       if (lnurlData || keysendData) {
         let walletData = {};
         walletData.address = address;

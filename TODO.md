@@ -1,0 +1,18 @@
+making good progress.    
+----------     
+- Webln with getalby **done**
+- Boostagrams **done**
+- Streaming payments **done**
+- Lnurl support **done**
+- Podcast 2.0 rss feed in progress
+- Splits in progress
+- Getalby API
+- User config page
+- Automatic podcast index registration
+- Podping support
+- Direct lightning node connection
+- Paid subscriptions
+- Pay per View
+- Storage charges
+- Paid redundancy
+- Paid transcoding
