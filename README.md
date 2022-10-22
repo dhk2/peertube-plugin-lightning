@@ -1,4 +1,4 @@
-#A plugin to allow creator monetization over the Bitcoin Lightning Network
+# A plugin to allow creator monetization over the Bitcoin Lightning Network
 
 
 Creators
@@ -13,6 +13,8 @@ Viewers
 ----------------
 Get any WebLN browser plug like [Alby](https://getalby.com). Watch videos on a PeerTube instance with the plug in installed. Hit the tip/boost/whatever button, and if the creator has wallet configured, you will be able to directly send Satoshis, which are bitcoin pennies, to the creator. 
 if you don't have a compatible browser or plugin, you can scan the provided QR code with your lightning wallet 
+
 PeerTube operators
 ----------------
 Install the lightning plug in from the PeerTube plug in menu. In plugin settings put your wallet address as the system wallet and choose a verb (tip, superchat, boost, rant, bit, spell, whatever your audience will find appopriate).
+
