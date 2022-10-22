@@ -4,7 +4,10 @@
 Creators
 --------------
 Put your lightning address somewhere in your profile. I would suggest the support section of the channel.
-use the format ⚡user@wallet like ⚡viralsurgeon76@walletofsatoshi.com
+use the format:
+
+    ⚡user@wallet 
+like ⚡viralsurgeon76@walletofsatoshi.com
 If you don't have a wallet, we suggest https://getalby.com/podcast-wallet for their enhanced creator tools and ability to register the audio feed of your channel with podcast index and get earnings from compatible podcast players.
 
 That's it, just get a compatible wallet, and put that in your About or Support section. 
