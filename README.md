@@ -21,3 +21,6 @@ Simply install the lightning plug in from the PeerTube plug in menu.
 
 Optionally they can configure a system wallet with a Lightning Address, and choose a verb (tip, superchat, boost, rant, bit, spell, whatever the audience will find appopriate).
 
+See it in action:
+[Beta Test Site](https://p2ptube.us)
+
