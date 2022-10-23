@@ -64,7 +64,7 @@ async function register({ registerHook, peertubeHelpers }) {
               close: true,
               confirm: { value: 'close', action: () => { } },
             })
-            await makeTipDialog(channelName);
+            await makeTipDialog(displayName);
             let tipButton = document.getElementById('modal-satbutton');
             if (tipButton) {
               tipButton.onclick = async function () {
@@ -473,11 +473,10 @@ async function register({ registerHook, peertubeHelpers }) {
 
     peertubeHelpers.showModal({
       title: 'No WebLN provider found',
-      content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers<p>
-         There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
-        if you don't have a lightning wallet there are many to choose from.
-        The <a href = "https://getalby.com/podcast-wallet">alby wallets</a> have high compatibility and aren't just for podcasters any more
-        `,
+      content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers.<br>
+       You can use one of their wallets, or link the plugin to <a href="https://cryptonews.com/exclusives/7-popular-bitcoin-lightning-network-wallets-for-2022.htm">any lightning compatible wallet</a><p>
+       There are <a href= "https://webln.dev/#/">Several other options</a> for using WebLN available as well<p>
+       `,
       close: true,
     })
   }
@@ -535,8 +534,8 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("making qr dialog", invoice);
     let html = "<h1>No WebLN Found</h1>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
-      `process. Consider getting the <a href="https://getalby.com">Alby browser plug-in</a>` +
-      ` to make this process much easier<br> If you have a wallet you scan this qr code or paste the ` +
+      ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
+      `<br> If you have a wallet you can scan this qr code or paste the ` +
       `provided code to wallet<br>Transaction code:` +
       `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
       `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>` +

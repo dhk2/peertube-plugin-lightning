@@ -1,6 +1,10 @@
+v0.2.4
+- fixed buttons to use channel display name instead of name
+- cleaned up no webln provider dialogs
+
 v0.2.3
 - cleaned up initial variable assignment block
-- removed remnants of left side tip option
+- disabled remnants of left side tip option
 - moved html generation into discrete functions to ease collaboration.
 
 v0.2.2
