@@ -543,10 +543,10 @@ async function register({ registerHook, peertubeHelpers }) {
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
     let weblnSupport = await checkWebLnSupport();
-    notifier.success(weblnSupport);
+    //notifier.success(weblnSupport);
     let result;
     if (walletData.keysend && weblnSupport>1) {
-      notifier.success("sending keysend boost");
+      //notifier.success("sending keysend boost");
       console.log("sending keysend boost");
       console.log(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID)
       result = await boost(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID);
@@ -697,17 +697,16 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function checkWebLnSupport(){
     try {
-      console.log(webln.enable());
+      webln.enable()
         if (typeof webln.keysend === 'function') {
           console.log('✅ webln keysend support');
           return 2;
         } else {
-          console.log("⛔️ webln keysend not supported");
-          console.log('✅ webln lnurl support');
+          console.log("✅ webln supported ⛔️ keysend not supported");
           return 1;
         }
     } catch {
-      console.log("⛔️ webln not supported period");
+      console.log("⛔️ webln not supported");
       return 0;
     }
   }

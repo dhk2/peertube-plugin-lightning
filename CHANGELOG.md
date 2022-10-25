@@ -1,3 +1,7 @@
+v 0.2.5
+- Fixed issue with mobile wallet browsers support webln but not keysend
+- Verified now working fully with Blixt wallet
+
 v0.2.4
 - fixed buttons to use channel display name instead of name
 - cleaned up no webln provider dialogs
