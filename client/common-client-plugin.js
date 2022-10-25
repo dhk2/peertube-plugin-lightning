@@ -10,7 +10,8 @@ async function register({ registerHook, peertubeHelpers }) {
   let lastTip = 69
   let convertRate = .00019123
   let userName = "PeerTuber";
-  let menuTimer, streamTimer, streamEnabled, wallet, currentTime
+  let streamEnabled = false;
+  let menuTimer, streamTimer, wallet, currentTime
   peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
@@ -79,8 +80,23 @@ async function register({ registerHook, peertubeHelpers }) {
             currentTime = videoEl.currentTime;
             if (streamEnabled) {
               delta = (currentTime - lastStream).toFixed();
-              console.log(delta);
+              console.log(delta, streamEnabled);
               if (delta > 60 && delta < 64) {
+                try {
+                  await webln.enable();
+                } catch {
+                  await alertUnsupported();
+                  streamEnabled = false;
+                  let modalChecker = document.getElementById("modal-streamsats");
+                  if (modalChecker){
+                    modalChecker.checked=false;
+                  }
+                  let menuChecker = document.getElementById("streamsats");
+                  if (menuChecker){
+                    menuChecker.checked=false;
+                  }
+                  return;
+                }
                 if (walletData.keysend) {
                   boost(walletData.keysend, streamAmount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, video.id);
                 } else if (walletData.lnurl) {
@@ -124,7 +140,7 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
       clearInterval(menuTimer);
-      
+
       let element = document.querySelector('.stream-box')
       if (element != null) {
         element.remove();
@@ -142,7 +158,10 @@ async function register({ registerHook, peertubeHelpers }) {
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
       panel.id = 'stream-box';
       panel.innerHTML = html;
+      let modalExists = false;
       menuTimer = setInterval(async function () {
+        let checker = document.getElementById("streamsats");
+        //console.log("checker",checker);
         if ((document.querySelector('.top-menu .stream-box') === null)) {
           const topMenu = document.querySelector('.top-menu');
           if (topMenu) {
@@ -161,12 +180,10 @@ async function register({ registerHook, peertubeHelpers }) {
               dialog2Element.style.display = "none"
             }
             console.log("settinhg checkbox status and creating onclick");
-            let checker = document.getElementById("streamsats");
+
             let currentStreamAmount = document.getElementById('streamamount');
             if (checker) {
-              if (streamEnabled) {
-                checker.checked = true;
-              }
+              console.log("setting checker on click", checker);
               checker.onclick = async function () {
                 console.log("check box clicked");
                 console.log(checker.checked);
@@ -177,15 +194,38 @@ async function register({ registerHook, peertubeHelpers }) {
                 }
               }
             } else {
-              console.log("no click box found");
-            }
-            if (currentStreamAmount) {
-              currentStreamAmount.value = streamAmount;
-              currentStreamAmount.onchange = async function () {
-                streamAmount = currentStreamAmount.value;
-                notifier.success("Stream amount changed to ⚡" + streamAmount + "($" + (streamAmount * convertRate).toFixed(2) + ")");
+              console.log("no checkbox");
+              if (currentStreamAmount) {
+                currentStreamAmount.value = streamAmount;
+                currentStreamAmount.onchange = async function () {
+                  streamAmount = currentStreamAmount.value;
+                  notifier.success("Stream amount changed to ⚡" + streamAmount + "($" + (streamAmount * convertRate).toFixed(2) + ")");
+                }
               }
             }
+          }
+
+          /*
+          let modal = (document.getElementsByClassName('modal-title'));
+          if (modal[0]) {
+            if (!modalExists) {
+              console.log("modal", modal[0]);
+              modalExists = true;
+              if (modal[0].value.indexOf("Support">0)){
+                console.log("need to add support block");
+              }
+            }
+          } else {
+            modalExists = false;
+          }
+          */
+        }
+        if (checker) {
+          //console.log("checker", checker.checked);
+          if (checker.checked) {
+            streamEnabled=true;
+          } else {
+            streamEnabled=false;
           }
         }
       }, 100);
@@ -235,7 +275,7 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("error getting lnurl invoice");
       return;
     }
-    //console.log("result.data", result.data);
+    console.log("result.data", result.data);
     let invoice = result.data.pr;
     console.log("invoice", invoice);
     try {
@@ -394,8 +434,7 @@ async function register({ registerHook, peertubeHelpers }) {
       notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
       return result;
     } catch (err) {
-      console.log("error attempting to send sats", err.message);
-      notifier.error("failed sending " + tipVerb + "\n" + err.message);
+      console.log("error attempting to send sats using keysend", err.message);
       return;
     }
   }
@@ -470,7 +509,6 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function alertUnsupported() {
-
     peertubeHelpers.showModal({
       title: 'No WebLN provider found',
       content: `<p>You can get the <a href ="https://getalby.com/">Alby plug in</a> for most popular browsers.<br>
@@ -504,16 +542,11 @@ async function register({ registerHook, peertubeHelpers }) {
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
-    let plugin;
-    try {
-      await webln.enable();
-      plugin = true;
-    } catch {
-      plugin = false;
-    }
+    let weblnSupport = await checkWebLnSupport();
+    notifier.success(weblnSupport);
     let result;
-    console.log(plugin, walletData);
-    if (walletData.keysend && plugin) {
+    if (walletData.keysend && weblnSupport>1) {
+      notifier.success("sending keysend boost");
       console.log("sending keysend boost");
       console.log(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID)
       result = await boost(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID);
@@ -537,7 +570,8 @@ async function register({ registerHook, peertubeHelpers }) {
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
       `<br> If you have a wallet you can scan this qr code or paste the ` +
       `provided code to wallet<br>Transaction code:` +
-      `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
+      `<br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="5" cols=64 id="ln-code" name="ln-code">` + invoice + `</textarea><br>` +
+      //`<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
       `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>` +
       `<div id="qr-holder"><canvas id="qr"></canvas></div>`;
     let modal = (document.getElementsByClassName('modal-body'))
@@ -564,8 +598,8 @@ async function register({ registerHook, peertubeHelpers }) {
   async function makeTipDialog(channelName) {
     console.log("making tip dialog", channelName);
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
-    let html = "<h1>" + tipVerb + "</h1>" +
-      `<div id="modal-streamdialog">
+    //let html = "<h1>" + tipVerb + "</h1>" +
+    let html = `<div id="modal-streamdialog">
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
@@ -659,6 +693,22 @@ async function register({ registerHook, peertubeHelpers }) {
           console.log("really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
         }
       }
+    }
+  }
+  async function checkWebLnSupport(){
+    try {
+      console.log(webln.enable());
+        if (typeof webln.keysend === 'function') {
+          console.log('✅ webln keysend support');
+          return 2;
+        } else {
+          console.log("⛔️ webln keysend not supported");
+          console.log('✅ webln lnurl support');
+          return 1;
+        }
+    } catch {
+      console.log("⛔️ webln not supported period");
+      return 0;
     }
   }
 }
