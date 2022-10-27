@@ -1,3 +1,11 @@
+v 0.2.7
+- fixed guid to match spec format
+- fixed customkey to work properly
+- added server routes to store/retrieve channel guid and full split wallet data
+
+v 0.2.6
+- Dynamically fetch conversion rate in client
+
 v 0.2.5
 - Fixed issue with mobile wallet browsers support webln but not keysend
 - Verified now working fully with Blixt wallet

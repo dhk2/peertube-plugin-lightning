@@ -7,17 +7,25 @@ async function register({ registerHook, peertubeHelpers }) {
   const basePath = await peertubeHelpers.getBaseRouterRoute();
   let tipVerb = "tip";
   let streamAmount = 69;
-  let lastTip = 69
-  let convertRate = .00019123
+  let lastTip = 69;
+  let convertRate = .0002;
   let userName = "PeerTuber";
   let streamEnabled = false;
-  let menuTimer, streamTimer, wallet, currentTime
+  let menuTimer, streamTimer, wallet, currentTime;
   peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
       // split = s['lightning-split'];
     })
-
+  try {
+    let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
+    if (conversionData.data.data.rateUsd){
+      convertRate=conversionData.data.data.rateUsd/100000000
+      console.log("updating conversion rate",convertRate)
+    }
+  } catch {
+    console.log("error getting conversion rate. Falling back to",convertRate);
+  }
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -41,14 +49,15 @@ async function register({ registerHook, peertubeHelpers }) {
       let videoName = video.uuid;
       let episodeName = video.name;
       let itemID = video.id;
-      let guid = video.nameWithHostForced;
+      /*let guid = video.nameWithHostForced;
       if (!guid) {
         guid = channelName + "@" + instanceName;
       }
+      */
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
 
-      console.log("full tip info", channelName, displayName, episodeName, guid, episodeGuid, itemID);
+      console.log("full tip info", channelName, displayName, episodeName, episodeGuid, itemID);
       console.log("video data", video);
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
       if (walletData) {
@@ -70,7 +79,7 @@ async function register({ registerHook, peertubeHelpers }) {
             if (tipButton) {
               tipButton.onclick = async function () {
 
-                walletData = await buildTip(walletData, channelName, displayName, episodeName, guid, episodeGuid, itemID);
+                walletData = await buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID);
               }
             }
           };
@@ -293,8 +302,8 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, guid, channelName, itemID) {
-    console.log(walletData, amount, message, from, channel, episode, type, episodeGuid, guid, channelName, itemID)
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID) {
+    console.log(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     console.log("maybe the url:", window.location.href);
     try {
       let supported = await webln.enable();
@@ -326,9 +335,9 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("parameters normalized", walletData);
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
-    let customKey, customValue
+    let customKeyHack, customValue
     if (walletData.customData) {
-      customKey = walletData.customData[0].customKey;
+      customKeyHack = walletData.customData[0].customKey;
       customValue = walletData.customData[0].customValue;
     }
     console.log("wallet variables set");
@@ -363,9 +372,9 @@ async function register({ registerHook, peertubeHelpers }) {
     if (episode) {
       boost.episode = episode;
     }
-    if (guid) {
-      boost.guid = guid;
-    }
+  //  if (guid) {
+  //    boost.guid = guid;
+  //  }
     if (episodeGuid) {
       boost.episode_guid = episodeGuid;
     }
@@ -394,6 +403,7 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       console.log("error attempting to fetch item id", err);
     }
+
     let feedApi = basePath + "/getfeedid?channel=" + channelName;
     console.log("feed api", feedApi);
     try {
@@ -406,6 +416,19 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       console.log("error attempting to fetch feed id", err);
     }
+    let guid;
+    let guidApi = basePath + "/getchannelguid?channel=" + channelName;
+    console.log("guid api", guidApi);
+    try {
+      guid = await axios.get(guidApi);
+      console.log("got guid", guid);
+      if (guid) {
+        console.log("found guid", guid.data);
+        boost.guid = guid.data;
+      }
+    } catch (err) {
+      console.log("error attempting to fetch guid", err);
+    }
     let paymentInfo;
     console.log("video boost updated", boost);
     if (customValue) {
@@ -414,7 +437,7 @@ async function register({ registerHook, peertubeHelpers }) {
         amount: amount,
         customRecords: {
           7629169: JSON.stringify(boost),
-          "696969": customValue,
+          [customKeyHack]: customValue,
         }
       };
     } else {
@@ -537,8 +560,8 @@ async function register({ registerHook, peertubeHelpers }) {
     panel.innerHTML = html;
     return panel;
   }
-  async function buildTip(walletData, channelName, displayName, episodeName, guid, episodeGuid, itemID) {
-    console.log("clicked on tip button", walletData, channelName, displayName, episodeName, guid, episodeGuid, itemID);
+  async function buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID) {
+    console.log("clicked on tip button", walletData, channelName, displayName, episodeName, episodeGuid, itemID);
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
@@ -548,8 +571,8 @@ async function register({ registerHook, peertubeHelpers }) {
     if (walletData.keysend && weblnSupport>1) {
       //notifier.success("sending keysend boost");
       console.log("sending keysend boost");
-      console.log(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID)
-      result = await boost(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, guid, channelName, itemID);
+      console.log(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID)
+      result = await boost(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID);
     } else if (walletData.lnurl) {
       console.log("sending lnurl boost");
       result = await sendSats(walletData.lnurl, amount, message, from);
