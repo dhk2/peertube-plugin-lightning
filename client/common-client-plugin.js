@@ -352,9 +352,6 @@ async function register({ registerHook, peertubeHelpers }) {
     if (type == "stream") {
       boost.seconds_back = 60;
     }
-    //if (channel = "clip channel") {
-    //  boost.feedID = 5714728
-    //}
     if (from) {
       boost.sender_name = from;
     }
@@ -375,10 +372,12 @@ async function register({ registerHook, peertubeHelpers }) {
   //  if (guid) {
   //    boost.guid = guid;
   //  }
-    if (episodeGuid) {
-      boost.episode_guid = episodeGuid;
-    }
+  // for some reason episode guid is the url not an actual guid but a url.
+  //  if (episodeGuid) {
+  //    boost.episode_guid = episodeGuid;
+  //  }
     if (window.location.href) {
+      boost.episode_guid = window.location.href;
       boost.boost_link = window.location.href;
       if (currentTime) {
         boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();

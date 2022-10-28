@@ -1,10 +1,12 @@
 v 0.2.7
+- changed episode guid to the item url instead of the actual guid to match spec
+- added <podcast:guid> value to podcast2 rss feed.
 - fixed guid to match spec format
 - fixed customkey to work properly
 - added server routes to store/retrieve channel guid and full split wallet data
 
 v 0.2.6
-- Dynamically fetch conversion rate in client
+- Dynamically fetch bitcoin conversion rate in client
 
 v 0.2.5
 - Fixed issue with mobile wallet browsers support webln but not keysend

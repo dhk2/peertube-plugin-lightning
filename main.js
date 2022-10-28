@@ -202,7 +202,7 @@ async function register({
     return res.status(400).send();
   })
   router.use('/podcast2', async (req, res) => {
-    console.log("█████████████████ Testes ██████████████");
+    console.log("█████████████████ podcast2 request ██████████████");
     if (req.query.channel == undefined) {
       console.log("no channel requested", req.query);
       return res.status(400).send();
@@ -257,6 +257,17 @@ async function register({
     } else {
       console.log("no keysend data available for wallet")
     }
+    let channelGuid;
+    apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + req.query.channel;
+    try {
+      guidData = await axios.get(apiUrl);
+       if (guidData.data){
+        console.log("channel guid",guidData.data);
+        channelGuid = guidData.data;
+       }
+    } catch {
+      console.log("unable to load channel guid", apiUrl);
+    }
     let counter = 0;
     let fixed = "";
     let spacer = "";
@@ -295,7 +306,14 @@ async function register({
             fixed = fixed + ' customKey="' + customKey + '" customValue="' + customValue + '"'
           }
           fixed = fixed + ' split="100" />\n';
-          fixed = fixed + spacer + '</podcast:value>';
+          fixed = fixed + spacer + '</podcast:value>\n';
+        } else {
+          console.log("no pubkey value");
+        }
+        if (channelGuid){
+          fixed = fixed + spacer + '<podcast:guid>'+channelGuid+'</podcast:guid>\n'
+        } else {
+          console.log("no channel guid available");
         }
       }
       if (line.indexOf("<url>") > 0) {
