@@ -19,12 +19,12 @@ async function register({ registerHook, peertubeHelpers }) {
     })
   try {
     let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
-    if (conversionData.data.data.rateUsd){
-      convertRate=conversionData.data.data.rateUsd/100000000
-      console.log("updating conversion rate",convertRate)
+    if (conversionData.data.data.rateUsd) {
+      convertRate = conversionData.data.data.rateUsd / 100000000
+      console.log("updating conversion rate", convertRate)
     }
   } catch {
-    console.log("error getting conversion rate. Falling back to",convertRate);
+    console.log("error getting conversion rate. Falling back to", convertRate);
   }
   registerHook({
     target: 'action:auth-user.information-loaded',
@@ -97,12 +97,12 @@ async function register({ registerHook, peertubeHelpers }) {
                   await alertUnsupported();
                   streamEnabled = false;
                   let modalChecker = document.getElementById("modal-streamsats");
-                  if (modalChecker){
-                    modalChecker.checked=false;
+                  if (modalChecker) {
+                    modalChecker.checked = false;
                   }
                   let menuChecker = document.getElementById("streamsats");
-                  if (menuChecker){
-                    menuChecker.checked=false;
+                  if (menuChecker) {
+                    menuChecker.checked = false;
                   }
                   return;
                 }
@@ -132,14 +132,17 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async () => {
-      let channelUpdate = document.getElementsByClassName("margin-content");
+      let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
       let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
       let panel = await getConfigPanel(walletInfo, feedID, channel);
       channelUpdate[0].appendChild(panel);
       let id = document.getElementById("id");
-      document.getElementById("update").onclick = async function () {
+      document.getElementById("update-feed").onclick = async function () {
+        setFeedID(channel, id.value);
+      }
+      document.getElementById("update-keysend").onclick = async function () {
         setFeedID(channel, id.value);
       }
     }
@@ -232,9 +235,9 @@ async function register({ registerHook, peertubeHelpers }) {
         if (checker) {
           //console.log("checker", checker.checked);
           if (checker.checked) {
-            streamEnabled=true;
+            streamEnabled = true;
           } else {
-            streamEnabled=false;
+            streamEnabled = false;
           }
         }
       }, 100);
@@ -369,13 +372,13 @@ async function register({ registerHook, peertubeHelpers }) {
     if (episode) {
       boost.episode = episode;
     }
-  //  if (guid) {
-  //    boost.guid = guid;
-  //  }
-  // for some reason episode guid is the url not an actual guid but a url.
-  //  if (episodeGuid) {
-  //    boost.episode_guid = episodeGuid;
-  //  }
+    //  if (guid) {
+    //    boost.guid = guid;
+    //  }
+    // for some reason episode guid is the url not an actual guid but a url.
+    //  if (episodeGuid) {
+    //    boost.episode_guid = episodeGuid;
+    //  }
     if (window.location.href) {
       boost.episode_guid = window.location.href;
       boost.boost_link = window.location.href;
@@ -541,18 +544,24 @@ async function register({ registerHook, peertubeHelpers }) {
     })
   }
   async function getConfigPanel(walletInfo, feedID, channel) {
-    let html = "podcast RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
-    html = html + "<br> Wallet Address: " + walletInfo.address
-    if (walletInfo.keysend) {
-      html = html + "<br> Keysend: " + walletInfo.keysend.status;
-      html = html + "<br> Keysend pubkey: " + walletInfo.keysend.pubkey
+    let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Plugin Info</label><br>`
+    html = html + "podcast RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+    if (walletInfo) {
+      html = html + "<br> Wallet Address: " + walletInfo.address
+      if (walletInfo.keysend) {
+        html = html + "<br> Keysend: " + walletInfo.keysend.status;
+        html = html + "<br> Keysend pubkey: " + walletInfo.keysend.pubkey
+        html = html + "<br> keysend custom key:" + walletInfo.keysend.customData[0].customKey;
+        html = html + "<br> keysend custom value:" + walletInfo.keysend.customData[0].customValue;
+        console.log("here's teh custopm data", walletInfo.keysend.customData[0]);
+      }
+      if (walletInfo.lnurl) {
+        html = html + "<br> LNURL callback: " + walletInfo.lnurl.callback;
+      }
+      html = html + "<br> Podcast Index Feed ID:";
+      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
+      html = html + `<button type="button" id="update" name="update">Update</button>`
     }
-    if (walletInfo.lnurl) {
-      html = html + "<br> LNURL callback: " + walletInfo.lnurl.callback;
-    }
-    html = html + "<br> Podcast Index Feed ID:";
-    html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
-    html = html + `<button type="button" id="update" name="update">Update</button>`
     const panel = document.createElement('div');
     panel.setAttribute('class', 'lightning-button');
     panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -567,7 +576,7 @@ async function register({ registerHook, peertubeHelpers }) {
     let weblnSupport = await checkWebLnSupport();
     //notifier.success(weblnSupport);
     let result;
-    if (walletData.keysend && weblnSupport>1) {
+    if (walletData.keysend && weblnSupport > 1) {
       //notifier.success("sending keysend boost");
       console.log("sending keysend boost");
       console.log(walletData.keysend, amount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID)
@@ -717,16 +726,16 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
   }
-  async function checkWebLnSupport(){
+  async function checkWebLnSupport() {
     try {
       webln.enable()
-        if (typeof webln.keysend === 'function') {
-          console.log('✅ webln keysend support');
-          return 2;
-        } else {
-          console.log("✅ webln supported ⛔️ keysend not supported");
-          return 1;
-        }
+      if (typeof webln.keysend === 'function') {
+        console.log('✅ webln keysend support');
+        return 2;
+      } else {
+        console.log("✅ webln supported ⛔️ keysend not supported");
+        return 1;
+      }
     } catch {
       console.log("⛔️ webln not supported");
       return 0;

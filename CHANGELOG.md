@@ -1,3 +1,6 @@
+v 0.2.8
+- added storage of keysend data to allow custom configuration and cut down network traffic
+
 v 0.2.7
 - changed episode guid to the item url instead of the actual guid to match spec
 - added <podcast:guid> value to podcast2 rss feed.
