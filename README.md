@@ -24,3 +24,6 @@ Optionally they can configure a system wallet with a Lightning Address, and choo
 See it in action:
 [Beta Test Site](https://p2ptube.us)
 
+[How To Videos](https://p2ptube.us/c/lighning_plugin/videos?s=1)
+
+
