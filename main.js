@@ -340,6 +340,19 @@ async function register({
         spacer = (line.substring(0, line.indexOf('<')));
         fixed = fixed + '\n' + spacer + newLine;
       }
+      if (line.indexOf('guid>') > 0) {
+        spacer = (line.substring(0, line.indexOf('<')));
+
+        let cut = line.substring(line.indexOf('<guid>') + 6);
+        cut = cut.substring(0, cut.indexOf('</guid>'));
+        //fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="' + cut + '"/>';
+        //console.log("█████████████████ user account", channelData.data.ownerAccount);
+        //fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="https://lawsplaining.peertube.biz/videos/watch/9b31d490-7c3b-4fab-81e6-302cf48320b4" accountId="@' + channelData.data.ownerAccount.name + '" accountUrl="' + channelData.data.ownerAccount.url + '"/>';
+        fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="'+cut+'" accountId="@' + channelData.data.ownerAccount.name + '" accountUrl="' + channelData.data.ownerAccount.url + '"/>';
+
+      }
+
+
       fixed = fixed + '\n' + line;
     }
     res.status(200).send(fixed);
@@ -538,19 +551,19 @@ async function register({
   })
   async function getKeysendInfo(address) {
     if (!address) { return };
-    console.log("Getting Address",address);
+    console.log("Getting Address", address);
     //var storageIndex = "lightning" + "-" + address
     //periods are apparently not legal characters for an index value.
-    var storageIndex = "lightning-"+ address.replace(/\./g,"-");
+    var storageIndex = "lightning-" + address.replace(/\./g, "-");
     //console.log(await storageManager.getData(storageIndex));
     var storedLightning;
     //TODO fix local caching to remove circular loop errors
     storedLightning = await storageManager.getData(storageIndex);
     if (storedLightning) {
-      console.log("███returning stored lightning address",storageIndex);
+      console.log("███returning stored lightning address", storageIndex);
       return storedLightning;
     } else {
-      console.log("███no stored data",storageIndex,storedLightning)
+      console.log("███no stored data", storageIndex, storedLightning)
     }
     console.log("█ getting wallet data", address);
     address = address.toString();
@@ -572,7 +585,7 @@ async function register({
     }
     console.log(walletData.data)
     let whatHappened = await storageManager.storeData(storageIndex, walletData.data);
-    console.log("stored keysend data",whatHappened, storageIndex,walletData.data);
+    console.log("stored keysend data", whatHappened, storageIndex, walletData.data);
     return walletData.data;
   }
 }
@@ -655,6 +668,22 @@ async function findLightningAddress(textblock) {
     return matchAlbyLink[3] + "@getalby.com";
   }
 }
+
+async function findLinks(textblock) {
+  if (!textblock) {
+    return;
+  }
+  text = textblock.toString();
+
+  var regex = /(https:[/][/]|http:[/][/]|www.)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?\/?([a-zA-Z0-9\-\._\?\,\'/\\\+&amp;%\$#\=~])/g;
+  if (regex.test(text)) {
+    let result = text.match(regex);
+    console.log("urls found", result);
+    return result;
+  }
+  return;
+}
+
 async function unregister() {
   return
 }

@@ -1,3 +1,5 @@
+v 0.2.9
+- Added cross app comment support to podcast RSS feed
 v 0.2.8
 - added storage of keysend data to allow custom configuration and cut down network traffic
 

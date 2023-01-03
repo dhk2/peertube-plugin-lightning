@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from 'axios';1000
 import QRious from 'qrious';
 //import QRCode from 'qrcode';
 //var qrcode = new QRCode("qrcode");
@@ -67,6 +67,19 @@ async function register({ registerHook, peertubeHelpers }) {
           elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
           let addSpot = document.getElementById('plugin-placeholder-player-next');
           addSpot.appendChild(elem)
+          // testing pop-up
+          /*
+          const elem2 = document.createElement('div')
+          elem2.className = 'lightning-buttons-block'
+          elem2.innerHTML = `<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
+          addSpot.appendChild(elem2);
+          document.getElementById("tipeee").onclick = async function () {
+            window.open('https://www.tipeeestream.com/mlchristiansen/donation', 'popup', 'width=1000,height=600');
+          };
+*/
+
+
+
           document.getElementById("boostagram").onclick = async function () {
             await peertubeHelpers.showModal({
               title: 'Support ' + channelName,
@@ -139,8 +152,11 @@ async function register({ registerHook, peertubeHelpers }) {
       let panel = await getConfigPanel(walletInfo, feedID, channel);
       channelUpdate[0].appendChild(panel);
       let id = document.getElementById("id");
+      let updateButton = document.getElementById("update-feed");
       document.getElementById("update-feed").onclick = async function () {
         setFeedID(channel, id.value);
+        updateButton.innerText="Updated!";
+
       }
       document.getElementById("update-keysend").onclick = async function () {
         setFeedID(channel, id.value);
@@ -560,7 +576,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }
       html = html + "<br> Podcast Index Feed ID:";
       html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
-      html = html + `<button type="button" id="update" name="update">Update</button>`
+      html = html + `<button type="button" id="update-feed" name="update-feed">Update</button>`
     }
     const panel = document.createElement('div');
     panel.setAttribute('class', 'lightning-button');
