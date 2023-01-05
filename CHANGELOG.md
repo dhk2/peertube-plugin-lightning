@@ -1,3 +1,5 @@
+v 0.3.0
+- added support buttons for links to tipeeestream or streamlabs found in channel/video description/support
 v 0.2.9
 - Added cross app comment support to podcast RSS feed
 v 0.2.8

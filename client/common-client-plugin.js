@@ -1,4 +1,4 @@
-import axios from 'axios';1000
+import axios from 'axios'; 1000
 import QRious from 'qrious';
 //import QRCode from 'qrcode';
 //var qrcode = new QRCode("qrcode");
@@ -56,29 +56,63 @@ async function register({ registerHook, peertubeHelpers }) {
       */
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
+      let addSpot = document.getElementById('plugin-placeholder-player-next');
+      //console.log("full tip info", channelName, displayName, episodeName, episodeGuid, itemID);
+      //console.log("video data", video);
+      let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
+      //text = textblock.toString();
+      text = text.split("\n").join(" ");
+      //var regex = /(https:[/][/]|http:[/][/]|www.)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?\/?([a-zA-Z0-9\-\._\?\,\'/\\\+&amp;%\$#\=~])/g;
+      //var regex = /(([a-z]+:\/\/)?(([a-z0-9\-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-\.~]+)*(\/([a-z0-9_\-\.]*)(\?[a-z0-9+_\-\.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi;
+      var regex = /\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s]*\b)/g;
+      var result = null;
+      if (regex.test(text)) {
+        result = text.match(regex);
+        console.log("urls found", result);
+      }
+      var fullElem = document.createElement('div')
+      var tipeeeLink, streamlabsLink;
+      if (result) {
+        for (var url of result) {
+          if (url.indexOf("tipeeestream.com") > 0) {
+            console.log("found tipeeestream");
+            tipeeeLink = url;
+            const tipeeeElem = document.createElement('div')
+            tipeeeElem.className = 'tipeee-buttons-block'
+            tipeeeElem.innerHTML = `<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
+            fullElem.innerHTML = tipeeeElem.innerHTML;
+            addSpot.appendChild(tipeeeElem);
+            document.getElementById("tipeee").onclick = async function () {
+              window.open(tipeeeLink, 'popup', 'width=1000,height=600');
+            };
+          }
+          if (url.indexOf("streamlabs.com") > 0) {
+            let streamlabsLink = url;
+            console.log("found streamlabs");
+            const streamlabsElem = document.createElement('div')
+            streamlabsElem.className = 'streamlabs-buttons-block'
+            streamlabsElem.innerHTML = `<a  display:none id = "streamlabs" class="peertube-button orange-button ng-star-inserted" title="streamlabs">Streamlabs</a>`
+            fullElem.innerHTML = fullElem.innerHTML + streamlabsElem.innerHTML;
+            addSpot.appendChild(streamlabsElem);
+            document.getElementById("streamlabs").onclick = async function () {
+              console.log("streamlabs link", streamlabsLink, "url", url);
+              window.open(streamlabsLink, 'popup', 'width=1000,height=600');
+            };
+          }
+        }
+      }
 
-      console.log("full tip info", channelName, displayName, episodeName, episodeGuid, itemID);
-      console.log("video data", video);
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
+      //      console.log("support info",video.support,video.channel.support);
+      //     console.log("description info",video.channel.description,video.account.description,video.description);
       if (walletData) {
         if (!document.querySelector('.lightning-buttons-block')) {
           const elem = document.createElement('div')
           elem.className = 'lightning-buttons-block'
           elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
-          let addSpot = document.getElementById('plugin-placeholder-player-next');
+          fullElem.innerHTML = fullElem.innerHTML + elem.innerHTML;
           addSpot.appendChild(elem)
-          // testing pop-up
-          /*
-          const elem2 = document.createElement('div')
-          elem2.className = 'lightning-buttons-block'
-          elem2.innerHTML = `<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
-          addSpot.appendChild(elem2);
-          document.getElementById("tipeee").onclick = async function () {
-            window.open('https://www.tipeeestream.com/mlchristiansen/donation', 'popup', 'width=1000,height=600');
-          };
-*/
-
-
+          //addSpot.appendChild(fullElem);
 
           document.getElementById("boostagram").onclick = async function () {
             await peertubeHelpers.showModal({
@@ -155,7 +189,7 @@ async function register({ registerHook, peertubeHelpers }) {
       let updateButton = document.getElementById("update-feed");
       document.getElementById("update-feed").onclick = async function () {
         setFeedID(channel, id.value);
-        updateButton.innerText="Updated!";
+        updateButton.innerText = "Updated!";
 
       }
       document.getElementById("update-keysend").onclick = async function () {

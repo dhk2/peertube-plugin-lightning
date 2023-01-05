@@ -5,10 +5,14 @@ making good progress.
 - Streaming payments **done**
 - Lnurl support **done**
 - Podcast 2.0 rss feed in progress
-- Splits in progress
+    - transcript
+    - podcast:alternateEnclosure
+    - itunes explicit
+    - podcast:person
+- Splits on hold
 - Getalby API
 - User config page
-- Automatic podcast index registration
+- Automatic podcast index registration on hold
 - Podping support
 - Direct lightning node connection
 - Paid subscriptions

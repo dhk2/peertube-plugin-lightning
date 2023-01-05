@@ -1,0 +1,47 @@
+<rss version="2.0">
+    <channel>
+    <title>The Grand Illusion</title>
+    <lastBuildDate>Thu, 05 Jan 2023 09:13:46 GMT</lastBuildDate>
+    <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+    <generator>Toraifōsu</generator>
+    <podcast:medium>video</podcast:medium>
+    <link>
+    https://noagendatube.com/video-channels/the_grand_illusion
+    </link>
+    <description>
+    Working on v4v with PeerTube video. Testing federated video monetization Should work as long as the channel/account/video includes a lightning bolt with a lightning address in the description or support section.
+    </description>
+    <itunes:explicit>no</itunes:explicit>
+    <image>
+    <title>The Grand Illusion</title>
+    <url>
+    https://noagendatube.com/lazy-static/avatars/215e975c-77fe-4e47-a5ed-b56191596d2f.png
+    </url>
+    <link>
+    https://noagendatube.com/video-channels/the_grand_illusion
+    </link>
+    </image>
+    <copyright>
+    All rights reserved, unless otherwise specified in the terms specified at https://noagendatube.com/about and potential licenses granted by each content's rightholder.
+    </copyright>
+    <atom:link href="https://noagendatube.com/feeds/videos.xml?videoChannelId=2802&format=podcast" rel="self" type="application/rss+xml"/>
+    <item>
+    <title>Dean Martin - King of the Road</title>
+    <link>https://noagendatube.com/w/jNH8tEZfihumdwMMwqL3vX</link>
+    <guid isPermaLink="true">https://noagendatube.com/w/jNH8tEZfihumdwMMwqL3vX</guid>
+    <pubDate>Sun, 09 Oct 2022 18:52:01 GMT</pubDate>
+    <description>Jerry Lewis--What's My Line</description>
+    <content:encoded><p>Jerry Lewis--What's My Line</p> </content:encoded>
+    <dc:creator>Errhead</dc:creator>
+    <podcast:person href="https://noagendatube.com/accounts/errhead" img="https://noagendatube.com/lazy-static/avatars/43283e0b-e688-494a-91bc-28d8afecc9a7.gif">Errhead</podcast:person>
+    <podcast:tracker>https://noagendatube.com/tracker/announce</podcast:tracker>
+    <podcast:tracker>wss://noagendatube.com:443/tracker/socket</podcast:tracker>
+    <podcast:socialInteract uri="https://noagendatube.com/videos/watch/984a0e4f-1c68-4ee8-8616-2e715cceb9f1" protocol="activitypub" accountUrl="https://noagendatube.com/accounts/errhead"/>
+    <enclosure url="https://noagendatube.us-east-1.linodeobjects.com/streaming-playlists/hls/984a0e4f-1c68-4ee8-8616-2e715cceb9f1/89dfc27d-0689-43bd-a10f-f4532e2973dd-master.m3u8" type="application/x-mpegURL"/>
+    <podcast:alternateEnclosure type="application/x-mpegURL" title="HLS" default="true">
+    <podcast:source uri="https://noagendatube.us-east-1.linodeobjects.com/streaming-playlists/hls/984a0e4f-1c68-4ee8-8616-2e715cceb9f1/89dfc27d-0689-43bd-a10f-f4532e2973dd-master.m3u8"/>
+    </podcast:alternateEnclosure>
+    <itunes:explicit>no</itunes:explicit>
+    </item>
+    </channel>
+    </rss>
