@@ -36,6 +36,10 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
+      let buttonBlock = document.getElementsByClassName('tip-buttons-block')
+      if (buttonBlock.length > 0) {
+        buttonBlock[0].remove();
+      }
       if (streamTimer) {
         clearInterval(streamTimer);
       }
@@ -71,33 +75,37 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("urls found", result);
       }
       var fullElem = document.createElement('div')
+      // doing it right this time;
+
       var tipeeeLink, streamlabsLink;
+      var donationalertsLink,kofiLink,donatestreamLink;
+      var buttonHTML="";
       if (result) {
         for (var url of result) {
-          if (url.indexOf("tipeeestream.com") > 0) {
-            console.log("found tipeeestream");
+          if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee")<=0)){
+            console.log("found tipeeestream",url);
             tipeeeLink = url;
-            const tipeeeElem = document.createElement('div')
-            tipeeeElem.className = 'tipeee-buttons-block'
-            tipeeeElem.innerHTML = `<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
-            fullElem.innerHTML = tipeeeElem.innerHTML;
-            addSpot.appendChild(tipeeeElem);
-            document.getElementById("tipeee").onclick = async function () {
-              window.open(tipeeeLink, 'popup', 'width=1000,height=600');
-            };
+            buttonHTML = buttonHTML+`<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
           }
-          if (url.indexOf("streamlabs.com") > 0) {
-            let streamlabsLink = url;
-            console.log("found streamlabs");
-            const streamlabsElem = document.createElement('div')
-            streamlabsElem.className = 'streamlabs-buttons-block'
-            streamlabsElem.innerHTML = `<a  display:none id = "streamlabs" class="peertube-button orange-button ng-star-inserted" title="streamlabs">Streamlabs</a>`
-            fullElem.innerHTML = fullElem.innerHTML + streamlabsElem.innerHTML;
-            addSpot.appendChild(streamlabsElem);
-            document.getElementById("streamlabs").onclick = async function () {
-              console.log("streamlabs link", streamlabsLink, "url", url);
-              window.open(streamlabsLink, 'popup', 'width=1000,height=600');
-            };
+          if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs")<=0)) {
+            streamlabsLink = url;
+            console.log("found streamlabs",url);
+            buttonHTML =buttonHTML +` <a display:none id = "streamlabs" class="peertube-button orange-button ng-star-inserted" title="streamlabs">Streamlabs</a>`
+          }
+          if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts")<=0)) {
+            donationalertsLink = url;
+            console.log("found donationalerts",url);
+            buttonHTML = buttonHTML+`<a  display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">donation.stream</a>`
+          }
+          if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream")<=0)) {
+            donatestreamLink = url;
+            console.log("found donatestream",url);
+            buttonHTML = buttonHTML+`<a  display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="donatestream">Donation Alerts</a>`
+          }
+          if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi")<=0)) {
+            kofiLink = url+"#checkoutModal";
+            console.log("found kofi",url);
+            buttonHTML = buttonHTML+`<a  display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">Ko-Fi</a>`
           }
         }
       }
@@ -107,29 +115,11 @@ async function register({ registerHook, peertubeHelpers }) {
       //     console.log("description info",video.channel.description,video.account.description,video.description);
       if (walletData) {
         if (!document.querySelector('.lightning-buttons-block')) {
-          const elem = document.createElement('div')
-          elem.className = 'lightning-buttons-block'
-          elem.innerHTML = `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
-          fullElem.innerHTML = fullElem.innerHTML + elem.innerHTML;
-          addSpot.appendChild(elem)
+
+          buttonHTML = buttonHTML + `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
+          //fullElem.innerHTML = fullElem.innerHTML + elem.innerHTML;
+          //addSpot.appendChild(elem)
           //addSpot.appendChild(fullElem);
-
-          document.getElementById("boostagram").onclick = async function () {
-            await peertubeHelpers.showModal({
-              title: 'Support ' + channelName,
-              content: ` `,
-              close: true,
-              confirm: { value: 'close', action: () => { } },
-            })
-            await makeTipDialog(displayName);
-            let tipButton = document.getElementById('modal-satbutton');
-            if (tipButton) {
-              tipButton.onclick = async function () {
-
-                walletData = await buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID);
-              }
-            }
-          };
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -167,12 +157,65 @@ async function register({ registerHook, peertubeHelpers }) {
             }
           }, 1000);
         }
-      } else {
-        let buttonBlock = document.getElementsByClassName('lightning-buttons-block')
-        if (buttonBlock.length > 0) {
-          buttonBlock[0].remove();
+      }
+      const elem = document.createElement('div');
+      elem.className = 'tip-buttons-block';
+      elem.innerHTML = buttonHTML;
+      addSpot.appendChild(elem);
+      const boostButton = document.getElementById("boostagram");
+      if (boostButton) {
+        document.getElementById("boostagram").onclick = async function () {
+          await peertubeHelpers.showModal({
+            title: 'Support ' + channelName,
+            content: ` `,
+            close: true,
+            confirm: { value: 'close', action: () => { } },
+          })
+          await makeTipDialog(displayName);
+          let tipButton = document.getElementById('modal-satbutton');
+          if (tipButton) {
+            tipButton.onclick = async function () {
+
+              walletData = await buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID);
+            }
+          }
         }
       }
+      const streamlabsButton = document.getElementById("streamlabs")
+      if (streamlabsButton) {
+        streamlabsButton.onclick = async function () {
+          console.log("streamlabs link", streamlabsLink);
+          window.open(streamlabsLink, 'popup', 'width=600,height=800');
+        }
+      }
+      const tipeeeButton = document.getElementById("tipeee")
+      if (tipeeeButton) {
+        tipeeeButton.onclick = async function () {
+          console.log("tipeee link", tipeeeLink);
+          window.open(tipeeeLink, 'popup', 'width=1100,height=700');
+        }
+      }
+      const donationalertsButton = document.getElementById("donationalerts")
+      if (donationalertsButton) {
+        donationalertsButton.onclick = async function () {
+          console.log("Donationalerts link", donationalertsLink);
+          window.open(donationalertsLink, 'popup', 'width=600,height=800');
+        }
+      } 
+      const donatestreamButton = document.getElementById("donatestream")
+      if (donatestreamButton) {
+        donatestreamButton.onclick = async function () {
+          console.log("donatestream link", donatestreamLink);
+          window.open(donatestreamLink, 'popup', 'width=600,height=800');
+        }
+      } 
+      const kofiButton = document.getElementById("kofi")
+      if (kofiButton) {
+        kofiButton.onclick = async function () {
+          console.log("kofi link", kofiLink);
+          window.open(kofiLink, 'popup', 'width=600,height=800');
+        }
+      }  
     }
   })
 
@@ -400,7 +443,7 @@ async function register({ registerHook, peertubeHelpers }) {
       value_msat_total: amount * 1000,
       app_name: "PeerTube",
       app_version: "1.1",
-      name: "Channel",
+      name: channel,
     };
     if (type == "stream") {
       boost.seconds_back = 60;

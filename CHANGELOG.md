@@ -1,6 +1,6 @@
-v 0.3.0
+v 0.3.1
 - added support buttons for links to tipeeestream or streamlabs found in channel/video description/support
-v 0.2.9
+v 0.3.0
 - Added cross app comment support to podcast RSS feed
 v 0.2.8
 - added storage of keysend data to allow custom configuration and cut down network traffic

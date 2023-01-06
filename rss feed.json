@@ -1,0 +1,144 @@
+{
+    "id": 370710,
+    "uuid": "19cf49c4-2c67-4309-a4a0-b4719855bc36",
+    "shortUUID": "4bRojuLVGuTDmEPPP7BpuJ",
+    "url": "https://poast.tv/videos/watch/19cf49c4-2c67-4309-a4a0-b4719855bc36",
+    "name": "24/7 Classic R&B Radio",
+    "category": {
+        "id": 1,
+        "label": "Music"
+    },
+    "licence": {
+        "id": null,
+        "label": "Unknown"
+    },
+    "language": {
+        "id": null,
+        "label": "Unknown"
+    },
+    "privacy": {
+        "id": 1,
+        "label": "Public"
+    },
+    "nsfw": false,
+    "truncatedDescription": null,
+    "description": null,
+    "isLocal": true,
+    "duration": 0,
+    "views": 26,
+    "viewers": 0,
+    "likes": 2,
+    "dislikes": 0,
+    "thumbnailPath": "/static/thumbnails/d671961e-a3f1-4e1d-9bea-c2b681dd342d.jpg",
+    "previewPath": "/lazy-static/previews/22d8304f-90bb-4873-ad24-2042a1b1a37d.jpg",
+    "embedPath": "/videos/embed/19cf49c4-2c67-4309-a4a0-b4719855bc36",
+    "createdAt": "2022-09-14T16:14:47.075Z",
+    "updatedAt": "2023-01-05T09:26:18.861Z",
+    "publishedAt": "2023-01-05T09:26:18.861Z",
+    "originallyPublishedAt": null,
+    "isLive": true,
+    "account": {
+        "url": "https://poast.tv/accounts/radiostorm",
+        "name": "radiostorm",
+        "host": "poast.tv",
+        "avatars": [],
+        "id": 260,
+        "hostRedundancyAllowed": false,
+        "followingCount": 0,
+        "followersCount": 0,
+        "createdAt": "2021-04-07T01:12:27.683Z",
+        "banners": [],
+        "displayName": "Radiostorm.com",
+        "description": "Music",
+        "updatedAt": "2021-11-23T16:09:53.036Z",
+        "userId": 3
+    },
+    "channel": {
+        "url": "https://poast.tv/video-channels/radiostorm_channel",
+        "name": "radiostorm_channel",
+        "host": "poast.tv",
+        "avatars": [
+            {
+                "width": 48,
+                "path": "/lazy-static/avatars/2da73d3f-4723-49d1-92f0-a9dde2f69a79.gif",
+                "createdAt": "2022-06-01T21:39:21.672Z",
+                "updatedAt": "2022-06-01T21:39:21.672Z"
+            },
+            {
+                "width": 120,
+                "path": "/lazy-static/avatars/82073f15-cd6c-4447-a7a5-111e2ddc53ff.gif",
+                "createdAt": "2021-04-23T15:35:47.285Z",
+                "updatedAt": "2022-06-01T21:39:21.393Z"
+            }
+        ],
+        "avatar": {
+            "width": 48,
+            "path": "/lazy-static/avatars/2da73d3f-4723-49d1-92f0-a9dde2f69a79.gif",
+            "createdAt": "2022-06-01T21:39:21.672Z",
+            "updatedAt": "2022-06-01T21:39:21.672Z"
+        },
+        "id": 4,
+        "hostRedundancyAllowed": false,
+        "followingCount": 0,
+        "followersCount": 11,
+        "createdAt": "2021-04-07T01:12:27.701Z",
+        "banners": [],
+        "displayName": "Records",
+        "description": "spinning until I'm dizzy",
+        "support": null,
+        "isLocal": true,
+        "updatedAt": "2021-12-22T21:05:50.936Z",
+        "ownerAccount": {
+            "url": "https://poast.tv/accounts/radiostorm",
+            "name": "radiostorm",
+            "host": "poast.tv",
+            "avatars": [],
+            "id": 260,
+            "hostRedundancyAllowed": false,
+            "followingCount": 0,
+            "followersCount": 0,
+            "createdAt": "2021-04-07T01:12:27.683Z",
+            "banners": [],
+            "displayName": "Radiostorm.com",
+            "description": "Music",
+            "updatedAt": "2021-11-23T16:09:53.036Z",
+            "userId": 3
+        }
+    },
+    "pluginData": {
+        "livechat-active": true
+    },
+    "blacklisted": false,
+    "blacklistedReason": null,
+    "streamingPlaylists": [
+        {
+            "id": 2436887,
+            "type": 1,
+            "playlistUrl": "https://poast.tv/static/streaming-playlists/hls/19cf49c4-2c67-4309-a4a0-b4719855bc36/master.m3u8",
+            "segmentsSha256Url": "https://poast.tv/static/streaming-playlists/hls/19cf49c4-2c67-4309-a4a0-b4719855bc36/segments-sha256.json",
+            "redundancies": [],
+            "files": []
+        }
+    ],
+    "files": [],
+    "support": null,
+    "descriptionPath": "/api/v1/videos/19cf49c4-2c67-4309-a4a0-b4719855bc36/description",
+    "tags": [
+        "classic R&B",
+        "motown",
+        "radio",
+        "r&b",
+        "soul"
+    ],
+    "commentsEnabled": true,
+    "downloadEnabled": true,
+    "waitTranscoding": false,
+    "state": {
+        "id": 1,
+        "label": "Published"
+    },
+    "trackerUrls": [
+        "https://poast.tv/tracker/announce",
+        "wss://poast.tv:443/tracker/socket"
+    ]
+}
