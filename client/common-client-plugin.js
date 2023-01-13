@@ -53,18 +53,10 @@ async function register({ registerHook, peertubeHelpers }) {
       let videoName = video.uuid;
       let episodeName = video.name;
       let itemID = video.id;
-      /*let guid = video.nameWithHostForced;
-      if (!guid) {
-        guid = channelName + "@" + instanceName;
-      }
-      */
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
-      //console.log("full tip info", channelName, displayName, episodeName, episodeGuid, itemID);
-      //console.log("video data", video);
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
-      //text = textblock.toString();
       text = text.split("\n").join(" ");
       //var regex = /(https:[/][/]|http:[/][/]|www.)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?\/?([a-zA-Z0-9\-\._\?\,\'/\\\+&amp;%\$#\=~])/g;
       //var regex = /(([a-z]+:\/\/)?(([a-z0-9\-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-\.~]+)*(\/([a-z0-9_\-\.]*)(\?[a-z0-9+_\-\.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi;
@@ -74,9 +66,6 @@ async function register({ registerHook, peertubeHelpers }) {
         result = text.match(regex);
         console.log("urls found", result);
       }
-      var fullElem = document.createElement('div')
-      // doing it right this time;
-
       var tipeeeLink, streamlabsLink;
       var donationalertsLink,kofiLink,donatestreamLink;
       var buttonHTML="";
@@ -85,41 +74,36 @@ async function register({ registerHook, peertubeHelpers }) {
           if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee")<=0)){
             console.log("found tipeeestream",url);
             tipeeeLink = url;
-            buttonHTML = buttonHTML+`<a  display:none id = "tipeee" class="peertube-button orange-button ng-star-inserted" title="tipeee">tipeee</a>`
+            buttonHTML = buttonHTML+` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Tipeee<!----><!----><!----></span><!----><!----></button>`
           }
           if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs")<=0)) {
             streamlabsLink = url;
             console.log("found streamlabs",url);
-            buttonHTML =buttonHTML +` <a display:none id = "streamlabs" class="peertube-button orange-button ng-star-inserted" title="streamlabs">Streamlabs</a>`
+            buttonHTML =buttonHTML +` <button _ngcontent-vww-c178="" id = "streamlabs" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Streamlabs<!----><!----><!----></span><!----><!----></button>`
           }
           if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts")<=0)) {
             donationalertsLink = url;
             console.log("found donationalerts",url);
-            buttonHTML = buttonHTML+`<a  display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">donation.stream</a>`
+            buttonHTML = buttonHTML+` <a display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">Donation Alerts</a>`
           }
           if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream")<=0)) {
             donatestreamLink = url;
             console.log("found donatestream",url);
-            buttonHTML = buttonHTML+`<a  display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="donatestream">Donation Alerts</a>`
+            buttonHTML = buttonHTML+` <a display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="donatestream">donation.stream</a>`
           }
           if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi")<=0)) {
             kofiLink = url+"#checkoutModal";
             console.log("found kofi",url);
-            buttonHTML = buttonHTML+`<a  display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">Ko-Fi</a>`
+            buttonHTML = buttonHTML+` <a display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">Ko-Fi</a>`
           }
         }
       }
 
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
-      //      console.log("support info",video.support,video.channel.support);
-      //     console.log("description info",video.channel.description,video.account.description,video.description);
       if (walletData) {
         if (!document.querySelector('.lightning-buttons-block')) {
 
-          buttonHTML = buttonHTML + `<a  display:none id = "boostagram" class="peertube-button orange-button ng-star-inserted" title="boostagram">⚡️` + tipVerb + `</a>`
-          //fullElem.innerHTML = fullElem.innerHTML + elem.innerHTML;
-          //addSpot.appendChild(elem)
-          //addSpot.appendChild(fullElem);
+          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `<!----><!----><!----></span><!----><!----></button>`
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -169,7 +153,7 @@ async function register({ registerHook, peertubeHelpers }) {
             title: 'Support ' + channelName,
             content: ` `,
             close: true,
-            confirm: { value: 'close', action: () => { } },
+            //confirm: { value: 'close', action: () => { } },
           })
           await makeTipDialog(displayName);
           let tipButton = document.getElementById('modal-satbutton');
@@ -480,7 +464,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
     if (channelName) {
-      boost.url = window.location.protocol + "://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
+      boost.url = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
     }
 
     if (itemID) {
@@ -723,6 +707,7 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("making tip dialog", channelName);
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     //let html = "<h1>" + tipVerb + "</h1>" +
+    /*
     let html = `<div id="modal-streamdialog">
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
@@ -731,17 +716,16 @@ async function register({ registerHook, peertubeHelpers }) {
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>
    <hr>
-    <div id="satdialog" ><center>
-    <h2><center>`+ tipVerb + `</center></h2>
+   */
+   let html = ` <
     <label for="from">From:</label>
     <input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28">
     <br><label for="sats"> Sats:</label><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="`+ lastTip + `" size="8">
     / $
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashtip" name="modal-cashtip" value="`+ (lastTip * convertRate).toFixed(3) + `" size="6">
     <br><label for="message">Message:</label>
-    <br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=64 id="modal-message" name="modal-message" maxLength="128"></textarea>
-    </center></div><div _ngcontent-cav-c133="" class="lighting-pay-button ng-star-inserted">
-    <p id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</p>
+    <br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=40 id="modal-message" name="modal-message"></textarea>
+    <br><button _ngcontent-vww-c178=""  id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</button>
     `;
     let modal = (document.getElementsByClassName('modal-body'))
     //const panel = document.createElement('div');

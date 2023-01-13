@@ -301,7 +301,7 @@ async function register({
 
         fixed = fixed + "\n" + spacer + '<podcast:locked owner="' + req.query.channel + '">no</podcast:locked>';
         fixed = fixed + '\n' + spacer + '<itunes:owner>\n'
-        fixed = fixed + spacer + '\t<itunes:email>' + req.query.channel + '</itunes:email>\n'
+        fixed = fixed + spacer + '\t<itunes:email>' + 'errhead@gmail.com' + '</itunes:email>\n'
         fixed = fixed + spacer + '\t<itunes:name>' + channel + '</itunes:name>\n'
         fixed = fixed + spacer + '</itunes:owner>\n';
         fixed = fixed + spacer + '<itunes:author>' + displayName + '</itunes:author>\n'
