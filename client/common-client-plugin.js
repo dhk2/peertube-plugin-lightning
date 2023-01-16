@@ -67,43 +67,49 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("urls found", result);
       }
       var tipeeeLink, streamlabsLink;
-      var donationalertsLink,kofiLink,donatestreamLink;
-      var buttonHTML="";
+      var donationalertsLink, kofiLink, donatestreamLink;
+      var buttonHTML = "";
       if (result) {
         for (var url of result) {
-          if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee")<=0)){
-            console.log("found tipeeestream",url);
+          if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee") <= 0)) {
+            console.log("found tipeeestream", url);
             tipeeeLink = url;
-            buttonHTML = buttonHTML+` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Tipeee<!----><!----><!----></span><!----><!----></button>`
+            buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Tipeee<!----><!----><!----></span><!----><!----></button>`
           }
-          if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs")<=0)) {
+          if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs") <= 0)) {
             streamlabsLink = url;
-            console.log("found streamlabs",url);
-            buttonHTML =buttonHTML +` <button _ngcontent-vww-c178="" id = "streamlabs" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Streamlabs<!----><!----><!----></span><!----><!----></button>`
+            console.log("found streamlabs", url);
+            buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "streamlabs" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">Streamlabs<!----><!----><!----></span><!----><!----></button>`
           }
-          if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts")<=0)) {
+          if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts") <= 0)) {
             donationalertsLink = url;
-            console.log("found donationalerts",url);
-            buttonHTML = buttonHTML+` <a display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">Donation Alerts</a>`
+            console.log("found donationalerts", url);
+            buttonHTML = buttonHTML + ` <a display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">Donation Alerts</a>`
           }
-          if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream")<=0)) {
+          if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream") <= 0)) {
             donatestreamLink = url;
-            console.log("found donatestream",url);
-            buttonHTML = buttonHTML+` <a display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="donatestream">donation.stream</a>`
+            console.log("found donatestream", url);
+            buttonHTML = buttonHTML + ` <a display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="donatestream">donation.stream</a>`
           }
-          if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi")<=0)) {
-            kofiLink = url+"#checkoutModal";
-            console.log("found kofi",url);
-            buttonHTML = buttonHTML+` <a display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">Ko-Fi</a>`
+          if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi") <= 0)) {
+            kofiLink = url + "#checkoutModal";
+            console.log("found kofi", url);
+            buttonHTML = buttonHTML + ` <a display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">Ko-Fi</a>`
           }
         }
       }
 
       let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName)
+      var streamButtonText;
       if (walletData) {
         if (!document.querySelector('.lightning-buttons-block')) {
-
+          if (streamEnabled){
+            streamButtonText = "⚡️"+streamAmount+"/min";
+          } else {
+            streamButtonText = "⚡️Stream Sats";
+          }
           buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `<!----><!----><!----></span><!----><!----></button>`
+          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="peertube-button orange-button ng-star-inserted">`+streamButtonText+`<!----><!----><!----></span><!----><!----></button>`
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -165,6 +171,25 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
+      const streamButton = document.getElementById("stream");
+      if (streamButton) {
+        document.getElementById("stream").onclick = async function () {
+          await peertubeHelpers.showModal({
+            title: 'Stream sats for ' + channelName,
+            content: ` `,
+            close: true,
+            //confirm: { value: 'close', action: () => { } },
+          })
+          await makeStreamDialog(displayName);
+          let streamButton = document.getElementById('modal-streambutton');
+          if (streamButton) {
+            streamButton.onclick = async function () {
+
+              walletData = await buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID);
+            }
+          }
+        }
+      }
       const streamlabsButton = document.getElementById("streamlabs")
       if (streamlabsButton) {
         streamlabsButton.onclick = async function () {
@@ -185,21 +210,21 @@ async function register({ registerHook, peertubeHelpers }) {
           console.log("Donationalerts link", donationalertsLink);
           window.open(donationalertsLink, 'popup', 'width=600,height=800');
         }
-      } 
+      }
       const donatestreamButton = document.getElementById("donatestream")
       if (donatestreamButton) {
         donatestreamButton.onclick = async function () {
           console.log("donatestream link", donatestreamLink);
           window.open(donatestreamLink, 'popup', 'width=600,height=800');
         }
-      } 
+      }
       const kofiButton = document.getElementById("kofi")
       if (kofiButton) {
         kofiButton.onclick = async function () {
           console.log("kofi link", kofiLink);
           window.open(kofiLink, 'popup', 'width=600,height=800');
         }
-      }  
+      }
     }
   })
 
@@ -224,7 +249,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
   })
-
+  /*
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ path }) => {
@@ -235,6 +260,7 @@ async function register({ registerHook, peertubeHelpers }) {
         element.remove();
       }
       console.log("creating html for left side menu", streamAmount, userName);
+      
       let html = `
           <div id="streamdialog">
           <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="streamsats" name="streamsats" value="streamsats">
@@ -242,6 +268,7 @@ async function register({ registerHook, peertubeHelpers }) {
           <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="streamamount" name="streamamount" value="`+ streamAmount + `" size="6"><label for="sats"> Sats per minute</label><br>
           </div>
           `;
+      
       const panel = document.createElement('div');
       panel.setAttribute('class', 'stream-box');
       panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -307,7 +334,7 @@ async function register({ registerHook, peertubeHelpers }) {
           } else {
             modalExists = false;
           }
-          */
+    
         }
         if (checker) {
           //console.log("checker", checker.checked);
@@ -320,6 +347,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }, 100);
     }
   })
+  */
   async function sendSats(walletData, amount, message, from) {
     let result;
     if (!from) {
@@ -706,34 +734,80 @@ async function register({ registerHook, peertubeHelpers }) {
   async function makeTipDialog(channelName) {
     console.log("making tip dialog", channelName);
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
-    //let html = "<h1>" + tipVerb + "</h1>" +
-    /*
-    let html = `<div id="modal-streamdialog">
-    <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
-    <label>Stream Sats per minute:</label>
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
-    / $
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
-    </div>
-   <hr>
-   */
-   let html = ` <
-    <label for="from">From:</label>
-    <input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28">
-    <br><label for="sats"> Sats:</label><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="`+ lastTip + `" size="8">
-    / $
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashtip" name="modal-cashtip" value="`+ (lastTip * convertRate).toFixed(3) + `" size="6">
-    <br><label for="message">Message:</label>
-    <br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=40 id="modal-message" name="modal-message"></textarea>
+    let html = ` <center><table><tr><td>From:</td>
+   <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28"></td></tr>
+   <tr><td>Sats:</td>
+   <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="`+ lastTip + `" size="6"></td></tr>
+    
+    <td>&nbsp;</td><td style="text-align:right;">~$ <label id="modal-cashtip" name="modal-cashtip">`+ (lastTip * convertRate).toFixed(3) + `</label></td></tr>
+    
+    <tr><td><label for="message">Message:</label><br></td></tr>
+    
+    <tr><td colspan="2"><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=30 id="modal-message" name="modal-message"></textarea>
+    </td></tr></table>
     <br><button _ngcontent-vww-c178=""  id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</button>
-    `;
+    </center>`;
+
     let modal = (document.getElementsByClassName('modal-body'))
     //const panel = document.createElement('div');
     //panel.setAttribute('class', 'lightning-button');
     //panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
     //panel.innerHTML = html;
     //console.log("panel",panel);
-    modal[0].innerHTML = modal[0].innerHTML + html;
+    modal[0].innerHTML = html;
+
+    //modal[0].innerHTML = modal[0].innerHTML + html;
+    let modalSatTip = document.getElementById("modal-sats");
+    let modalCashTip = document.getElementById("modal-cashtip");
+    if (modalSatTip) {
+      modalSatTip.onchange = async function () {
+        console.log(modalCashTip);
+        modalCashTip.textContent = (modalSatTip.value * convertRate).toFixed(2);
+        console.log(modalCashTip);
+      }
+    }
+    if (modalCashTip) {
+      modalCashTip.onchange = async function () {
+        modalSatTip.value = (modalCashTip.value / convertRate).toFixed();
+      }
+    }
+
+  }
+  async function checkWebLnSupport() {
+    try {
+      webln.enable()
+      if (typeof webln.keysend === 'function') {
+        console.log('✅ webln keysend support');
+        return 2;
+      } else {
+        console.log("✅ webln supported ⛔️ keysend not supported");
+        return 1;
+      }
+    } catch {
+      console.log("⛔️ webln not supported");
+      return 0;
+    }
+  }
+  async function makeStreamDialog(channelName) {
+    console.log("making stream dialog", channelName);
+    let buttonText = '⚡️Stream⚡️';
+    let html = `<div id="modal-streamdialog">
+    <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
+    <label>Stream Sats per minute:</label>
+    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
+    / $
+    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
+    </div>`;
+
+    let modal = (document.getElementsByClassName('modal-body'))
+    //const panel = document.createElement('div');
+    //panel.setAttribute('class', 'lightning-button');
+    //panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+    //panel.innerHTML = html;
+    //console.log("panel",panel);
+    modal[0].innerHTML = html;
+
+    //modal[0].innerHTML = modal[0].innerHTML + html;
     let modalSatStream = document.getElementById("modal-streamamount");
     let modalCashStream = document.getElementById("modal-cashamount");
     let modalSatTip = document.getElementById("modal-sats");
@@ -759,16 +833,6 @@ async function register({ registerHook, peertubeHelpers }) {
         }
       }
     }
-    if (modalSatTip) {
-      modalSatTip.onchange = async function () {
-        modalCashTip.value = (modalSatTip.value * convertRate).toFixed(2);
-      }
-    }
-    if (modalCashTip) {
-      modalCashTip.onchange = async function () {
-        modalSatTip.value = (modalCashTip.value / convertRate).toFixed();
-      }
-    }
     let modalChecker = document.getElementById("modal-streamsats");
     if (modalChecker) {
       if (streamEnabled) {
@@ -777,7 +841,15 @@ async function register({ registerHook, peertubeHelpers }) {
       modalChecker.onclick = async function () {
         //let modalChecker = document.getElementById("modal-streamsats");
         let menuChecker = document.getElementById("streamsats");
+        let butt = document.getElementById("stream");
         streamEnabled = modalChecker.checked;
+        var streamButtonText = "";
+        if (streamEnabled){
+          streamButtonText = "⚡️"+streamAmount+"/min";
+        } else {
+          streamButtonText = "⚡️Stream Sats";
+        }
+        butt.textContent = streamButtonText;
         if (menuChecker) {
           menuChecker.checked = streamEnabled;
         }
@@ -801,21 +873,6 @@ async function register({ registerHook, peertubeHelpers }) {
           console.log("really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
         }
       }
-    }
-  }
-  async function checkWebLnSupport() {
-    try {
-      webln.enable()
-      if (typeof webln.keysend === 'function') {
-        console.log('✅ webln keysend support');
-        return 2;
-      } else {
-        console.log("✅ webln supported ⛔️ keysend not supported");
-        return 1;
-      }
-    } catch {
-      console.log("⛔️ webln not supported");
-      return 0;
     }
   }
 }
