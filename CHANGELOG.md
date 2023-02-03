@@ -1,3 +1,7 @@
+v 0.3.2
+- changed walletdata to a splitdata array for boosts and streaming
+- updated channel update info with split info
+- implemented host percentage split
 v 0.3.1
 - added support buttons for links to tipeeestream or streamlabs found in channel/video description/support
 v 0.3.0
