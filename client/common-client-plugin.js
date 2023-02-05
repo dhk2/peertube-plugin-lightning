@@ -377,7 +377,7 @@ async function register({ registerHook, peertubeHelpers }) {
     */
     //fixing millisats for lnpay
     amount = amount * 1000
-    //console.log("parsint", parseInt(amount));
+    console.log("parsint", parseInt(amount));
     let supported = true;
     try {
       await webln.enable();
@@ -386,7 +386,7 @@ async function register({ registerHook, peertubeHelpers }) {
       //makeQrDialog(invoice);
       supported = false;
     }
-    //console.log("webln enabled:", supported);
+    console.log("webln enabled:", supported);
     //TODO properly build this
     let urlCallback = encodeURI(walletData.callback);
     //let urlFrom = encodeURIComponent(from);
@@ -396,21 +396,21 @@ async function register({ registerHook, peertubeHelpers }) {
     if (comment != "") {
       invoiceApi = invoiceApi + "&message=" + urlComment;
     }
-    //console.log("invoice api", invoiceApi);
+    console.log("invoice api", invoiceApi);
     try {
       result = await axios.get(invoiceApi);
     } catch (err) {
-      //console.log("error getting lnurl invoice");
+      console.log("error getting lnurl invoice");
       return;
     }
-    // console.log("result.data", result.data);
+     console.log("result.data", result.data);
     let invoice = result.data.pr;
-    //console.log("invoice", invoice);
+    console.log("invoice", invoice);
     try {
       if (supported) {
         result = await window.webln.sendPayment(invoice);
-        lastTip = amount / 1000
-        notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+        var tipfixed = amount / 1000
+        notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
         return result;
       } else {
         makeQrDialog(invoice);
@@ -571,8 +571,8 @@ async function register({ registerHook, peertubeHelpers }) {
     let result;
     try {
       result = await webln.keysend(paymentInfo);
-      lastTip = amount
-      notifier.success("⚡" + lastTip + "($" + (lastTip * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+      var tipfixed = amount
+      notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
       return result;
     } catch (err) {
       console.log("error attempting to send sats using keysend", err.message);
@@ -737,6 +737,7 @@ async function register({ registerHook, peertubeHelpers }) {
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
     let weblnSupport = await checkWebLnSupport();
+    lastTip=amount;
     //notifier.success(weblnSupport);
     let result;
     for (var wallet of splitData) {
@@ -765,11 +766,12 @@ async function register({ registerHook, peertubeHelpers }) {
     let html = "<h1>No WebLN Found</h1>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
-      `<br> If you have a wallet you can scan this qr code or paste the ` +
-      `provided code to wallet<br>Transaction code:` +
-      `<br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="5" cols=64 id="ln-code" name="ln-code">` + invoice + `</textarea><br>` +
+      `<br> If you have a wallet you can scan this qr code, open a local wallet, or copy/paste the ` +
+      `provided code to a wallet` +
+      //`<br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="5" cols=64 id="ln-code" name="ln-code">` + invoice + `</textarea><br>` +
       //`<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
-      `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>` +
+      `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>`+
+      `<a href="lightning:`+invoice+`"><button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>`+
       `<div id="qr-holder"><canvas id="qr"></canvas></div>`;
     let modal = (document.getElementsByClassName('modal-body'))
     //const panel = document.createElement('div');
@@ -836,7 +838,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function checkWebLnSupport() {
     try {
-      webln.enable()
+      await webln.enable()
       if (typeof webln.keysend === 'function') {
         console.log('✅ webln keysend support');
         return 2;

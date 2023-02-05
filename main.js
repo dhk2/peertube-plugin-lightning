@@ -485,6 +485,22 @@ async function register({
       return res.status(400).send();
     }
   })
+
+
+  router.use('/getlnurl', async (req, res) => {
+    console.log("███getting lnrul info", req.query.address);
+    let result = getLnurlInfo(req.query.address);
+    if (result) {
+      return res.status(200).send(result);
+    } else {
+      return res.status(400).send();
+    }
+  })
+
+
+
+
+  
   router.use('/setitemid', async (req, res) => {
     console.log("███setting item id", req.query.uuid);
     let uuid = req.query.uuid;
@@ -560,7 +576,8 @@ async function register({
   router.use('/getsplit', async (req, res) => {
     console.log("█Request for split info\n", req.query)
     if (req.query.video) {
-      var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      var storedSplitData;
+      //var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (storedSplitData) {
         console.log("returning stored data", storedSplitData);
@@ -598,6 +615,11 @@ async function register({
                   //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
 
                 }
+                if (walletData.keysend){
+                  if (walletData.address.indexOf("fountain.fm")>0){
+                    walletData.keysend = null;
+                  }
+                }
                 var splitData=new Array();
                 walletData.split =100;
                 splitData.push(walletData);
@@ -605,6 +627,7 @@ async function register({
                   splitData[0].split=100 - hostWalletData.split;
                 } 
                 splitData.push(hostWalletData);
+                await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
                 return res.status(200).send(splitData);
               } else {
                 console.log("lightning address in video description does not resolve", foundLightningAddress);
@@ -617,7 +640,8 @@ async function register({
         return res.status(400).send();
       }
     } else if (req.query.channel) {
-      var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      var storedSplitData;
+      //var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
       console.log("█retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData);
       if (storedSplitData) {
         console.log("returning stored data", storedSplitData);
@@ -647,14 +671,19 @@ async function register({
                 walletData.address = foundLightningAddress;
                 if (keysendData) {
                   walletData.keysend = keysendData;
-                  console.log("successfully retrieved keysend data for wallet in video", channelData.data.name, keysendData);
+                  console.log("successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
                   //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
                 }
                 if (lnurlData) {
                   walletData.lnurl = lnurlData;
-                  console.log("successfully retrieved lnurl data for wallet in video", channelData.data.name, lnurlData);
+                  console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
                   //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
 
+                }
+                if (walletData.keysend){
+                  if (walletData.address.indexOf("fountain.fm")>0){
+                    walletData.keysend = null;
+                  }
                 }
                 var splitData = new Array;
                 
@@ -664,12 +693,13 @@ async function register({
                   splitData[0].split=100 - hostWalletData.split;
                 } 
                 splitData.push(hostWalletData);
+                await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
                 return res.status(200).send(splitData);
               } else {
-                console.log("lightning address in video description does not resolve", foundLightningAddress);
+                console.log("lightning address in channel description does not resolve", foundLightningAddress);
               }
             } else {
-              console.log("no lightning address found in video description");
+              console.log("no lightning address found in channel description");
             }
           }
         }
