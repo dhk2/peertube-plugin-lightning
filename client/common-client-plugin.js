@@ -165,7 +165,7 @@ async function register({ registerHook, peertubeHelpers }) {
             title: 'Support ' + channelName,
             content: ` `,
             close: true,
-            //confirm: { value: 'close', action: () => { } },
+            confirm: { value: 'X', action: () => { } },
           })
           await makeTipDialog(displayName);
           let tipButton = document.getElementById('modal-satbutton');
@@ -253,6 +253,10 @@ async function register({ registerHook, peertubeHelpers }) {
       document.getElementById("update-feed").onclick = async function () {
         setFeedID(channel, id.value);
         updateButton.innerText = "Updated!";
+
+      }
+      document.getElementById("add-split").onclick = async function () {
+        console.log("doin it!");
 
       }
       document.getElementById("update-keysend").onclick = async function () {
@@ -714,13 +718,15 @@ async function register({ registerHook, peertubeHelpers }) {
         for (var split in splitInfo) {
           html = html + "<tr><td>" + splitInfo[split].split + "</td><td>" + splitInfo[split].address + "</td>";
           if (splitInfo[split].keysend) {
-            html = html + "<td>Keysend</td></tr>";
+            html = html + `<td>Keysend</td><td><button class="peertube-button orange-button ng-star-inserted" id="edit-`+ splitInfo[split].address+`">edit</button></td>`;
           } else {
-            html = html + "<td>LNURL Pay</td></tr>";
+            html = html + "<td>LNURL Pay</td>";
           }
+          html = html +"</tr>";
         }
         html = html + "</table>";
       }
+      html = html + `<button type="button" id="add-split" class="peertube-button orange-button ng-star-inserted">Add Split</button>`
       html = html + "<br> Podcast Index Feed ID:";
       html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
       html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Update</button>`
@@ -753,11 +759,19 @@ async function register({ registerHook, peertubeHelpers }) {
         //walletData = await refreshWalletInfo(walletData.address);
       }
     }
+    let butts = document.getElementsByClassName("peertube-button orange-button ng-star-inserted")
+    //console.log("-------------- buttons:\n",butts)
     if (result) {
-      document.getElementById("modal-message").value = "";
+      for (var butt of butts){
+        if (butt.value=="X"){
+          butt.click();
+        }
+      }
+      //document.getElementById("modal-message").value = "";
+
       return ;
     } else {
-      //document.getElementById("modal-message").value = "error attempting send " + tipVerb;
+      document.getElementById("modal-message").value = "error attempting send " + tipVerb;
       return ;
     }
   }

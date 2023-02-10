@@ -1,0 +1,49 @@
+[
+    {
+        "address": "mcduquesne@getalby.com",
+        "keysend": {
+            "tag": "keysend",
+            "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+            "status": "OK",
+            "customData": [
+                {
+                    "customKey": "696969",
+                    "customValue": "ukPtJhg4rq1RaSdQlrYs"
+                }
+            ]
+        },
+        "lnurl": {
+            "status": "OK",
+            "tag": "payRequest",
+            "commentAllowed": 255,
+            "callback": "https://getalby.com/lnurlp/mcduquesne/callback",
+            "metadata": "[[\"text/identifier\",\"mcduquesne@getalby.com\"],[\"text/plain\",\"Sats for mcduquesne\"]]",
+            "minSendable": 1000,
+            "maxSendable": 11000000000,
+            "payerData": {
+                "name": {
+                    "mandatory": false
+                },
+                "email": {
+                    "mandatory": false
+                }
+            }
+        },
+        "split": 90
+    },
+    {
+        "address": "mcduquesne@getalby.com",
+        "keysend": {
+            "tag": "keysend",
+            "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+            "status": "OK",
+            "customData": [
+                {
+                    "customKey": "696969",
+                    "customValue": "ukPtJhg4rq1RaSdQlrYs"
+                }
+            ]
+        },
+        "split": 10
+    }
+]

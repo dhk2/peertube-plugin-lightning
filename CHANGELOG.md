@@ -1,6 +1,10 @@
-v 0.3.2
-- changed walletdata to a splitdata array for boosts and streaming
-- updated channel update info with split info
+v 0.3.4
+- Fixed host split to go to hosting instance instead of viewing instance
+- close superchat dialog after sending superchat
+v 0.3.3
+- added routes for split data
+- changed walletdata to an array
+- display split info in channel update window
 - implemented host percentage split
 v 0.3.1
 - added support buttons for links to tipeeestream or streamlabs found in channel/video description/support

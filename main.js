@@ -1,5 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const { channel } = require('diagnostics_channel');
 async function register({
   registerHook,
   registerSetting,
@@ -575,8 +576,8 @@ async function register({
   })
   router.use('/getsplit', async (req, res) => {
     console.log("█Request for split info\n", req.query)
+    var storedSplitData;
     if (req.query.video) {
-      var storedSplitData;
       //var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (storedSplitData) {
@@ -586,6 +587,7 @@ async function register({
         
         console.log("stored split data not found");
         if (req.query.video) {
+          console.log("base",base);
           var apiCall = base + "/api/v1/videos/" + req.query.video;
           console.log("█ getting video data", apiCall);
           let videoData;
@@ -595,7 +597,21 @@ async function register({
             console.log("failed to pull information for provided video id", apiCall);
           }
           if (videoData) {
-            //console.log(videoData);
+            let videoHost = "https://"+videoData.data.channel.host;
+            if (videoHost != base){
+              remoteWalletApi=videoHost+"/plugins/lightning/router/getspit?channel="+channel.name;
+              let remoteSplitData;
+              try {
+                remoteSplitData = await axios.get(remoteWalletApi);
+              } catch {
+                console.log("failed to pull remote split info", apiCall);
+              }
+              if (remoteSplitData){
+                return res.status(200).send(remoteSplitData);
+              }
+            }
+            let split
+            console.log(videoData.data.channel);
             let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support+" "+videoData.data.channel.description+" "+videoData.data.channel.support+" "+videoData.data.account.description);
             if (foundLightningAddress) {
               console.log("lightning address found in video description [" + foundLightningAddress + ']');
