@@ -255,6 +255,47 @@ async function register({ registerHook, peertubeHelpers }) {
         updateButton.innerText = "Updated!";
 
       }
+      if (splitData.length > 0) {
+        for (var slot in splitData) {
+          var editButton = document.getElementById("edit-"+splitData[slot].address);
+          console.log("considering ",slot,splitData[slot].address);
+          if (editButton){
+            editButton.onclick = async function () {
+              await peertubeHelpers.showModal({
+                title: 'edit Split for '+splitData[this.slot].address,
+                content: ` `,
+                close: true,
+                //confirm: { value: 'close', id: 'streamingsatsclose', action: () => { } },
+      
+              });
+              let html;
+              if (this.slot == 0){
+                html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="`+splitData[this.slot].split+`"><br>`;
+              } else {
+                html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="`+splitData[this.slot].split+`"><br>`;
+              }
+              html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="`+splitData[this.slot].address+`"><br>`;
+              html = html + `<button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
+      
+              if (splitData[this.slot].keysend) {
+                html = html + "<br> Keysend: " + splitData[this.slot].keysend.status;
+                html = html + "<br> Keysend pubkey: " + splitData[this.slot].keysend.pubkey
+                html = html + "<br> keysend custom key:" + splitData[this.slot].keysend.customData[0].customKey;
+                html = html + "<br> keysend custom value:" + splitData[this.slot].keysend.customData[0].customValue;
+              }
+              if (splitData[this.slot].lnurl) {
+                html = html + "<br> LNURL callback: " + splitData[this.slot].lnurl.callback;
+              }
+              
+              let modal = (document.getElementsByClassName('modal-body'))
+              modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+              modal[0].innerHTML = html;
+            }
+          }
+        }
+
+      }
+
       document.getElementById("add-split").onclick = async function () {
         console.log("doin it!");
         await peertubeHelpers.showModal({
@@ -723,35 +764,34 @@ async function register({ registerHook, peertubeHelpers }) {
     })
   }
   async function getConfigPanel(splitInfo, feedID, channel) {
-    let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Plugin Info</label><br>`
-    html = html + "podcast RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
-    if (splitInfo) {
+    let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Plugin Info</label>`
+        if (splitInfo) {
       console.log("generating split text info");
       //html = html + "<br> Wallet Address: " + splitInfo[0].address
-      if (splitInfo[0].keysend) {
-        html = html + "<br> Keysend: " + splitInfo[0].keysend.status;
-        html = html + "<br> Keysend pubkey: " + splitInfo[0].keysend.pubkey
-        html = html + "<br> keysend custom key:" + splitInfo[0].keysend.customData[0].customKey;
-        html = html + "<br> keysend custom value:" + splitInfo[0].keysend.customData[0].customValue;
-      }
-      if (splitInfo[0].lnurl) {
-        html = html + "<br> LNURL callback: " + splitInfo[0].lnurl.callback;
-      }
       console.log(html.length);
       if (splitInfo.length > 0) {
-        html = html + "<br>Sat Splits<br><table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
+        html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
         for (var split in splitInfo) {
           html = html + "<tr><td>" + splitInfo[split].split + "</td><td>" + splitInfo[split].address + "</td>";
           if (splitInfo[split].keysend) {
-            html = html + `<td>Keysend</td><td><button class="peertube-button orange-button ng-star-inserted" id="edit-`+ splitInfo[split].address+`">edit</button></td>`;
-          } else {
+            html = html + `<td>Keysend</td>`;
+          } else if (splitInfo[split].lnurl)  {
             html = html + "<td>LNURL Pay</td>";
+          } else {
+            html = html + "<td>unknown</td>"
+          }
+          if (!splitInfo[split].fee) {
+            //html = html + `<td><button class="peertube-button orange-button ng-star-inserted" slot="`+split+`" id="edit-`+ splitInfo[split].address+`">edit</button></td>`;
+            html = html + `<td><button class="peertube-button orange-button ng-star-inserted" >edit</button></td>`;
           }
           html = html +"</tr>";
         }
         html = html + "</table>";
       }
       html = html + `<button type="button" id="add-split" class="peertube-button orange-button ng-star-inserted">Add Split</button>`
+      html = html + "<hr>"
+      html = html + "podcast 2.0 RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+
       html = html + "<br> Podcast Index Feed ID:";
       html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
       html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Update</button>`

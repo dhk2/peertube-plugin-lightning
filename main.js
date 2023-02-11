@@ -74,6 +74,7 @@ async function register({
     console.log("setting host split to ", hostSplit);
     hostWalletData.split = parseInt(hostSplit);
   }
+  hostWalletData.fee = true;
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
