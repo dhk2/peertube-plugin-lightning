@@ -781,8 +781,8 @@ async function register({ registerHook, peertubeHelpers }) {
             html = html + "<td>unknown</td>"
           }
           if (!splitInfo[split].fee) {
-            //html = html + `<td><button class="peertube-button orange-button ng-star-inserted" slot="`+split+`" id="edit-`+ splitInfo[split].address+`">edit</button></td>`;
-            html = html + `<td><button class="peertube-button orange-button ng-star-inserted" >edit</button></td>`;
+            html = html + `<td><button class="peertube-button orange-button ng-star-inserted" slot="`+split+`" id="edit-`+ splitInfo[split].address+`">edit</button></td>`;
+            //html = html + `<td><button class="peertube-button orange-button ng-star-inserted" >edit</button></td>`;
           }
           html = html +"</tr>";
         }
