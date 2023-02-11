@@ -257,10 +257,35 @@ async function register({ registerHook, peertubeHelpers }) {
       }
       document.getElementById("add-split").onclick = async function () {
         console.log("doin it!");
+        await peertubeHelpers.showModal({
+          title: 'Add Split for' + channel,
+          content: ` `,
+          close: true,
+          //confirm: { value: 'close', id: 'streamingsatsclose', action: () => { } },
 
-      }
-      document.getElementById("update-keysend").onclick = async function () {
-        setFeedID(channel, id.value);
+        })
+        let modal = (document.getElementsByClassName('modal-body'))
+        //modal[0].setAttribute('class', 'lightning-button');
+        modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+        modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
+        <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+        <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
+        document.getElementById("add-split-final").onclick = async function () {
+          console.log("call the add api now");
+          let newSplit = document.getElementById("modal-split-value").value;
+          let newAddress = document.getElementById("modal-split-address").value;
+          let addApi = `/addsplit?channel=`+channel+`&split=`+newSplit+`&splitaddress=`+newAddress;
+          let addResult;
+          try {
+            addResult = await axios.get(basePath+addApi);
+          } catch {
+            console.log("client unable to fetch wallet data\n",addApi );
+            return;
+          }
+          if (addResult){
+            console.log("addResult",addResult.data);
+          }
+        }
       }
     }
   })
