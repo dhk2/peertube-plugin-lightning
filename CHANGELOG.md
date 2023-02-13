@@ -1,4 +1,5 @@
 v 0.3.4
+- added user configurable splits
 - Fixed host split to go to hosting instance instead of viewing instance
 - close superchat dialog after sending superchat
 v 0.3.3

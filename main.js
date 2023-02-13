@@ -725,12 +725,183 @@ async function register({
     return res.status(400).send();
   })
   router.use('/addsplit', async (req, res) => {
-    console.log("█Request for split info\n", req.query)
+    console.log("█add split called\n", req.query)
     var storedSplitData;
     var split;
     var newAddress = req.query.splitaddress;
     var newSplit = req.query.split;
     var channel = req.query.channel
+    //if (!newSplit || !newAddress || (newsplit <1 )){
+    //  console.log("unable to add do to missing info",req.query);
+    //  return res.status(400).send();
+    //}
+    if (req.query.video) {
+      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
+      if (!storedSplitData) {
+        console.log("stored split data not found");
+        if (req.query.video) {
+          console.log("base", base);
+          var apiCall = base + "/api/v1/videos/" + req.query.video;
+          console.log("█ getting video data", apiCall);
+          let videoData;
+          try {
+            videoData = await axios.get(apiCall);
+          } catch {
+            console.log("failed to pull information for provided video id", apiCall);
+          }
+          if (videoData) {
+            console.log(videoData.data.channel);
+            let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support + " " + videoData.data.channel.description + " " + videoData.data.channel.support + " " + videoData.data.account.description);
+            if (foundLightningAddress) {
+              console.log("lightning address found in video description [" + foundLightningAddress + ']');
+              let keysendData = await getKeysendInfo(foundLightningAddress);
+              let lnurlData = await getLnurlInfo(foundLightningAddress);
+              if (lnurlData || keysendData) {
+                let walletData = {};
+                walletData.address = foundLightningAddress;
+                if (keysendData) {
+                  walletData.keysend = keysendData;
+                  console.log("successfully retrieved keysend data for wallet in video", videoData.data.channel.name, keysendData);
+                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
+                }
+                if (lnurlData) {
+                  walletData.lnurl = lnurlData;
+                  console.log("successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
+                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
+
+                }
+                if (walletData.keysend) {
+                  if (walletData.address.indexOf("fountain.fm") > 0) {
+                    walletData.keysend = null;
+                  }
+                }
+                var splitData = new Array();
+                walletData.split = 100;
+                splitData.push(walletData);
+                if (hostWalletData) {
+                  splitData[0].split = 100 - hostWalletData.split;
+                }
+                splitData.push(hostWalletData);
+                //await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
+                return res.status(200).send(splitData);
+              } else {
+                console.log("lightning address in video description does not resolve", foundLightningAddress);
+              }
+            } else {
+              console.log("no lightning address found in video description");
+            }
+          }
+        }
+        return res.status(400).send();
+      } else {
+        split = storedSplitData;
+      }
+    } else if (req.query.channel) {
+      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      console.log("█add split retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData);
+      if (storedSplitData) {
+        split = storedSplitData;
+      } else {
+        console.log("████stored split data not found, generating channel split data");
+        if (req.query.channel) {
+          var apiCall = base + "/api/v1/video-channels/" + req.query.channel;
+          console.log("█ add split getting channel data", apiCall);
+          let channelData;
+          try {
+            channelData = await axios.get(apiCall);
+          } catch {
+            console.log("failed to pull information for provided channel id", apiCall);
+          }
+          if (channelData) {
+            //console.log("channeldata",channelData);
+            let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
+            if (foundLightningAddress) {
+              console.log("lightning address found in channel description [" + foundLightningAddress + ']');
+              let keysendData = await getKeysendInfo(foundLightningAddress);
+              let lnurlData = await getLnurlInfo(foundLightningAddress);
+              if (lnurlData || keysendData) {
+                let walletData = {};
+                walletData.address = foundLightningAddress;
+                if (keysendData) {
+                  walletData.keysend = keysendData;
+                  console.log("successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
+                }
+                if (lnurlData) {
+                  walletData.lnurl = lnurlData;
+                  console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
+
+                }
+                var splitData = new Array;
+                walletData.split = 100;
+                splitData.push(walletData);
+                if (hostWalletData) {
+                  splitData[0].split = 100 - hostWalletData.split;
+                }
+                splitData.push(hostWalletData);
+                split = splitData;
+              } else {
+                console.log("lightning address in channel description does not resolve", foundLightningAddress);
+              }
+            } else {
+              console.log("no lightning address found in channel description");
+            }
+          }
+        }
+        //return res.status(400).send();
+      }
+    }
+    console.log("split", split);
+    console.log("Attempt to add new address [" + newAddress + ']');
+    let keysendData = await getKeysendInfo(newAddress);
+    let lnurlData = await getLnurlInfo(newAddress);
+    let walletData = {};
+    if (lnurlData || keysendData) {
+
+      walletData.address = newAddress;
+      walletData.split = parseInt(newSplit);
+      if (keysendData) {
+        walletData.keysend = keysendData;
+        console.log("successfully retrieved keysend data for wallet in channel", channel, keysendData);
+        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
+      }
+      if (lnurlData) {
+        walletData.lnurl = lnurlData;
+        console.log("successfully retrieved lnurl data for wallet in channel", channel, lnurlData);
+        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
+
+      }
+      //var splitData = new Array;
+      split.push(walletData);
+      let otherSplit = 0
+      for (i = 1; i < split.length; i++) {
+        console.log("split", i, split[i]);
+        otherSplit = otherSplit + split[i].split;
+      }
+      console.log("othersplit", otherSplit);
+
+      let creatorSplit = split[0].split - newSplit
+      split[0].split = parseInt(creatorSplit);
+      console.log("split about to be written to storage manager", split);
+      storageManager.storeData("lightningsplit" + "-" + channel, split);
+      return res.status(200).send(split);
+    } else {
+      console.log("lightning address in channel description does not resolve", newAddress);
+      return res.status(400).send("Lightning address failed to resolve");
+    }
+    return res.status(400).send("failed to update");
+  })
+  router.use('/updatesplit', async (req, res) => {
+    console.log("█updating split info\n", req.query)
+    var storedSplitData;
+    var split;
+    var newAddress = req.query.splitaddress
+    var newSplit = req.query.split;
+    var channel = req.query.channel;
+    var slot = req.query.slot;
+    if (!slot) {
+      return res.status(400).send();
+    }
     //if (!newSplit || !newAddress || (newsplit <1 )){
     //  console.log("unable to add do to missing info",req.query);
     //  return res.status(400).send();
@@ -800,106 +971,47 @@ async function register({
     } else if (req.query.channel) {
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
       console.log("█retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData);
+
       if (storedSplitData) {
+        let keysendData = await getKeysendInfo(newAddress);
+        let lnurlData = await getLnurlInfo(newAddress);
         split = storedSplitData;
+        console.log(`updating from`, split[slot]);
+        split[slot].address = newAddress;
+        split[slot].split = parseInt(newSplit);
+        split[slot].keysend = keysendData;
+        split[slot].lnurl = lnurlData;
+        let otherSplit = 0
+        for (i = 1; i < split.length; i++) {
+          console.log("split", i, split[i].address);
+          otherSplit = otherSplit + split[i].split;
+        }
+        console.log("othersplit", otherSplit);
+        let creatorSplit = 100 - otherSplit
+        split[0].split = parseInt(creatorSplit);
+        console.log(split);
+        await storageManager.storeData("lightningsplit" + "-" + channel, split);
+        console.log("█████ updated slot", slot, "with", split[slot]);
+        return res.status(200).send(split);
       } else {
         console.log("stored split data not found");
-        if (req.query.channel) {
-          var apiCall = base + "/api/v1/video-channels/" + req.query.channel;
-          console.log("█ getting channel data", apiCall);
-          let channelData;
-          try {
-            channelData = await axios.get(apiCall);
-          } catch {
-            console.log("failed to pull information for provided channel id", apiCall);
-          }
-          if (channelData) {
-            //console.log("channeldata",channelData);
-            let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
-            if (foundLightningAddress) {
-              console.log("lightning address found in channel description [" + foundLightningAddress + ']');
-              let keysendData = await getKeysendInfo(foundLightningAddress);
-              let lnurlData = await getLnurlInfo(foundLightningAddress);
-              if (lnurlData || keysendData) {
-                let walletData = {};
-                walletData.address = foundLightningAddress;
-                if (keysendData) {
-                  walletData.keysend = keysendData;
-                  console.log("successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-                }
-                if (lnurlData) {
-                  walletData.lnurl = lnurlData;
-                  console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-                }
-                var splitData = new Array;
-                walletData.split = 100;
-                splitData.push(walletData);
-                if (hostWalletData) {
-                  splitData[0].split = 100 - hostWalletData.split;
-                }
-                splitData.push(hostWalletData);
-                split = splitData;
-              } else {
-                console.log("lightning address in channel description does not resolve", foundLightningAddress);
-              }
-            } else {
-              console.log("no lightning address found in channel description");
-            }
-          }
-        }
-        //return res.status(400).send();
+        //TODO check channel owner account for wallet info
+        return res.status(400).send();
       }
-    }
-    console.log("split", split);
-    console.log("Attempt to add new address [" + newAddress + ']');
-    let keysendData = await getKeysendInfo(newAddress);
-    let lnurlData = await getLnurlInfo(newAddress);
-    if (lnurlData || keysendData) {
-      let walletData = {};
-      walletData.address = newAddress;
-      if (keysendData) {
-        walletData.keysend = keysendData;
-        console.log("successfully retrieved keysend data for wallet in channel", channel, keysendData);
-        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-      }
-      if (lnurlData) {
-        walletData.lnurl = lnurlData;
-        console.log("successfully retrieved lnurl data for wallet in channel", channel, lnurlData);
-        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-      }
-      //var splitData = new Array;
-      let otherSplit = 0
-      for (i = 1; i < split.length; i++) {
-        console.log("split", i, split[i]);
-        otherSplit = otherSplit + split[i].split;
-      }
-      console.log("othersplit", otherSplit);
-      walletData.split = newSplit;
-      let creatorSplit = split[0].split - newSplit
-      split.push(walletData);
-      split[0].split = creatorSplit;
-      console.log(split);
-      storageManager.storeData("lightningsplit" + "-" + channel, split);
     } else {
-      console.log("lightning address in channel description does not resolve", newAddress);
+      console.log("no channel or video to update", newAddress);
     }
-    //return res.status(400).send();
+    return res.status(400).send();
   })
-  router.use('/setsplit', async (req, res) => {
-    console.log("█Request for split info\n", req.query)
+  router.use('/removesplit', async (req, res) => {
+    console.log("█updating split info\n", req.query)
     var storedSplitData;
     var split;
-    var newAddress = req.query.splitaddress;
-    var newSplit = req.query.split;
-    var channel = req.query.channel
-    //if (!newSplit || !newAddress || (newsplit <1 )){
-    //  console.log("unable to add do to missing info",req.query);
-    //  return res.status(400).send();
-    //}
+    var slot = req.query.slot;
+    var channel = req.query.channel;
+    if (!slot) {
+      return res.status(400).send();
+    }
     if (req.query.video) {
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
@@ -962,96 +1074,39 @@ async function register({
       } else {
         split = storedSplitData;
       }
-    } else if (req.query.channel) {
-      console.log("█retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData);
+    } else if (channel) {
+      storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+      console.log("█retrieved chaNNEL split info", channel, "\n", storedSplitData);
+
       if (storedSplitData) {
         split = storedSplitData;
-      } else {
-        console.log("stored split data not found");
-        if (req.query.channel) {
-          var apiCall = base + "/api/v1/video-channels/" + req.query.channel;
-          console.log("█ getting channel data", apiCall);
-          let channelData;
-          try {
-            channelData = await axios.get(apiCall);
-          } catch {
-            console.log("failed to pull information for provided channel id", apiCall);
-          }
-          if (channelData) {
-            //console.log("channeldata",channelData);
-            let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
-            if (foundLightningAddress) {
-              console.log("lightning address found in channel description [" + foundLightningAddress + ']');
-              let keysendData = await getKeysendInfo(foundLightningAddress);
-              let lnurlData = await getLnurlInfo(foundLightningAddress);
-              if (lnurlData || keysendData) {
-                let walletData = {};
-                walletData.address = foundLightningAddress;
-                if (keysendData) {
-                  walletData.keysend = keysendData;
-                  console.log("successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-                }
-                if (lnurlData) {
-                  walletData.lnurl = lnurlData;
-                  console.log("successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-                }
-                var splitData = new Array;
-                walletData.split = 100;
-                splitData.push(walletData);
-                if (hostWalletData) {
-                  splitData[0].split = 100 - hostWalletData.split;
-                }
-                splitData.push(hostWalletData);
-                split = splitData;
-              } else {
-                console.log("lightning address in channel description does not resolve", foundLightningAddress);
-              }
-            } else {
-              console.log("no lightning address found in channel description");
+        console.log(`removing`, split[slot].address," of ",split.length, " from ", channel);
+        let otherSplit = 0
+        let newSplit = new Array();
+        for (i = 0; i < split.length; i++) {
+          console.log("split", i, "of ", split.length, split[i].address);
+          if (i == slot) {
+            console.log ("skipping",i)
+          } else {
+            newSplit.push(split[i]);
+            if (i > 0) {
+              otherSplit = otherSplit + split[i].split;
             }
           }
         }
-        //return res.status(400).send();
+        console.log("othersplit", otherSplit);
+        let creatorSplit = 100 - otherSplit
+        newSplit[0].split = parseInt(creatorSplit);
+        console.log("split about to be writ", newSplit);
+        await storageManager.storeData("lightningsplit" + "-" + channel, newSplit);
+        console.log("█████ slot removed", slot,".",newSplit.length,"splits remaining");
+        return res.status(200).send(newSplit);
+      } else {
+        console.log("stored split data not found");
+        //TODO check channel owner account for wallet info
+        return res.status(400).send();
       }
     }
-    console.log("split", split);
-    console.log("Attempt to add new address [" + newAddress + ']');
-    let keysendData = await getKeysendInfo(newAddress);
-    let lnurlData = await getLnurlInfo(newAddress);
-    if (lnurlData || keysendData) {
-      let walletData = {};
-      walletData.address = newAddress;
-      if (keysendData) {
-        walletData.keysend = keysendData;
-        console.log("successfully retrieved keysend data for wallet in channel", channel, keysendData);
-        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-      }
-      if (lnurlData) {
-        walletData.lnurl = lnurlData;
-        console.log("successfully retrieved lnurl data for wallet in channel", channel, lnurlData);
-        //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-      }
-      //var splitData = new Array;
-      let otherSplit = 0
-      for (i = 1; i < split.length; i++) {
-        console.log("split", i, split[i]);
-        otherSplit = otherSplit + split[i].split;
-      }
-      console.log("othersplit", otherSplit);
-      walletData.split = newSplit;
-      let creatorSplit = split[0].split - newSplit
-      split.push(walletData);
-      split[0].split = creatorSplit;
-      console.log(split);
-      storageManager.storeData("lightningsplit" + "-" + channel, split);
-    } else {
-      console.log("lightning address in channel description does not resolve", newAddress);
-    }
-    //return res.status(400).send();
   })
   async function getKeysendInfo(address) {
     if (!address) { return };
