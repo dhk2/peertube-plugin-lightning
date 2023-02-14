@@ -1,49 +1,128 @@
-[
-    {
-        "address": "mcduquesne@getalby.com",
-        "keysend": {
-            "tag": "keysend",
-            "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-            "status": "OK",
-            "customData": [
-                {
-                    "customKey": "696969",
-                    "customValue": "ukPtJhg4rq1RaSdQlrYs"
-                }
-            ]
-        },
-        "lnurl": {
-            "status": "OK",
-            "tag": "payRequest",
-            "commentAllowed": 255,
-            "callback": "https://getalby.com/lnurlp/mcduquesne/callback",
-            "metadata": "[[\"text/identifier\",\"mcduquesne@getalby.com\"],[\"text/plain\",\"Sats for mcduquesne\"]]",
-            "minSendable": 1000,
-            "maxSendable": 11000000000,
-            "payerData": {
-                "name": {
-                    "mandatory": false
-                },
-                "email": {
-                    "mandatory": false
-                }
+	
+status	"OK"
+tag	"keysend"
+pubkey	"0332d57355d673e217238ce3e4be8491aa6b2a13f95494133ee243e57df1653ace"
+customData	
+0	
+customKey	"112111100"
+customValue	"mvb6NHaCQpJvvQNGmC2N"
+
+	
+status	"OK"
+tag	"keysend"
+pubkey	"030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3"
+customData	
+0	
+customKey	"696969"
+customValue	"LiPQ3WVvdeEFnuhcWNLy"
+
+
+
+{
+        "tag": "keysend",
+        "pubkey": "0266ad2656c7a19a219d37e82b280046660f4d7f3ae0c00b64a1629de4ea567668",
+        "status": "OK",
+        "customData": [
+            {
+                "customKey": 818818,
+                "customValue": "boostbot"
             }
-        },
-        "split": 90
-    },
-    {
-        "address": "mcduquesne@getalby.com",
-        "keysend": {
-            "tag": "keysend",
-            "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-            "status": "OK",
-            "customData": [
-                {
-                    "customKey": "696969",
-                    "customValue": "ukPtJhg4rq1RaSdQlrYs"
-                }
-            ]
-        },
-        "split": 10
+        ]
     }
-]
+
+    {
+        "696969": "ukPtJhg4rq1RaSdQlrYs",
+        "7629169": "{\"action\":\"boost\",\"value_msat\":1000000,\"value_msat_total\":1000000,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}"
+    }
+
+    {
+        "tag": "keysend",
+        "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "status": "OK",
+        "customData": [
+          {
+            "customKey": "696969",
+            "customValue": "LgG0L9WZICAZvKaJKKQS"
+          }
+        ]
+      }
+
+
+
+
+      {
+        "tag": "keysend",
+        "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "status": "OK",
+        "customData": [
+          {
+            "customKey": "696969",
+            "customValue": "LgG0L9WZICAZvKaJKKQS"
+          }
+        ]
+      }
+
+      {
+        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "amount": 8100.000000000001,
+        "customRecords": {
+          "696969": "LgG0L9WZICAZvKaJKKQS",
+          "7629169": "{\"action\":\"boost\",\"value_msat\":8100000.000000001,\"value_msat_total\":8100000.000000001,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}"
+        }
+      }
+
+
+      {
+        "tag": "keysend",
+        "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "status": "OK",
+        "customData": [
+          {
+            "customKey": "696969",
+            "customValue": "LgG0L9WZICAZvKaJKKQS"
+          }
+        ]
+      }
+      {
+        "tag": "keysend",
+        "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "status": "OK",
+        "customData": [
+          {
+            "customKey": "696969",
+            "customValue": "LgG0L9WZICAZvKaJKKQS"
+          }
+        ]
+      }
+      {
+        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "amount": 8100.000000000001,
+        "customRecords": {
+          "696969": "LgG0L9WZICAZvKaJKKQS",
+          "7629169": "{\"action\":\"boost\",\"value_msat\":8100000.000000001,\"value_msat_total\":8100000.000000001,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}"
+        }
+        
+        {
+            "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+            "amount": 1000,
+            "customRecords": {
+              "696969": "ukPtJhg4rq1RaSdQlrYs",
+              "7629169": "{\"action\":\"boost\",\"value_msat\":1000000,\"value_msat_total\":1000000,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}"
+            }
+          }
+          {
+            "destination": "0266ad2656c7a19a219d37e82b280046660f4d7f3ae0c00b64a1629de4ea567668",
+            "amount": 100,
+            "customRecords": {
+              "818818": "boostbot",
+              "7629169": "{\"action\":\"boost\",\"value_msat\":100000,\"value_msat_total\":100000,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}"
+            }
+          }
+          {
+            "destination": "0332d57355d673e217238ce3e4be8491aa6b2a13f95494133ee243e57df1653ace",
+            "amount": 100,
+            "customRecords": {
+              "7629169": "{\"action\":\"boost\",\"value_msat\":100000,\"value_msat_total\":100000,\"app_name\":\"PeerTube\",\"app_version\":\"1.1\",\"name\":\"oh really\",\"sender_name\":\"don\",\"message\":\"Testing multiple mixed format wallets\",\"ts\":11,\"podcast\":\"oh really\",\"episode\":\"iceland_waterfall4\",\"episode_guid\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH\",\"boost_link\":\"https://lawsplaining.peertube.biz/w/cbXCV8uDnQTpaJoYbSE3PH?start=11\",\"url\":\"https://lawsplaining.peertube.biz/plugins/lightning/router/podcast2?channel=foobarbbq\",\"itemID\":193634,\"guid\":\"2ade40c5-acbc-46e5-8ffd-bcf1f5eb9ecb\"}",
+              "112111100": "mvb6NHaCQpJvvQNGmC2N"
+            }
+          }

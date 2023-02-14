@@ -632,9 +632,10 @@ async function register({ registerHook, peertubeHelpers }) {
 
   async function getSplit(videoName, accountName, channelName, instanceName) {
     console.log(videoName, accountName, channelName, instanceName);
+    console.log("generating split request",videoName, accountName, channelName, instanceName)
     let splitApi = basePath + "/getsplit";
     if (videoName) {
-      if (instanceName) {
+      if (instanceName == "hack") {
         splitApi = splitApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
       } else {
         splitApi = splitApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
@@ -646,7 +647,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (channelName) {
         splitApi = splitApi + "?channel=" + channelName;
       }
-      if (instanceName) {
+      if (instanceName == "hack") {
         splitApi = splitApi + "@" + instanceName;
       }
     }
@@ -744,7 +745,8 @@ async function register({ registerHook, peertubeHelpers }) {
     let result;
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
-      if (wallet.keysend && weblnSupport > 1) {
+      //if (wallet.keysend && (weblnSupport)) {
+      if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
         //notifier.success("sending keysend boost");
         console.log("sending keysend boost");
         console.log(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID)
@@ -756,6 +758,7 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
     if (result) {
+      console.log(result);
       closeModal();
       return;
     } else {
