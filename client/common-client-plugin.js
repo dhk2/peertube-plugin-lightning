@@ -37,6 +37,7 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
+      console.log("here it is", video.streamingPlaylists);
       let buttonBlock = document.getElementsByClassName('tip-buttons-block')
       if (buttonBlock.length > 0) {
         buttonBlock[0].remove();
@@ -53,7 +54,8 @@ async function register({ registerHook, peertubeHelpers }) {
       let channelName = video.byVideoChannel;
       let videoName = video.uuid;
       let episodeName = video.name;
-      let itemID = video.id;
+      //let itemID = video.id;
+      let itemID;
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
@@ -139,7 +141,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   var amount = streamAmount * (wallet.split / 100);
                   let result;
                   if (wallet.keysend) {
-                    result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, video.id);
+                    result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name);
                   } else if (wallet.lnurl) {
                     result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
                     //walletData = await refreshWalletInfo(walletData.address);
@@ -250,16 +252,102 @@ async function register({ registerHook, peertubeHelpers }) {
       let panel = await getConfigPanel(splitData, channel);
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
+      console.log("getting id blank");
       let id = document.getElementById("id");
+      console.log("getting update button");
       let updateButton = document.getElementById("update-feed");
       document.getElementById("update-feed").onclick = async function () {
         setFeedID(channel, id.value);
         updateButton.innerText = "Updated!";
 
       }
-      if (splitData.length > 0) {
+      console.log("getting create split button")
+      let createButton = document.getElementById('create-split');
+      if (createButton) {
+        createButton.onclick = async function () {
+          console.log("doin it live!");
+          await peertubeHelpers.showModal({
+            title: 'Add Lightning Address for' + channel,
+            content: ` `,
+            close: true,
+            confirm: { value: 'X', action: () => { } },
+
+          })
+          let modal = (document.getElementsByClassName('modal-body'))
+          //modal[0].setAttribute('class', 'lightning-button');
+          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+          modal[0].innerHTML = `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
+          document.getElementById("add-split").onclick = async function () {
+            console.log("call the create api now");
+
+            let newAddress = document.getElementById("modal-split-address").value;
+            let createApi = `/createsplit?channel=` + channel + `&splitaddress=` + newAddress;
+            let createResult;
+            try {
+              createResult = await axios.get(basePath + createApi);
+            } catch (e) {
+              console.log("unable to create split\n", createApi, createResult);
+              notifier.error(e, createResult);
+              return;
+            }
+            if (createResult) {
+              console.log("createResult", createResult.data);
+              await closeModal();
+              console.log("added split", channel, createResult.data);
+              let newPanel = await getConfigPanel(createResult.data, channel);
+              let channelUpdate = document.getElementsByClassName("form-group");
+              channelUpdate[0].removeChild(panelHack)
+              channelUpdate[0].appendChild(newPanel);
+              panelHack = newPanel
+              await assignEditButtons(createResult.data, channel);
+              notifier.success("split create for " + channel);
+              splitData = createResult.data
+            } else {
+              notifier.error("failed to CREATE split to " + channel);
+            }
+            console.log("regenerating button block", channel, splitData);
+            let newPanel = await getConfigPanel(splitData, channel);
+            let channelUpdate = document.getElementsByClassName("form-group");
+            channelUpdate[0].removeChild(panelHack)
+            channelUpdate[0].appendChild(newPanel);
+            panelHack = newPanel;
+            await assignEditButtons(splitData, channel);
+
+          }
+        }
+      }
+      let addButton = document.getElementById("add-split");
+      if (addButton) {
+        addButton.onclick = async function () {
+          console.log("doin it!");
+          await peertubeHelpers.showModal({
+            title: 'Add Split for' + channel,
+            content: ` `,
+            close: true,
+            confirm: { value: 'X', action: () => { } },
+
+          })
+          let modal = (document.getElementsByClassName('modal-body'))
+          //modal[0].setAttribute('class', 'lightning-button');
+          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+          modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
+          <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
+          let addFinalButton = document.getElementById("add-split-final")
+          if (addFinalButton) {
+            addFinalButton.onclick = async function () {
+              console.log("call the add api now");
+              let addResult = await doAddSplit(channel);
+            }
+          }
+        }
+      }
+
+      console.log("split data", splitData)
+      if (splitData && splitData.length > 0) {
         for (var slot in splitData) {
-          var editButton = document.getElementById("edit-" + splitData[slot].address);
+          var editButton = document.getElementById("edit-" + slot);
           console.log("considering ", slot, splitData[slot].address);
           if (editButton) {
             editButton.onclick = async function () {
@@ -270,91 +358,61 @@ async function register({ registerHook, peertubeHelpers }) {
                 confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
 
               });
-              let html;
-              if (this.slot == 0) {
-                html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[this.slot].split + `"><br>`;
-              } else {
-                html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[this.slot].split + `"><br>`;
+              let ks = splitData[slot].customKeysend;
+              if (ks == undefined) {
+                ks = false;
               }
-              html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[this.slot].address + `"><br>`;
-              html = html + `<button class="peertube-button orange-button ng-star-inserted" slot= "` + this.slot + `" id="update-split">Update Split</button>`;
-              html = html + `<button class="peertube-button orange-button ng-star-inserted" slot= "` + this.slot + `" id="remove-split">remove this Split</button>`;
-
-              if (splitData[this.slot].keysend) {
-                html = html + "<br> Keysend: " + splitData[this.slot].keysend.status;
-                html = html + "<br> Keysend pubkey: " + splitData[this.slot].keysend.pubkey
-                html = html + "<br> keysend custom key:" + splitData[this.slot].keysend.customData[0].customKey;
-                html = html + "<br> keysend custom value:" + splitData[this.slot].keysend.customData[0].customValue;
-              }
-              if (splitData[this.slot].lnurl) {
-                html = html + "<br> LNURL callback: " + splitData[this.slot].lnurl.callback;
-              }
-
+              console.log("calling makekeysendhtml", ks, slot)
+              let html = await makeKeysendHtml(splitData, slot, ks);
               let modal = (document.getElementsByClassName('modal-body'))
               modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
               modal[0].innerHTML = html;
-              document.getElementById("update-split").onclick = async function () {
-                let updateResult = await doUpdateSplit(channel, this.slot);
-                console.log("regenerating button block", channel, this.slot, updateResult);
-                let newPanel = await getConfigPanel(updateResult, channel);
-                let channelUpdate = document.getElementsByClassName("form-group");
-                channelUpdate[0].removeChild(panelHack)
-                channelUpdate[0].appendChild(newPanel);
-                panelHack = newPanel;
-                await assignEditButtons(updateResult, channel);
-              }
-              document.getElementById("remove-split").onclick = async function () {
-                let removeResult = await doRemoveSplit(channel, this.slot);
-                console.log("regenerating button block", channel, this.slot, removeResult);
-                let newPanel = await getConfigPanel(removeResult, channel);
-                let channelUpdate = document.getElementsByClassName("form-group");
-                channelUpdate[0].removeChild(panelHack)
-                channelUpdate[0].appendChild(newPanel);
-                panelHack = newPanel;
-                await assignEditButtons(removeResult, channel);
-              }
+              assignSplitEditButtons(splitData, slot, channel, ks);
             }
           }
         }
 
       }
+      /*
+      let addSplitButton = document.getElementById("add-split");
+      if (addSplitButton) {
+        addSplitButton.onclick = async function () {
+          console.log("doin it!");
+          await peertubeHelpers.showModal({
+            title: 'Add Split for' + channel,
+            content: ` `,
+            close: true,
+            confirm: { value: 'X', action: () => { } },
 
-      document.getElementById("add-split").onclick = async function () {
-        console.log("doin it!");
-        await peertubeHelpers.showModal({
-          title: 'Add Split for' + channel,
-          content: ` `,
-          close: true,
-          confirm: { value: 'X', action: () => { } },
-
-        })
-        let modal = (document.getElementsByClassName('modal-body'))
-        //modal[0].setAttribute('class', 'lightning-button');
-        modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-        modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
+          })
+          let modal = (document.getElementsByClassName('modal-body'))
+          //modal[0].setAttribute('class', 'lightning-button');
+          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+          modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
         <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
         <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
-        document.getElementById("add-split-final").onclick = async function () {
-          console.log("call the add api now");
-          let addResult = await doAddSplit(channel);
-          /*
-          if (addResult) {
-            console.log("main addResult", addResult);
-            await closeModal();
-            console.log("main added split", channel, addResult);
-            let newPanel = await getConfigPanel(addResult, channel);
-            let channelUpdate = document.getElementsByClassName("form-group");
-            channelUpdate[0].removeChild(panelHack)
-            channelUpdate[0].appendChild(newPanel);
-            panelHack = newPanel
-            await assignEditButtons(addResult, channel);
-            notifier.success("main split to " + channel);
-          } else {
-            notifier.error("main failed to add split to " + channel);
+          document.getElementById("add-split-final").onclick = async function () {
+            console.log("call the add api now");
+            let addResult = await doAddSplit(channel);
+            /*
+            if (addResult) {
+              console.log("main addResult", addResult);
+              await closeModal();
+              console.log("main added split", channel, addResult);
+              let newPanel = await getConfigPanel(addResult, channel);
+              let channelUpdate = document.getElementsByClassName("form-group");
+              channelUpdate[0].removeChild(panelHack)
+              channelUpdate[0].appendChild(newPanel);
+              panelHack = newPanel
+              await assignEditButtons(addResult, channel);
+              notifier.success("main split to " + channel);
+            } else {
+              notifier.error("main failed to add split to " + channel);
+            }
           }
-          */
         }
       }
+    */
     }
   })
 
@@ -420,7 +478,7 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName) {
     //console.log(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     //console.log("maybe the url:", window.location.href);
     try {
@@ -429,7 +487,7 @@ async function register({ registerHook, peertubeHelpers }) {
       await alertUnsupported();
       return;
     }
-    console.log("boosting", walletData, amount, message, from, channel, episode);
+    console.log("boosting", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName);
     /*if (!message) {
       message = ":)";
     }
@@ -450,6 +508,11 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!type) {
       type = "boost";
     }
+    //console.log("wallet data",walletData);
+    //let displayName = walletData.name;
+    //if (!displayName){
+    //  displayName= walletData.address;
+    //}
     //console.log("parameters normalized", walletData);
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
@@ -458,14 +521,29 @@ async function register({ registerHook, peertubeHelpers }) {
       customKeyHack = walletData.customData[0].customKey;
       customValue = walletData.customData[0].customValue;
     }
+    if (!splitName) {
+      splitName = channel;
+    }
     //console.log("wallet variables set");
+    if (!boostTotal) {
+      boostTotal = amount;
+    }
+    let version;
+    try {
+      let versionResult = await axios.get(basePath + "/getversion");
+      if (versionResult && versionResult.data) {
+        version = versionResult.data;
+      }
+    } catch (err) {
+      console.log("error getting software version", basePath);
+    }
     const boost = {
       action: type,
       value_msat: amount * 1000,
-      value_msat_total: amount * 1000,
+      value_msat_total: boostTotal * 1000,
       app_name: "PeerTube",
-      app_version: "1.1",
-      name: channel,
+      app_version: version,
+      name: splitName,
     };
     if (type == "stream") {
       boost.seconds_back = 60;
@@ -505,9 +583,9 @@ async function register({ registerHook, peertubeHelpers }) {
       boost.url = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
     }
 
-    if (itemID) {
-      boost.itemID = itemID;
-    }
+    //if (itemID) {
+    //  boost.itemID = itemID;
+    //}
     let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
     //console.log("item api", itemApi);
     try {
@@ -520,7 +598,7 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       //console.log("error attempting to fetch item id", err);
     }
-
+    console.log("item id", itemID);
     let feedApi = basePath + "/getfeedid?channel=" + channelName;
     //console.log("feed api", feedApi);
     try {
@@ -629,10 +707,9 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("returned wallet data", walletData.data);
     return walletData.data;
   }
-
   async function getSplit(videoName, accountName, channelName, instanceName) {
     console.log(videoName, accountName, channelName, instanceName);
-    console.log("generating split request",videoName, accountName, channelName, instanceName)
+    console.log("generating split request", videoName, accountName, channelName, instanceName)
     let splitApi = basePath + "/getsplit";
     if (videoName) {
       if (instanceName == "hack") {
@@ -662,8 +739,6 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("returned split data", splitApi, splitData.data);
     return splitData.data;
   }
-
-
   async function refreshWalletInfo(address) {
     if (address) {
       if (address.indexOf("@") < 1) {
@@ -704,16 +779,22 @@ async function register({ registerHook, peertubeHelpers }) {
       if (splitInfo.length > 0) {
         html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
         for (var split in splitInfo) {
-          html = html + "<tr><td>" + splitInfo[split].split + "</td><td>" + splitInfo[split].address + "</td>";
+          let displayName = splitInfo[split].name;
+          if (!displayName) {
+            displayName = splitInfo[split].address;
+          }
+          html = html + "<tr><td>" + splitInfo[split].split + "</td><td>" + displayName + "</td>";
           if (splitInfo[split].keysend) {
             html = html + `<td>Keysend</td>`;
+          } else if (splitInfo[split].customKeysend) {
+            html = html + `<td>Node</td>`;
           } else if (splitInfo[split].lnurl) {
             html = html + "<td>LNURL Pay</td>";
           } else {
             html = html + "<td>unknown</td>"
           }
           if (!splitInfo[split].fee) {
-            html = html + `<td><div class="peertube-button orange-button ng-star-inserted" slot="` + split + `" id="edit-` + splitInfo[split].address + `">edit</div></td>`;
+            html = html + `<td><div class="peertube-button orange-button ng-star-inserted" slot="` + split + `" id="edit-` + split + `">edit</div></td>`;
             //html = html + `<td><button class="peertube-button orange-button ng-star-inserted" >edit</button></td>`;
           }
           html = html + "</tr>";
@@ -721,13 +802,17 @@ async function register({ registerHook, peertubeHelpers }) {
         html = html + "</table>";
       }
       html = html + `<button type="button" id="add-split" class="peertube-button orange-button ng-star-inserted">Add Split</button>`
-      html = html + "<hr>"
-      html = html + "podcast 2.0 RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+    } else {
+      html = html + `<button type="button" id="create-split" class="peertube-button orange-button ng-star-inserted">Add Lightning Address</button>`
 
-      html = html + "<br> Podcast Index Feed ID:";
-      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
-      html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Update</button>`
     }
+    html = html + "<hr>"
+    html = html + "podcast 2.0 RSS feed URL: " + window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel;
+
+    html = html + "<br> Podcast Index Feed ID:";
+    html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
+    html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Update</button>`
+
     const panel = document.createElement('div');
     panel.setAttribute('class', 'lightning-button');
     panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -745,15 +830,19 @@ async function register({ registerHook, peertubeHelpers }) {
     let result;
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
-      //if (wallet.keysend && (weblnSupport)) {
-      if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
+      if (wallet.keysend && (weblnSupport)) {
+      //if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
         //notifier.success("sending keysend boost");
         console.log("sending keysend boost");
-        console.log(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID)
-        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID);
+        console.log(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
+        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name);
       } else if (wallet.lnurl) {
         console.log("sending lnurl boost");
         result = await sendSats(wallet.lnurl, splitAmount, message, from);
+        if (!result) {
+          error = error + ", " + wallet.address;
+          console.log("errors", error);
+        }
         //walletData = await refreshWalletInfo(walletData.address);
       }
     }
@@ -953,6 +1042,51 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     return false;
   }
+  async function assignSplitEditButtons(splitData, slot, channel, ks) {
+    console.log("assigning split edits", slot, channel, ks);
+    document.getElementById("update-split").onclick = async function () {
+      console.log("update split clicked",channel,slot,ks)
+      let updateResult = await doUpdateSplit(channel, slot, ks);
+      console.log("regenerating button block", channel, slot, updateResult);
+      let newPanel = await getConfigPanel(updateResult, channel);
+      let channelUpdate = document.getElementsByClassName("form-group");
+      channelUpdate[0].removeChild(panelHack)
+      channelUpdate[0].appendChild(newPanel);
+      panelHack = newPanel;
+      await assignEditButtons(updateResult, channel);
+    }
+    document.getElementById("remove-split").onclick = async function () {
+      let removeResult = await doRemoveSplit(channel, slot);
+      console.log("regenerating button block", channel, slot, removeResult);
+      let newPanel = await getConfigPanel(removeResult, channel);
+      let channelUpdate = document.getElementsByClassName("form-group");
+      channelUpdate[0].removeChild(panelHack)
+      channelUpdate[0].appendChild(newPanel);
+      panelHack = newPanel;
+      await assignEditButtons(removeResult, channel);
+    }
+    let manualKeysend = document.getElementById("manualkeysend");
+    manualKeysend.checked = ks;
+    manualKeysend.onclick = async function () {
+      console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      if (splitData[slot].customKeysend == true) {
+        splitData[slot].customKeysend = false;
+        ks = false;
+        manualKeysend.checked = false
+      } else {
+        splitData[slot].customKeysend = true;
+        ks = true;
+        manualKeysend.checked = true;
+      }
+      console.log("toggled data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      //splitData[slot].customKeysend = manualKeysend.checked;
+      let html = await makeKeysendHtml(splitData, slot, ks);
+      let modal = (document.getElementsByClassName('modal-body'))
+      modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+      modal[0].innerHTML = html;
+      await assignSplitEditButtons(splitData, slot, channel, ks);
+    }
+  }
   async function assignEditButtons(splitData, channel) {
     if (splitData.length > 0) {
       let addButton = document.getElementById("add-split");
@@ -972,92 +1106,91 @@ async function register({ registerHook, peertubeHelpers }) {
           modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
           <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
-          document.getElementById("add-split-final").onclick = async function () {
-            console.log("call the add api now");
-            let addResult = await doAddSplit(channel);
-            /*
-            if (addResult) {
-              console.log("button addResult", addResult);
-              await closeModal();
-              console.log("button added split", channel, addResult);
-              let newPanel = await getConfigPanel(addResult, channel);
-              let channelUpdate = document.getElementsByClassName("form-group");
-              channelUpdate[0].removeChild(panelHack)
-              channelUpdate[0].appendChild(newPanel);
-              panelHack = newPanel
-              await assignEditButtons(addResult, channel);
-              notifier.success("edit button added to " + channel);
+          let addFinalButton = document.getElementById("add-split-final")
+          if (addFinalButton) {
+            addFinalButton.onclick = async function () {
+              console.log("call the add api now");
+              let addResult = await doAddSplit(channel);
+              /*
+              if (addResult) {
+                console.log("button addResult", addResult);
+                await closeModal();
+                console.log("button added split", channel, addResult);
+                let newPanel = await getConfigPanel(addResult, channel);
+                let channelUpdate = document.getElementsByClassName("form-group");
+                channelUpdate[0].removeChild(panelHack)
+                channelUpdate[0].appendChild(newPanel);
+                panelHack = newPanel
+                await assignEditButtons(addResult, channel);
+                notifier.success("edit button added to " + channel);
+              }
+              */
             }
-            */ 
           }
         }
       }
+
       for (var slot in splitData) {
-        var editButton = document.getElementById("edit-" + splitData[slot].address);
+        var editButton = document.getElementById("edit-" + slot);
         console.log("considering ", slot, splitData[slot].address);
         if (editButton) {
           editButton.onclick = async function () {
+            let editSlot = this.slot;
+            console.log("slot", slot, editSlot);
             await peertubeHelpers.showModal({
-              title: 'edit Split for ' + splitData[this.slot].address,
+              title: 'edit Split for ' + splitData[editSlot].address,
               content: ` `,
               close: true,
               confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
 
             });
-            let html;
-            if (this.slot == 0) {
-              html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[this.slot].split + `"><br>`;
-            } else {
-              html = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[this.slot].split + `"><br>`;
+            console.log("split data for ", slot, splitData[slot]);
+            let ks = splitData[slot].customKeysend
+            if (ks == undefined) {
+              ks = false;
             }
-            html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[this.slot].address + `"><br>`;
-            html = html + `<button class="peertube-button orange-button ng-star-inserted" slot= "` + this.slot + `" id="update-split">Update Split</button>`;
-            html = html + `<button class="peertube-button orange-button ng-star-inserted" slot= "` + this.slot + `" id="remove-split">remove this Split</button>`;
-
-            if (splitData[this.slot].keysend) {
-              html = html + "<br> Keysend: " + splitData[this.slot].keysend.status;
-              html = html + "<br> Keysend pubkey: " + splitData[this.slot].keysend.pubkey
-              html = html + "<br> keysend custom key:" + splitData[this.slot].keysend.customData[0].customKey;
-              html = html + "<br> keysend custom value:" + splitData[this.slot].keysend.customData[0].customValue;
-            }
-            if (splitData[this.slot].lnurl) {
-              html = html + "<br> LNURL callback: " + splitData[this.slot].lnurl.callback;
-            }
-
+            console.log("ks from splitdata", ks);
+            let html = await makeKeysendHtml(splitData, editSlot, ks);
             let modal = (document.getElementsByClassName('modal-body'))
             modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
             modal[0].innerHTML = html;
-            document.getElementById("update-split").onclick = async function () {
-              let updateResult = await doUpdateSplit(channel, this.slot);
-              console.log("regenerating button block", channel, this.slot, updateResult);
-              let newPanel = await getConfigPanel(updateResult, channel);
-              let channelUpdate = document.getElementsByClassName("form-group");
-              channelUpdate[0].removeChild(panelHack)
-              channelUpdate[0].appendChild(newPanel);
-              panelHack = newPanel;
-              await assignEditButtons(updateResult, channel);
-            }
-            document.getElementById("remove-split").onclick = async function () {
-              let removeResult = await doRemoveSplit(channel, this.slot);
-              console.log("regenerating button block", channel, this.slot, removeResult);
-              let newPanel = await getConfigPanel(removeResult, channel);
-              let channelUpdate = document.getElementsByClassName("form-group");
-              channelUpdate[0].removeChild(panelHack)
-              channelUpdate[0].appendChild(newPanel);
-              panelHack = newPanel;
-              await assignEditButtons(removeResult, channel);
-            }
+            await assignSplitEditButtons(splitData, editSlot, channel, ks);
           }
         }
       }
     }
 
   }
-  async function doUpdateSplit(channel, slot) {
-    console.log("call the update now");
+  async function doUpdateSplit(channel, slot, ks) {
+    console.log("call the update now",channel,slot,ks);
     let newSplit = document.getElementById("modal-split-value").value;
     let newAddress = document.getElementById("modal-split-address").value;
+    let newName = encodeURI(document.getElementById("modal-split-name").value);
+    let customKeysend = document.getElementById("manualkeysend").checked
+    console.log("custom keysend for checked", customKeysend, slot, ks);
+    if (ks) {
+      var pubKey = document.getElementById("modal-split-pubkey").value
+      var customKey = document.getElementById("modal-split-customkey").value
+      var customValue = document.getElementById("modal-split-customvalue").value
+    } else {
+      var pubKey, customKey, customValue;
+    }
     let updateApi = `/updatesplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress + `&slot=` + slot;
+    if (newName) {
+      updateApi = updateApi + `&name=` + newName;
+    }
+    if (ks) {
+      updateApi = updateApi + `&customkeysend=true`
+      if (customKey) {
+        updateApi = updateApi + `&customkey=` + customKey;
+      }
+      if (customValue) {
+        updateApi = updateApi + `&customvalue=` + customValue;
+      }
+      if (pubKey) {
+        updateApi = updateApi + `&node=` + pubKey;
+      }
+    }
     let updateResult;
     console.log("update", updateApi);
     try {
@@ -1097,15 +1230,25 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function doAddSplit(channel) {
     console.log("call the add api now");
+    let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
+
     let newAddress = document.getElementById("modal-split-address").value;
-    let addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+    if (newAddress.indexOf("@") < 1) {
+      console.log(newAddress, newAddress.length);
+      let node = newAddress;
+      newAddress = "custom"
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+      addApi = addApi + `&customKeysend=true&node=` + node + ``
+    } else {
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+    }
     let addResult;
     try {
       addResult = await axios.get(basePath + addApi);
-    } catch (e){
-      console.log("unable to add split\n", addApi,addResult);
-      notifier.error(e,addResult);
+    } catch (e) {
+      console.log("unable to add split\n", addApi, addResult);
+      notifier.error(e, addApi);
       return;
     }
     if (addResult) {
@@ -1124,6 +1267,51 @@ async function register({ registerHook, peertubeHelpers }) {
       notifier.error("failed to add split to " + channel);
       return;
     }
+  }
+  async function makeKeysendHtml(splitData, slot, ks) {
+    console.log("making keysend edit panel", slot, ks);
+    let html;
+    html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
+    if (slot == 0) {
+      html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
+    } else {
+      html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[slot].split + `"><br>`;
+    }
+    if (ks) {
+      html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" readonly value ="` + splitData[slot].address + `"><br>`;
+    } else {
+      html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
+    }
+    html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
+    html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
+    if (splitData[slot].keysend) {
+      let status = splitData[slot].keysend.status;
+      let pubKey = splitData[slot].keysend.pubkey;
+      let customKey = splitData[slot].keysend.customData[0].customKey;
+      let customValue = splitData[slot].keysend.customData[0].customValue;
+      if (!customKey) {
+        customKey = "";
+      }
+      if (!customValue) {
+        customValue = "";
+      }
+      if (ks) {
+        html = html + `<label for="address">Keysend pubkey:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
+        html = html + `<br><label for="address">Custom Key:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
+        html = html + `<br><label for="address">Custom Value:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
+      } else {
+        html = html + "Keysend: " + status;
+        html = html + "<br> Keysend pubkey: " + pubKey;
+        html = html + "<br> keysend custom key:" + customKey;
+        html = html + "<br> keysend custom value:" + customValue;
+      }
+    }
+    if (splitData[slot].lnurl) {
+      html = html + "<br> LNURL callback: " + splitData[slot].lnurl.callback;
+    }
+    html = html + `<hr><button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="update-split">Update Split</button>`;
+    html = html + ` - <button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="remove-split">remove this Split</button>`;
+    return html;
   }
 }
 

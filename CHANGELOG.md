@@ -1,3 +1,16 @@
+v 0.3.8
+- Added getversion route to server and implemented in client to populate app_version in boostagram
+- cleaned up updatesplit route, adding support for video splits and manual keysend config
+- fixed name field in boostagrams to use split name
+- 
+v 0.3.7
+- Added transcript field to podcast2 RSS
+- Fixed total/split sats info in boostagrams
+v 0.3.6
+- fixed RSS bugs
+- add lightning address dialog.
+v 0.3.5
+- fixed RSS feed and cross-site boosting to use splits instaed of creator wallet.
 v 0.3.4
 - added user configurable splits
 - Fixed host split to go to hosting instance instead of viewing instance
