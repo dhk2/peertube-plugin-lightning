@@ -809,6 +809,7 @@ async function register({
     var customValue = req.query.customvalue;
     var node = req.query.node;
     var customKeysend = req.query.customkeysend;
+
     if (req.query.video) {
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
@@ -931,7 +932,7 @@ async function register({
       }
     }
     console.log("split", split);
-    console.log("Attempt to add new address [" + newAddress + ']');
+    console.log("Attempt to add new address [" + newAddress + ']',customKeysend);
     let walletData = { "keysend": { "tag": "keysend", "customData": [{}] } };
     if (newAddress) {
       walletData.address = newAddress;
@@ -960,6 +961,7 @@ async function register({
         walletData.keysend.customData[0].customValue = customValue;
         //   split[slot].customKeysend = true;
       }
+      console.log(walletData);
     } else {
       let keysendData = await getKeysendInfo(newAddress);
       let lnurlData = await getLnurlInfo(newAddress);
@@ -976,6 +978,7 @@ async function register({
 
         }
       }
+      console.log(walletData);
     }
     //var splitData = new Array;
     split.push(walletData);
@@ -1260,11 +1263,6 @@ async function register({
                   //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
 
                 }
-                if (walletData.keysend) {
-                  if (walletData.address.indexOf("fountain.fm") > 0) {
-                    walletData.keysend = null;
-                  }
-                }
                 var splitData = new Array();
                 walletData.split = 100;
                 splitData.push(walletData);
@@ -1300,7 +1298,7 @@ async function register({
       }
     }
     console.log("split", split);
-    console.log("Attempt to add new address [" + newAddress + ']');
+    console.log("Create split attempting to add new address [" + newAddress + ']',req.query);
     let keysendData = await getKeysendInfo(newAddress);
     let lnurlData = await getLnurlInfo(newAddress);
     let walletData = {};

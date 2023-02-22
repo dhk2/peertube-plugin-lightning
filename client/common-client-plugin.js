@@ -276,7 +276,7 @@ async function register({ registerHook, peertubeHelpers }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          modal[0].innerHTML = `Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
           document.getElementById("add-split").onclick = async function () {
             console.log("call the create api now");
@@ -1229,7 +1229,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function doAddSplit(channel) {
-    console.log("call the add api now");
+    console.log("called the add api now",channel);
     let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
 
@@ -1239,7 +1239,7 @@ async function register({ registerHook, peertubeHelpers }) {
       let node = newAddress;
       newAddress = "custom"
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
-      addApi = addApi + `&customKeysend=true&node=` + node + ``
+      addApi = addApi + `&customkeysend=true&node=` + node + ``
     } else {
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
     }
@@ -1252,7 +1252,7 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     if (addResult) {
-      console.log("addResult", addResult.data);
+      console.log("addResult", addApi, addResult.data);
       await closeModal();
       console.log("added split", channel, addResult);
       let newPanel = await getConfigPanel(addResult.data, channel);
@@ -1272,6 +1272,7 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("making keysend edit panel", slot, ks);
     let html;
     html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
+    html = html +"Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
     if (slot == 0) {
       html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
     } else {
