@@ -396,7 +396,7 @@ async function register({
         //TODO go through all captions available and add with language
         if (captionResult && captionResult.data && captionResult.data.total > 0) {
           console.log("caption result", captionResult.data);
-          captionPath = captionResult.data.data[0].captionPath
+          captionPath = instanceUrl+captionResult.data.data[0].captionPath
           if (captionPath.indexOf("vtt") > 1) {
             fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" type="text/vtt" rel="captions"/>`;
           } else {
