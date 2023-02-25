@@ -1,8 +1,10 @@
+v 0.3.9
+- added ability to create spit from scratch through split gui
+- Changed tip modal from lg to sm
 v 0.3.8
 - Added getversion route to server and implemented in client to populate app_version in boostagram
 - cleaned up updatesplit route, adding support for video splits and manual keysend config
 - fixed name field in boostagrams to use split name
-- 
 v 0.3.7
 - Added transcript field to podcast2 RSS
 - Fixed total/split sats info in boostagrams

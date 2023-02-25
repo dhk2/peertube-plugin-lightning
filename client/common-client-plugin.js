@@ -172,6 +172,7 @@ async function register({ registerHook, peertubeHelpers }) {
           })
           await makeTipDialog(displayName);
           let tipButton = document.getElementById('modal-satbutton');
+
           if (tipButton) {
             tipButton.onclick = async function () {
 
@@ -831,7 +832,7 @@ async function register({ registerHook, peertubeHelpers }) {
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
       if (wallet.keysend && (weblnSupport)) {
-      //if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
+        //if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
         //notifier.success("sending keysend boost");
         console.log("sending keysend boost");
         console.log(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
@@ -912,6 +913,17 @@ async function register({ registerHook, peertubeHelpers }) {
     //panel.innerHTML = html;
     //console.log("panel",panel);
     modal[0].innerHTML = html;
+    console.log("assigned html ");
+    let modalHack = document.getElementsByClassName("modal-dialog");
+    console.log("got modal");
+    if (modalHack) {
+      console.log("modal", modalHack, modalHack[0],modalHack[0].class);
+      modalHack[0].setAttribute('class', 'modal-dialog modal-dialog-centered modal-sm');
+      modalHack[0].setAttribute('style','width:20%;');
+
+    } else {
+      console.log("no model");
+    }
 
     //modal[0].innerHTML = modal[0].innerHTML + html;
     let modalSatTip = document.getElementById("modal-sats");
@@ -1045,7 +1057,7 @@ async function register({ registerHook, peertubeHelpers }) {
   async function assignSplitEditButtons(splitData, slot, channel, ks) {
     console.log("assigning split edits", slot, channel, ks);
     document.getElementById("update-split").onclick = async function () {
-      console.log("update split clicked",channel,slot,ks)
+      console.log("update split clicked", channel, slot, ks)
       let updateResult = await doUpdateSplit(channel, slot, ks);
       console.log("regenerating button block", channel, slot, updateResult);
       let newPanel = await getConfigPanel(updateResult, channel);
@@ -1162,7 +1174,7 @@ async function register({ registerHook, peertubeHelpers }) {
 
   }
   async function doUpdateSplit(channel, slot, ks) {
-    console.log("call the update now",channel,slot,ks);
+    console.log("call the update now", channel, slot, ks);
     let newSplit = document.getElementById("modal-split-value").value;
     let newAddress = document.getElementById("modal-split-address").value;
     let newName = encodeURI(document.getElementById("modal-split-name").value);
@@ -1229,7 +1241,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function doAddSplit(channel) {
-    console.log("called the add api now",channel);
+    console.log("called the add api now", channel);
     let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
 
@@ -1272,7 +1284,7 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("making keysend edit panel", slot, ks);
     let html;
     html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
-    html = html +"Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
+    html = html + "Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
     if (slot == 0) {
       html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
     } else {

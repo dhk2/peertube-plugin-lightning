@@ -300,6 +300,7 @@ async function register({
     let rss = rssData.data;
     let lines = rss.split('\n');
     let newLine = "";
+    let altLine= "";
     let resolution = "";
     let displayName = channelData.data.displayName;
     for (var line of lines) {
@@ -314,11 +315,38 @@ async function register({
       if ((line.indexOf("media:content") > 0) && (line.indexOf('height="0"') < 1)) {
         continue;
       }
+      
       if ((line.indexOf("media:content") > 0)) {
         cut = line.substring(line.indexOf('fileSize') + 9, line.indexOf("framerate"));
-        console.log(cut);
+        //console.log(cut);
+        let hack = cut.split("/");
+        for (var piece in hack) {
+          console.log("part", piece, hack[piece]);
+        }
+        var apiCall = base + "/api/v1/videos/" + hack[4];
+        let video;
+        console.log("api call", apiCall);
+        try {
+          video = await axios.get(apiCall)
+        } catch {
+          console.log("error trying to get video data to build alternate enclosures");
+        }
+        if (video) {
+          let nodes = video.data.streamingPlaylists[0].redundancies;
+          if (nodes.length > 0) {
+            let hackLength = hack[0].split(' ');
+            altLine = '\n' + spacer + `<podcast:alternateEnclosure type="video/mp4" default="true" length=` + hackLength[0] + ">";
+            for (var node in nodes) {
+              altLine = altLine + '\n' + spacer + `\t<podcast:source uri="` + nodes[node].baseUrl + '/' + hack[5] + `/>"`
+            }
+            altLine = altLine + '\n' + spacer + `</podcast:alternateEnclosure>`
+           // fixed = fixed + altLine;
+          }
+
+        }
         newLine = '<enclosure type="video/mp4" length=' + cut + "/>";
-        console.log(newLine);
+        //console.log(newLine);
+        //peers = video
       }
       if (line.indexOf('atom:link') > 0) {
         spacer = (line.substring(0, line.indexOf('<')));
@@ -373,7 +401,7 @@ async function register({
       }
       if (line.indexOf('media:title') > 0) {
         spacer = (line.substring(0, line.indexOf('<')));
-        fixed = fixed + '\n' + spacer + newLine;
+        fixed = fixed + '\n' + spacer + newLine+altLine;
       }
       if (line.indexOf('guid>') > 0) {
         spacer = (line.substring(0, line.indexOf('<')));
@@ -395,12 +423,13 @@ async function register({
 
         //TODO go through all captions available and add with language
         if (captionResult && captionResult.data && captionResult.data.total > 0) {
-          console.log("caption result", captionResult.data);
-          captionPath = instanceUrl+captionResult.data.data[0].captionPath
+          //console.log("caption result", captionResult.data);
+          captionPath = instanceUrl + captionResult.data.data[0].captionPath
+          captionLanguage = captionResult.data.data[0].language.id;
           if (captionPath.indexOf("vtt") > 1) {
-            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" type="text/vtt" rel="captions"/>`;
+            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="`+captionLanguage+ `" type="text/vtt" rel="captions"/>`;
           } else {
-            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" type="text/plain" rel="captions"/>`;
+            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="`+captionLanguage+ `" type="text/plain" rel="captions"/>`;
 
           }
 
@@ -932,7 +961,7 @@ async function register({
       }
     }
     console.log("split", split);
-    console.log("Attempt to add new address [" + newAddress + ']',customKeysend);
+    console.log("Attempt to add new address [" + newAddress + ']', customKeysend);
     let walletData = { "keysend": { "tag": "keysend", "customData": [{}] } };
     if (newAddress) {
       walletData.address = newAddress;
@@ -1298,7 +1327,7 @@ async function register({
       }
     }
     console.log("split", split);
-    console.log("Create split attempting to add new address [" + newAddress + ']',req.query);
+    console.log("Create split attempting to add new address [" + newAddress + ']', req.query);
     let keysendData = await getKeysendInfo(newAddress);
     let lnurlData = await getLnurlInfo(newAddress);
     let walletData = {};
