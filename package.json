@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "axios": "^0.27.2",
+    "podcast-index-api": "^1.1.10",
     "qrious": "^4.0.2"
   }
 }
