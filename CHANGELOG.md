@@ -1,3 +1,5 @@
+v 4.0.1
+- fixed error in chatroom autocreation
 v 4.0.0
 - added federated comment zaps
 - fixed federated chatrooms

@@ -196,7 +196,7 @@ async function register({ registerHook, peertubeHelpers }) {
           let shortChannel = channelName.split("@")[0];
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
           console.log("chatRoom", chatRoom, channelName, shortInstance, shortChannel);
-          await setChatRoom(channelName, encodeURIComponent(chatRoom));
+          await setChatRoom(channelName, chatRoom);
           console.log("made chat room", chatRoom)
         }
         let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
@@ -409,11 +409,6 @@ async function register({ registerHook, peertubeHelpers }) {
               } else if (wallet.lnurl) {
                 console.log("sending lnurl zap");
                 result = await sendSats(wallet.lnurl, 69, zap, userName);
-                if (!result) {
-                  error = error + ", " + wallet.address;
-                  console.log("errors", error);
-                }
-                //walletData = await refreshWalletInfo(walletData.address);
               }
             }
 
