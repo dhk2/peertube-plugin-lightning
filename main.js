@@ -1,7 +1,9 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const IRC = require('irc-framework');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
+const { Console } = require('console');
 const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
 async function register({
   registerHook,
@@ -88,10 +90,53 @@ async function register({
     hostWalletData.split = parseInt(hostSplit);
   }
   hostWalletData.fee = true;
+  let enableChat = await settingsManager.getSettings("irc-enable");
+  if (enableChat) {
+    console.log("chat enabled");
+    var bot = new IRC.Client();
+    bot.connect({
+      host: 'irc.freenode.net',
+      port: 6667,
+      nick: 'prawnsbot'
+    });
+
+    var buffers = [];
+    bot.on('registered', function () {
+      console.log("█ █ █ registered");
+      var channel = bot.channel('#nick');
+      buffers.push(channel);
+
+      channel.join();
+      channel.say('Hi!');
+      console.log("said hi");
+    });
+
+    bot.on('message', function (event) {
+      console.log("got a message", event.message);
+      if (event.message.indexOf('hello') === 0) {
+        event.reply('Hi!');
+      }
+      if (event.message.indexOf('ident') > 0) {
+        event.reply('Hi! ho');
+        var channel = bot.channel('#nick');
+        buffers.push(channel);
+
+        channel.join();
+        channel.say('Hi!');
+      }
+
+      if (event.message.match(/^!join /)) {
+        var to_join = event.message.split(' ')[1];
+        event.reply('Joining ' + to_join + '..');
+        bot.join(to_join);
+      }
+    });
+  }
   //TODO add lnurl for hostwallet for wallet browsers without keysend support
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     console.log("█Request for wallet info\n", req.query)
+    let foundLightningAddress;
     if (req.query.address) {
       console.log("getting wallet info");
       let address = req.query.address;
@@ -187,7 +232,14 @@ async function register({
       }
     }
     if (req.query.account) {
-      apiCall = base + "/api/v1/accounts/" + req.query.account;
+      let account = req.query.account
+      let parts = account.split("@")
+      console.log(parts,parts.length);
+      if (parts.length > 1) {
+        apiCall = "https://" + parts[1] + "/api/v1/accounts/" + parts[0];
+      } else {
+        apiCall = base + "/api/v1/accounts/" + req.query.account;
+      }
       console.log("█ getting account data", apiCall);
       let accountData;
       try {
@@ -196,8 +248,26 @@ async function register({
         console.log("failed to pull information for provided account id", apiCall);
       }
       if (accountData) {
-        let foundLightningAddress = await findLightningAddress(accountData.data.description);
+        let account=accountData.data
+        console.log(account);
+        if (account.description){
+          foundLightningAddress = await findLightningAddress(account.description);
+        }
+        console.log("fields",account.fields);
+        if (!foundLightningAddress && account.fields){
+          for (var field in account.fields){
+            if (field.name === "Lightning Address");
+            console.log("good field",field);
+              foundLightningAddress = field.value;
+          }
+        }
+        console.log("note",account.note);
+        if (!foundLightningAddress && account.note) {
+          console.log("account note",account.note);
+          foundLightningAddress = await findLightningAddress(account.note);
+        }
         if (foundLightningAddress) {
+
           console.log("lightning address found in account description [" + foundLightningAddress + ']');
           let keysendData = await getKeysendInfo(foundLightningAddress);
           let lnurlData = await getLnurlInfo(foundLightningAddress);
@@ -219,7 +289,7 @@ async function register({
         } else {
           console.log("no lightning address found in account description");
         }
-
+        //check for pleroma
       }
     }
     console.log("no lightning address found at all");
@@ -560,8 +630,22 @@ async function register({
     }
   })
   router.use('/getchatroom', async (req, res) => {
-    console.log("███getting chat room", req.query.channel);
+    console.log("███getting chat room", req.query);
     let channel = req.query.channel;
+    let parts = channel.split('@');
+    let customChat;
+    if (parts.length > 1) {
+      let chatApi = "https://" + parts[1] + "/plugins/lightning/router/getchatroom?channel=" + parts[0];
+      try {
+        customChat = await axios.get(chatApi);
+      } catch {
+        console.log("hard error getting custom chat room for ", channel, "from", parts[1]);
+      }
+      if (customChat) {
+        console.log("returning", customChat, "for", channel);
+        return res.status(200).send(customChat.toString());
+      }
+    }
     let chatRoom;
     if (channel) {
       try {
@@ -581,6 +665,11 @@ async function register({
     console.log("███setting chatroom", req.query);
     let channel = req.query.channel;
     let chatroom = req.query.chatroom;
+    let parts = channel.split('@');
+    if (parts.length > 1) {
+      Console.log("don't set chatroom value for remote accounts, rely on remote server");
+      return res.status(400).send();
+    }
     if (channel) {
       try {
         await storageManager.storeData("irc" + "-" + channel, chatroom);
@@ -736,6 +825,7 @@ async function register({
     }
   })
   router.use('/getchannelguid', async (req, res) => {
+    //TODO add check to remote host for channel guid
     console.log("███getting channel guid");
     let channel = req.query.channel;
     let channelGuid;
@@ -1268,12 +1358,13 @@ async function register({
     }
     if (req.query.video) {
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      var apiCall;
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (!storedSplitData) {
         console.log("stored split data not found");
         if (req.query.video) {
           console.log("base", base);
-          var apiCall = base + "/api/v1/videos/" + req.query.video;
+          apiCall = base + "/api/v1/videos/" + req.query.video;
           console.log("█ getting video data", apiCall);
           let videoData;
           try {
@@ -1484,13 +1575,13 @@ async function register({
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
     try {
       let feedId = await axios.get(feedApi);
-      console.log("feed id ",feedId.data);
+      console.log("feed id ", feedId.data);
       let pingResult = await axios.get("https://api.podcastindex.org/api/1.0/hub/pubnotify?id=" + feedId.data);
-      console.log("ping result",pingResult.data);
+      console.log("ping result", pingResult.data);
       return (pingResult.data);
     } catch {
       console.log("error when tring ping podcast inedex ", feedApi);
-      return ;
+      return;
     }
 
   }

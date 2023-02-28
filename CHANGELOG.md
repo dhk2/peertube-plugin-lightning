@@ -1,5 +1,10 @@
+v 4.0.0
+- added federated comment zaps
+- fixed federated chatrooms
+- moved zap button to action button section
+- 
 v 0.3.9
-- added channel confirable support IRC chat rooms
+- added channel configurable support IRC chat rooms
 - added IRC chat support
 - added fallback Podcast Index Item ID look up
 - added ability to create spit from scratch through split gui

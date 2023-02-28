@@ -22,7 +22,7 @@ async function register({ registerHook, peertubeHelpers }) {
       chatEnabled = s['irc-enable'];
       console.log(s);
     })
-    console.log("*###*##* chat enabled",chatEnabled,tipVerb);
+  console.log("*###*##* chat enabled", chatEnabled, tipVerb);
   try {
     let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
     if (conversionData.data.data.rateUsd) {
@@ -35,7 +35,14 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
-      userName = user.account.displayName;
+      console.log("user", user);
+      if (user && user.account && user.account.displayName) {
+        userName = user.account.displayName;
+        while (userName.indexOf(' ') > 0) {
+          //TODO smart people use pattern matching
+          userName = userName.replace(" ", "-")
+        }
+      }
     }
   })
 
@@ -43,10 +50,6 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
       console.log("here it is");
-
-
-
-
       let buttonBlock = document.getElementsByClassName('tip-buttons-block')
       if (buttonBlock.length > 0) {
         buttonBlock[0].remove();
@@ -67,50 +70,10 @@ async function register({ registerHook, peertubeHelpers }) {
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
+
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
-      if (chatEnabled) {
-        let newContainer = document.createElement('div');
-        newContainer.setAttribute('id', 'peertube-plugin-irc-container')
-        addSpot.append(newContainer)
-        var container = document.getElementById('peertube-plugin-irc-container')
-        if (!container) {
-          logger.error('Cant found the irc chat container.')
-        }
-        let chatRoom = await getChatRoom(channelName);
-        console.log("found chat room", chatRoom);
-        if (!chatRoom) {
-          let shortInstance = instanceName.split(".")[0];
-          let shortChannel = channelName.split("@")[0];
-          chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
-          console.log("chatRoom", chatRoom, channelName,shortInstance,shortChannel);
-          await setChatRoom(channelName, encodeURIComponent(chatRoom));
-          console.log("made chat room", chatRoom)
-        }
-        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
-        if (userName === 'PeerTuber') {
-          chatLink = chatLink + "???";
-        }
-        console.log("full chat link", chatLink);
-        container.setAttribute("style", "display:flex");
-        container.setAttribute('style', 'height:100%;width:100%;resize:both;display:flex;flex-direction:column;overflow:auto')
-        console.log("container offsetheight", container.offsetHeight, container.clientHeight);
-        console.log("add spot offsetheight", addSpot.offsetHeight, addSpot.clientHeight);
-        const iframe = document.createElement('iframe')
-        iframe.setAttribute('src', chatLink);
-        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-        iframe.setAttribute('frameborder', '0')
-        iframe.setAttribute('id', "peertube-plugin-irc-iframe");
-        container.append(iframe)
-        let docIframe = document.getElementById('peertube-plugin-irc-iframe');
-        docIframe.setAttribute('style', 'height:100%')
-        docIframe.style.height = "100%";
-        docIframe.style.width = "100%";
-        docIframe.style.display = "flex";
-        docIframe.style.flexDirection = "column";
-        docIframe.style.resize = "both";
-        docIframe.style.overflow = "auto";
-      }
+
       console.log("add spot", addSpot.offsetHeight, addSpot.clientHeight);
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
       text = text.split("\n").join(" ");
@@ -162,12 +125,10 @@ async function register({ registerHook, peertubeHelpers }) {
           if (streamEnabled) {
             streamButtonText = "⚡️" + streamAmount + "/min";
           } else {
-            streamButtonText = "⚡️⌚";
+            streamButtonText = "⚡️Stream";
           }
-          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
+          //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
           buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted">` + streamButtonText + `</button>`
-          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▼" + `</button>`
-          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▲" + `</button>`
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -211,9 +172,85 @@ async function register({ registerHook, peertubeHelpers }) {
           }, 1000);
         }
       }
+      if (chatEnabled) {
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▼" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▲" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted">` + "X" + `</button>`
+      }
+      if (buttonHTML) {
+        elem.innerHTML = buttonHTML;
+        addSpot.appendChild(elem);
+      }
+      if (chatEnabled) {
+        let newContainer = document.createElement('div');
+        newContainer.setAttribute('id', 'peertube-plugin-irc-container')
+        addSpot.append(newContainer)
+        var container = document.getElementById('peertube-plugin-irc-container')
+        if (!container) {
+          logger.error('Cant found the irc chat container.')
+        }
+        let chatRoom = await getChatRoom(channelName);
+        console.log("found chat room", chatRoom);
+        if (!chatRoom) {
+          let shortInstance = instanceName.split(".")[0];
+          let shortChannel = channelName.split("@")[0];
+          chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
+          console.log("chatRoom", chatRoom, channelName, shortInstance, shortChannel);
+          await setChatRoom(channelName, encodeURIComponent(chatRoom));
+          console.log("made chat room", chatRoom)
+        }
+        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
+        if (userName === 'PeerTuber') {
+          chatLink = chatLink + "???";
+        }
+        console.log("full chat link", chatLink);
+        container.setAttribute("style", "display:flex");
+        container.setAttribute('style', 'height:100%;width:100%;resize:both;display:flex;flex-direction:column;overflow:auto')
+        console.log("container offsetheight", container.offsetHeight, container.clientHeight);
+        console.log("add spot offsetheight", addSpot.offsetHeight, addSpot.clientHeight);
+        const iframe = document.createElement('iframe')
+        iframe.setAttribute('src', chatLink);
+        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+        iframe.setAttribute('frameborder', '0')
+        iframe.setAttribute('id', "peertube-plugin-irc-iframe");
+        container.append(iframe)
+        let docIframe = document.getElementById('peertube-plugin-irc-iframe');
+        docIframe.setAttribute('style', 'height:100%')
+        docIframe.style.height = "100%";
+        docIframe.style.width = "100%";
+        docIframe.style.display = "flex";
+        docIframe.style.flexDirection = "column";
+        docIframe.style.resize = "both";
+        docIframe.style.overflow = "auto";
+      }
+      if (splitData) {
+        let addSpot2Find = document.getElementsByClassName("video-actions");
+        console.log("second add spot", addSpot2Find);
+        let addSpot2 = addSpot2Find[0];
+        let addSpot3Find = document.getElementsByClassName("action-button")
+        console.log("third add spot", addSpot3Find);
+        let addSpot3 = addSpot3Find[2];
+        const transparentButton = document.createElement('button');
 
-      elem.innerHTML = buttonHTML;
-      addSpot.appendChild(elem);
+        //transparentButton.innerHTML = `<  aria-label="Zap sats to this video"><my-global-icon _ngcontent-lca-c171="" iconname="zap" _nghost-lca-c71="">⚡️Zap</my-global-icon><!----></button>`
+        transparentButton.innerHTML = "⚡️" + tipVerb;
+        console.log(transparentButton);
+        transparentButton.class = "action-button action-button-zap";
+        transparentButton.className = "action-button action-button-zap";
+        transparentButton.ariaPressed = "false";
+        transparentButton.ariaLabel = "Zap sats to this video";
+        transparentButton.label = "Zap sats to this video";
+        transparentButton.id = "boostagram"
+        console.log("stef", transparentButton)
+        //insertBefore(transparentButton, addSpot2);
+        console.log(addSpot2);
+        //addSpot2.parentElement.insertBefore(transparentButton,addSpot2);
+        //addSpot2.parentElement.parentElement.appendChild(transparentButton);
+        console.log("addSpot2", addSpot2.className, addSpot2.parentElement.className, addSpot2.childNodes);
+        console.log("addspot3", addSpot3, addSpot3.parentElement);
+        addSpot2.insertBefore(transparentButton, addSpot3);
+      }
+      //boost
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
         document.getElementById("boostagram").onclick = async function () {
@@ -324,6 +361,71 @@ async function register({ registerHook, peertubeHelpers }) {
           window.open(kofiLink, 'popup', 'width=600,height=800');
         }
       }
+      let comments = document.getElementsByClassName("comment-account-fid");
+      console.log(comments, comments.length);
+      
+      for (var com in comments) {
+        let walletApi, walletData;
+        let comment = comments[com];
+        try {
+          walletApi = basePath + "/walletinfo?account=" + comment.innerText
+          walletData = await axios.get(walletApi);
+        } catch {
+          console.log("error trying to get wallet info", walletApi);
+        }
+        if (walletData) {
+          console.log("found wallet data", walletData);
+          let zap = document.createElement("button");
+          zap.innerHTML = "⚡️";
+          zap.class = "action-button action-button-zap";
+          zap.className = "action-button action-button-zap";
+          zap.ariaPressed = "false";
+          zap.ariaLabel = "Zap sats to this user";
+          zap.label = "Zap sats to this user";
+          zap.id = "zap-" + com;
+          zap.target = comment.innerText;
+          console.log("comment to add",comment,comment.parentElement);
+          comment.parentElement.parentElement.append(zap);
+          console
+          let zapButton = document.getElementById("zap-" + com)
+          console.log(zapButton);
+          zapButton.onclick = async function () {
+            console.log("this.target", this.target);
+            walletData = null;
+            try {
+              walletApi = basePath + "/walletinfo?account=" + this.target;
+              walletData = await axios.get(walletApi);
+            } catch {
+              console.log("error trying to get wallet info", walletApi);
+            }
+            if (walletData) {
+              var wallet = walletData.data;
+              console.log("wallet",wallet);
+              let weblnSupport = await checkWebLnSupport();
+              if (wallet.keysend && (weblnSupport)) {
+                console.log("sending keysend zap");
+                console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
+                result = await boost(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target);
+              } else if (wallet.lnurl) {
+                console.log("sending lnurl zap");
+                result = await sendSats(wallet.lnurl, 69, zap, userName);
+                if (!result) {
+                  error = error + ", " + wallet.address;
+                  console.log("errors", error);
+                }
+                //walletData = await refreshWalletInfo(walletData.address);
+              }
+            }
+
+
+          }
+        } else {
+          console.log("didn't find wallet data", walletApi)
+        }
+
+
+        //console.log(basePath+"/walletinfo?account="+comment.innerText);
+      }
     }
   })
 
@@ -369,7 +471,7 @@ async function register({ registerHook, peertubeHelpers }) {
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
           modal[0].innerHTML = `Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
-          document.getElementById("add-split").onclick = async function () {
+          document.getElementById("add-split-final").onclick = async function () {
             console.log("call the create api now");
 
             let newAddress = document.getElementById("modal-split-address").value;
@@ -449,16 +551,16 @@ async function register({ registerHook, peertubeHelpers }) {
                 confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
 
               });
-              let ks = splitData[slot].customKeysend;
+              let ks = splitData[this.slot].customKeysend;
               if (ks == undefined) {
                 ks = false;
               }
-              console.log("calling makekeysendhtml", ks, slot)
-              let html = await makeKeysendHtml(splitData, slot, ks);
+              console.log("calling makekeysendhtml", ks, this.slot)
+              let html = await makeKeysendHtml(splitData, this.slot, ks);
               let modal = (document.getElementsByClassName('modal-body'))
               modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
               modal[0].innerHTML = html;
-              assignSplitEditButtons(splitData, slot, channel, ks);
+              assignSplitEditButtons(splitData, this.slot, channel, ks);
             }
           }
         }
@@ -1123,6 +1225,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function closeModal() {
     let butts = document.getElementsByClassName("ng-star-inserted")
+    console.log("trying to close modal")
     for (var butt of butts) {
       let iconName = butt.getAttribute("iconname");
       if (iconName == "cross") {
@@ -1131,6 +1234,7 @@ async function register({ registerHook, peertubeHelpers }) {
         return true;
       }
     }
+    console.log("no match found to close modal", butts);
     return false;
   }
   async function assignSplitEditButtons(splitData, slot, channel, ks) {
@@ -1402,11 +1506,12 @@ async function register({ registerHook, peertubeHelpers }) {
       html = html + "<br> LNURL callback: " + splitData[slot].lnurl.callback;
     }
     html = html + `<hr><button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="update-split">Update Split</button>`;
-    html = html + ` - <button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="remove-split">remove this Split</button>`;
+    if (slot != 0) {
+      html = html + ` - <button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="remove-split">remove this Split</button>`;
+    }
     return html;
   }
 }
-
 export {
   register
 }
