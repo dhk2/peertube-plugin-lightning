@@ -1,5 +1,8 @@
 v 4.0.1
 - fixed error in chatroom autocreation
+- fixed error in IRC library
+- added full size chat and hidden chat
+- fixed reply zaps
 v 4.0.0
 - added federated comment zaps
 - fixed federated chatrooms

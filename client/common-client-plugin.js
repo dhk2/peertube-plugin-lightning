@@ -47,6 +47,138 @@ async function register({ registerHook, peertubeHelpers }) {
   })
 
   registerHook({
+    target: 'action:video-watch.video-threads.loaded',
+    handler: async ({ user, video }) => {
+      //console.log("user", user);
+      //console.log("video", video);
+      let comments = document.getElementsByClassName("comment-account-fid");
+      //console.log(comments, comments.length);
+
+      for (var com in comments) {
+        let walletApi, walletData, wallet;
+        let comment = comments[com];
+        try {
+          walletApi = basePath + "/walletinfo?account=" + comment.innerText
+          walletData = await axios.get(walletApi);
+        } catch {
+          console.log("error trying to get wallet info", walletApi);
+        }
+        if (walletData) {
+          //console.log("found wallet data", walletData);
+          let zap = document.createElement("button");
+          zap.innerHTML = "⚡️";
+          zap.class = "action-button action-button-zap";
+          zap.className = "action-button action-button-zap";
+          zap.ariaPressed = "false";
+          zap.ariaLabel = "Zap sats to this user";
+          zap.label = "Zap sats to this user";
+          zap.id = "zap-" + com;
+          zap.target = comment.innerText;
+          //console.log("comment to add", comment, comment.parentElement);
+          comment.parentElement.parentElement.append(zap);
+          let zapButton = document.getElementById("zap-" + com)
+          //console.log(zapButton);
+          zapButton.onclick = async function () {
+           // console.log("this.target", this.target);
+            walletData = null;
+            try {
+              walletApi = basePath + "/walletinfo?account=" + this.target;
+              walletData = await axios.get(walletApi);
+            } catch {
+              console.log("error trying to get wallet info", walletApi);
+            }
+            if (walletData) {
+              wallet = walletData.data;
+              //console.log("wallet", wallet);
+              let weblnSupport = await checkWebLnSupport();
+              if (wallet.keysend && (weblnSupport)) {
+                //console.log("sending keysend zap");
+                //console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
+                await boost(wallet.keysend, 69, "zap", userName, userName, null, "boost", null, null, null, 69, this.target);
+              } else if (wallet.lnurl) {
+                //console.log("sending lnurl zap");
+                await sendSats(wallet.lnurl, 69, zap, userName);
+              }
+            }
+          }
+          comment.wallet = walletData.data;
+        } else {
+          console.log("didn't find wallet data", walletApi)
+        }
+      }
+    }
+  })
+
+  registerHook({
+    target: 'action:video-watch.video-thread-replies.loaded',
+    handler: async () => {
+      let comments = document.getElementsByClassName("comment-account-fid");
+      //console.log(comments, comments.length);
+
+      for (var com in comments) {
+        let walletApi, walletData;
+        let comment = comments[com];
+        console.log("comment wallet", comment.wallet);
+        if (comment.wallet){
+          continue;
+        }
+        try {
+          walletApi = basePath + "/walletinfo?account=" + comment.innerText
+          walletData = await axios.get(walletApi);
+        } catch {
+          console.log("error trying to get wallet info", walletApi);
+        }
+        if (walletData) {
+          console.log("found wallet data", walletData);
+          let zap = document.createElement("button");
+          zap.innerHTML = "⚡️";
+          zap.class = "action-button action-button-zap";
+          zap.className = "action-button action-button-zap";
+          zap.ariaPressed = "false";
+          zap.ariaLabel = "Zap sats to this user";
+          zap.label = "Zap sats to this user";
+          zap.id = "zap-" + com;
+          zap.target = comment.innerText;
+          console.log("comment to add", comment, comment.parentElement);
+          comment.parentElement.parentElement.append(zap);
+          console
+          let zapButton = document.getElementById("zap-" + com)
+          console.log(zapButton);
+          zapButton.onclick = async function () {
+            console.log("this.target", this.target);
+            walletData = null;
+            try {
+              walletApi = basePath + "/walletinfo?account=" + this.target;
+              walletData = await axios.get(walletApi);
+            } catch {
+              console.log("error trying to get wallet info", walletApi);
+            }
+            if (walletData) {
+              var wallet = walletData.data;
+              console.log("wallet", wallet);
+              let weblnSupport = await checkWebLnSupport();
+              if (wallet.keysend && (weblnSupport)) {
+                console.log("sending keysend zap");
+                //console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
+                await boost(wallet.keysend, 69, "zap", userName, userName, null, "boost", null, null, null, 69, this.target);
+              } else if (wallet.lnurl) {
+                console.log("sending lnurl zap");
+                await sendSats(wallet.lnurl, 69, zap, userName);
+              }
+            }
+          }
+          comment.wallet = walletData.data;
+        } else {
+          console.log("didn't find wallet data", walletApi)
+        }
+
+
+        //console.log(basePath+"/walletinfo?account="+comment.innerText);
+      }
+    }
+  })
+
+  registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
       console.log("here it is");
@@ -314,8 +446,8 @@ async function register({ registerHook, peertubeHelpers }) {
           container.style.height = container.offsetHeight + 512 + 'px';
           console.log("height", container.style.height, container.offsetHeight);
           chatSize = 'big';
-          smallChat.hidden = false;
-          bigChat.hidden = true;
+          //smallChat.hidden = false;
+          //bigChat.hidden = true;
         }
       }
       const smallChat = document.getElementById("smallchat");
@@ -324,21 +456,56 @@ async function register({ registerHook, peertubeHelpers }) {
           container.style.height = container.offsetHeight - 512 + 'px';
           console.log("height", container.style.height, container.offsetHeight);
           chatSize = 'small';
-          smallChat.hidden = true;
+          //smallChat.hidden = true;
           bigChat.hidden = false;
+        }
+      }
+      const closeChat = document.getElementById("closechat");
+      let videoDisplay=document.getElementById("videojs-wrapper");
+      let fullVideo = document.getElementById("video-wrapper");
+      var oldVideo,oldChat
+      if (closeChat) {
+        closeChat.onclick = async function () {
+          console.log("click",closeChat.innerHTML,videoDisplay.hidden,container.hidden);
+          console.log(container.clientWidth,videoDisplay.clientWidth,fullVideo.clientWidth);
+          if (closeChat.innerHTML==="full chat"){
+            container.hidden=false;
+            oldVideo=videoDisplay.clientWidth;
+            videoDisplay.hidden=true;
+            closeChat.innerHTML="chat";
+            container.flex
+            bigChat.hidden=false;
+            smallChat.hidden = false;
+          } 
+          else if (closeChat.innerHTML==="chat"){
+            container.hidden=false;
+            videoDisplay.hidden=false;
+            closeChat.innerHTML="X";
+            bigChat.hidden=false;
+            smallChat.hidden = false;
+          }
+          else if (closeChat.innerHTML==="X"){
+            container.hidden=true;
+            videoDisplay.hidden=false;
+            closeChat.innerHTML="full chat";
+            bigChat.hidden=true;
+            smallChat.hidden = true;
+          }
+          console.log("after click",closeChat.innerHTML,videoDisplay.hidden,container.hidden);
+          console.log(container,videoDisplay);
         }
       }
       if (chatEnabled) {
         if (chatSize === 'small') {
-          smallChat.hidden = true;
+          //smallChat.hidden = true;
           bigChat.hidden = false;
         } else {
           smallChat.hidden = false;
-          bigChat.hidden = true;
+         // bigChat.hidden = true;
         }
       } else {
-        smallChat.hidden = true;
-        bigChat.hidden = true;
+       // smallChat.hidden = true;
+       // bigChat.hidden = true;
       }
       const donationalertsButton = document.getElementById("donationalerts")
       if (donationalertsButton) {
@@ -360,66 +527,6 @@ async function register({ registerHook, peertubeHelpers }) {
           console.log("kofi link", kofiLink);
           window.open(kofiLink, 'popup', 'width=600,height=800');
         }
-      }
-      let comments = document.getElementsByClassName("comment-account-fid");
-      console.log(comments, comments.length);
-      
-      for (var com in comments) {
-        let walletApi, walletData;
-        let comment = comments[com];
-        try {
-          walletApi = basePath + "/walletinfo?account=" + comment.innerText
-          walletData = await axios.get(walletApi);
-        } catch {
-          console.log("error trying to get wallet info", walletApi);
-        }
-        if (walletData) {
-          console.log("found wallet data", walletData);
-          let zap = document.createElement("button");
-          zap.innerHTML = "⚡️";
-          zap.class = "action-button action-button-zap";
-          zap.className = "action-button action-button-zap";
-          zap.ariaPressed = "false";
-          zap.ariaLabel = "Zap sats to this user";
-          zap.label = "Zap sats to this user";
-          zap.id = "zap-" + com;
-          zap.target = comment.innerText;
-          console.log("comment to add",comment,comment.parentElement);
-          comment.parentElement.parentElement.append(zap);
-          console
-          let zapButton = document.getElementById("zap-" + com)
-          console.log(zapButton);
-          zapButton.onclick = async function () {
-            console.log("this.target", this.target);
-            walletData = null;
-            try {
-              walletApi = basePath + "/walletinfo?account=" + this.target;
-              walletData = await axios.get(walletApi);
-            } catch {
-              console.log("error trying to get wallet info", walletApi);
-            }
-            if (walletData) {
-              var wallet = walletData.data;
-              console.log("wallet",wallet);
-              let weblnSupport = await checkWebLnSupport();
-              if (wallet.keysend && (weblnSupport)) {
-                console.log("sending keysend zap");
-                console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
-                result = await boost(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target);
-              } else if (wallet.lnurl) {
-                console.log("sending lnurl zap");
-                result = await sendSats(wallet.lnurl, 69, zap, userName);
-              }
-            }
-
-
-          }
-        } else {
-          console.log("didn't find wallet data", walletApi)
-        }
-
-
-        //console.log(basePath+"/walletinfo?account="+comment.innerText);
       }
     }
   })

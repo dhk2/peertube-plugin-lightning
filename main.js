@@ -1,6 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
-const IRC = require('irc-framework');
+//const IRC = require('irc-framework');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
 const { Console } = require('console');
@@ -93,6 +93,7 @@ async function register({
   let enableChat = await settingsManager.getSettings("irc-enable");
   if (enableChat) {
     console.log("chat enabled");
+    /*
     var bot = new IRC.Client();
     bot.connect({
       host: 'irc.freenode.net',
@@ -131,6 +132,7 @@ async function register({
         bot.join(to_join);
       }
     });
+    */
   }
   //TODO add lnurl for hostwallet for wallet browsers without keysend support
   const router = getRouter();
