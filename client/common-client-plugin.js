@@ -130,7 +130,7 @@ async function register({ registerHook, peertubeHelpers }) {
         }
         if (walletData) {
           console.log("found wallet data", walletData);
-          let zap = document.createElement("button");
+          let zap = document.createElement("div");
           zap.innerHTML = "⚡️";
           zap.class = "action-button action-button-zap";
           zap.className = "action-button action-button-zap";
@@ -331,7 +331,7 @@ async function register({ registerHook, peertubeHelpers }) {
           await setChatRoom(channelName, chatRoom);
           console.log("made chat room", chatRoom)
         }
-        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
+        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom.data + '?nick=' + userName;
         if (userName === 'PeerTuber') {
           chatLink = chatLink + "???";
         }
@@ -473,7 +473,11 @@ async function register({ registerHook, peertubeHelpers }) {
             oldVideo=videoDisplay.clientWidth;
             videoDisplay.hidden=true;
             closeChat.innerHTML="chat";
-            container.flex
+            container.style.flexGrow="1";
+            container.style.flex="wrap";
+            container.style.width="2000px";
+            container.width="2000px"
+            //container.width = fullVideo.clientWidth;
             bigChat.hidden=false;
             smallChat.hidden = false;
           } 
