@@ -20,9 +20,9 @@ async function register({ registerHook, peertubeHelpers }) {
       tipVerb = s['lightning-tipVerb'];
       // split = s['lightning-split'];
       chatEnabled = s['irc-enable'];
-      console.log(s);
+      // console.log(s);
     })
-  console.log("*###*##* chat enabled", chatEnabled, tipVerb);
+  //console.log("*###*##* chat enabled", chatEnabled, tipVerb);
   try {
     let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
     if (conversionData.data.data.rateUsd) {
@@ -57,51 +57,57 @@ async function register({ registerHook, peertubeHelpers }) {
       for (var com in comments) {
         let walletApi, walletData, wallet;
         let comment = comments[com];
-        try {
-          walletApi = basePath + "/walletinfo?account=" + comment.innerText
-          walletData = await axios.get(walletApi);
-        } catch {
-          console.log("error trying to get wallet info", walletApi);
+        if (comment.wallet) {
+          continue;
+        }
+        if (comment.innerText) {
+          try {
+            walletApi = basePath + "/walletinfo?account=" + comment.innerText
+            walletData = await axios.get(walletApi);
+            comment.wallet=walletData.data
+          } catch {
+            console.log("error trying to get wallet info", walletApi);
+          }
         }
         if (walletData) {
-          //console.log("found wallet data", walletData);
-          let zap = document.createElement("button");
+          console.log("found wallet data", walletData);
+          let zap = document.createElement("span");
           zap.innerHTML = "⚡️";
           zap.class = "action-button action-button-zap";
           zap.className = "action-button action-button-zap";
           zap.ariaPressed = "false";
           zap.ariaLabel = "Zap sats to this user";
-          zap.label = "Zap sats to this user";
+          zap.title = "Zap sats to this user";
           zap.id = "zap-" + com;
           zap.target = comment.innerText;
-          //console.log("comment to add", comment, comment.parentElement);
-          comment.parentElement.parentElement.append(zap);
+          zap.style = "cursor:pointer";
+          let grandParent = comment.parentElement.parentElement;
+          let greatGrandParent = comment.parentElement.parentElement.parentElement;
+          console.log("adding ",com,zap,walletData)
+          greatGrandParent.insertBefore(zap, grandParent);
           let zapButton = document.getElementById("zap-" + com)
-          //console.log(zapButton);
           zapButton.onclick = async function () {
-           // console.log("this.target", this.target);
             walletData = null;
-            try {
-              walletApi = basePath + "/walletinfo?account=" + this.target;
-              walletData = await axios.get(walletApi);
-            } catch {
-              console.log("error trying to get wallet info", walletApi);
+            this.innerText = "🗲";
+            if (comment.innerText) {
+              try {
+                walletApi = basePath + "/walletinfo?account=" + comment.innerText
+                walletData = await axios.get(walletApi);
+              } catch {
+                console.log("error trying to get wallet info", walletApi);
+              }
             }
             if (walletData) {
               wallet = walletData.data;
-              //console.log("wallet", wallet);
               let weblnSupport = await checkWebLnSupport();
               if (wallet.keysend && (weblnSupport)) {
-                //console.log("sending keysend zap");
-                //console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
                 await boost(wallet.keysend, 69, "zap", userName, userName, null, "boost", null, null, null, 69, this.target);
               } else if (wallet.lnurl) {
-                //console.log("sending lnurl zap");
-                await sendSats(wallet.lnurl, 69, zap, userName);
+                await sendSats(wallet.lnurl, 69, "zap from " + userName, userName);
               }
             }
+            this.innerHTML = "⚡️";
           }
-          comment.wallet = walletData.data;
         } else {
           console.log("didn't find wallet data", walletApi)
         }
@@ -118,19 +124,22 @@ async function register({ registerHook, peertubeHelpers }) {
       for (var com in comments) {
         let walletApi, walletData;
         let comment = comments[com];
-        console.log("comment wallet", comment.wallet);
-        if (comment.wallet){
+        //console.log("comment wallet", comment.wallet);
+        if (comment.wallet) {
           continue;
         }
-        try {
-          walletApi = basePath + "/walletinfo?account=" + comment.innerText
-          walletData = await axios.get(walletApi);
-        } catch {
-          console.log("error trying to get wallet info", walletApi);
+        if (comment.innerText) {
+          try {
+            walletApi = basePath + "/walletinfo?account=" + comment.innerText
+            walletData = await axios.get(walletApi);
+            comment.wallet=walletData.data;
+          } catch {
+            console.log("error trying to get wallet info", walletApi);
+          }
         }
         if (walletData) {
-          console.log("found wallet data", walletData);
-          let zap = document.createElement("div");
+          //console.log("found wallet data", walletData);
+          let zap = document.createElement("span");
           zap.innerHTML = "⚡️";
           zap.class = "action-button action-button-zap";
           zap.className = "action-button action-button-zap";
@@ -138,15 +147,22 @@ async function register({ registerHook, peertubeHelpers }) {
           zap.ariaLabel = "Zap sats to this user";
           zap.label = "Zap sats to this user";
           zap.id = "zap-" + com;
+          zap.style = "cursor:pointer";
           zap.target = comment.innerText;
-          console.log("comment to add", comment, comment.parentElement);
-          comment.parentElement.parentElement.append(zap);
-          console
+          // console.log("comment to add", comment, comment.parentElement);
+          let grandParent = comment.parentElement.parentElement;
+          let greatGrandParent = comment.parentElement.parentElement.parentElement;
+          //console.log("parent", comment.parentElement);
+          //console.log("grand parent", comment.parentElement.parentElement);
+          //console.log("great grand parent", comment.parentElement.parentElement.parentElement);
+          //comment.parentElement.parentElement.parentElement.parentElement.parentElement.append(zap);
+          greatGrandParent.insertBefore(zap, grandParent);
           let zapButton = document.getElementById("zap-" + com)
-          console.log(zapButton);
+          //console.log(zapButton);
           zapButton.onclick = async function () {
-            console.log("this.target", this.target);
+            // console.log("this.target", this.target);
             walletData = null;
+            this.innerText = "🗲";
             try {
               walletApi = basePath + "/walletinfo?account=" + this.target;
               walletData = await axios.get(walletApi);
@@ -155,7 +171,7 @@ async function register({ registerHook, peertubeHelpers }) {
             }
             if (walletData) {
               var wallet = walletData.data;
-              console.log("wallet", wallet);
+              //console.log("wallet", wallet);
               let weblnSupport = await checkWebLnSupport();
               if (wallet.keysend && (weblnSupport)) {
                 console.log("sending keysend zap");
@@ -166,8 +182,8 @@ async function register({ registerHook, peertubeHelpers }) {
                 await sendSats(wallet.lnurl, 69, zap, userName);
               }
             }
+            this.innerHTML = "⚡️";
           }
-          comment.wallet = walletData.data;
         } else {
           console.log("didn't find wallet data", walletApi)
         }
@@ -206,14 +222,14 @@ async function register({ registerHook, peertubeHelpers }) {
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
 
-      console.log("add spot", addSpot.offsetHeight, addSpot.clientHeight);
+      //console.log("add spot", addSpot.offsetHeight, addSpot.clientHeight);
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
       text = text.split("\n").join(" ");
       var regex = /\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s]*\b)/g;
       var result = null;
       if (regex.test(text)) {
         result = text.match(regex);
-        console.log("urls found", result);
+        // console.log("urls found", result);
       }
       var tipeeeLink, streamlabsLink;
       var donationalertsLink, kofiLink, donatestreamLink;
@@ -327,19 +343,19 @@ async function register({ registerHook, peertubeHelpers }) {
           let shortInstance = instanceName.split(".")[0];
           let shortChannel = channelName.split("@")[0];
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
-          console.log("chatRoom", chatRoom, channelName, shortInstance, shortChannel);
+          //console.log("chatRoom", chatRoom, channelName, shortInstance, shortChannel);
           await setChatRoom(channelName, chatRoom);
           console.log("made chat room", chatRoom)
         }
-        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom.data + '?nick=' + userName;
+        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
         if (userName === 'PeerTuber') {
           chatLink = chatLink + "???";
         }
         console.log("full chat link", chatLink);
         container.setAttribute("style", "display:flex");
         container.setAttribute('style', 'height:100%;width:100%;resize:both;display:flex;flex-direction:column;overflow:auto')
-        console.log("container offsetheight", container.offsetHeight, container.clientHeight);
-        console.log("add spot offsetheight", addSpot.offsetHeight, addSpot.clientHeight);
+        //console.log("container offsetheight", container.offsetHeight, container.clientHeight);
+        //console.log("add spot offsetheight", addSpot.offsetHeight, addSpot.clientHeight);
         const iframe = document.createElement('iframe')
         iframe.setAttribute('src', chatLink);
         iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -357,29 +373,29 @@ async function register({ registerHook, peertubeHelpers }) {
       }
       if (splitData) {
         let addSpot2Find = document.getElementsByClassName("video-actions");
-        console.log("second add spot", addSpot2Find);
+        //("second add spot", addSpot2Find);
         let addSpot2 = addSpot2Find[0];
         let addSpot3Find = document.getElementsByClassName("action-button")
-        console.log("third add spot", addSpot3Find);
+        //console.log("third add spot", addSpot3Find);
         let addSpot3 = addSpot3Find[2];
         const transparentButton = document.createElement('button');
 
         //transparentButton.innerHTML = `<  aria-label="Zap sats to this video"><my-global-icon _ngcontent-lca-c171="" iconname="zap" _nghost-lca-c71="">⚡️Zap</my-global-icon><!----></button>`
         transparentButton.innerHTML = "⚡️" + tipVerb;
-        console.log(transparentButton);
+        // console.log(transparentButton);
         transparentButton.class = "action-button action-button-zap";
         transparentButton.className = "action-button action-button-zap";
         transparentButton.ariaPressed = "false";
         transparentButton.ariaLabel = "Zap sats to this video";
         transparentButton.label = "Zap sats to this video";
         transparentButton.id = "boostagram"
-        console.log("stef", transparentButton)
+        //console.log("stef", transparentButton)
         //insertBefore(transparentButton, addSpot2);
-        console.log(addSpot2);
+        //console.log(addSpot2);
         //addSpot2.parentElement.insertBefore(transparentButton,addSpot2);
         //addSpot2.parentElement.parentElement.appendChild(transparentButton);
-        console.log("addSpot2", addSpot2.className, addSpot2.parentElement.className, addSpot2.childNodes);
-        console.log("addspot3", addSpot3, addSpot3.parentElement);
+        //console.log("addSpot2", addSpot2.className, addSpot2.parentElement.className, addSpot2.childNodes);
+        //console.log("addspot3", addSpot3, addSpot3.parentElement);
         addSpot2.insertBefore(transparentButton, addSpot3);
       }
       //boost
@@ -414,7 +430,7 @@ async function register({ registerHook, peertubeHelpers }) {
             //confirm: { value: 'close', id: 'streamingsatsclose', action: () => { } },
 
           })
-          console.log("popup", popup);
+          // console.log("popup", popup);
           await makeStreamDialog(displayName);
           let streamButton = document.getElementById('modal-streambutton');
           if (streamButton) {
@@ -429,14 +445,14 @@ async function register({ registerHook, peertubeHelpers }) {
       if (streamlabsButton) {
         streamlabsButton.onclick = async function () {
           var connectButtons = document.getElementsByClassName("u-button");
-          console.log("streamlabs link", streamlabsLink, connectButtons.length);
+          //console.log("streamlabs link", streamlabsLink, connectButtons.length);
           window.open(streamlabsLink, 'popup', 'width=600,height=800');
         }
       }
       const tipeeeButton = document.getElementById("tipeee")
       if (tipeeeButton) {
         tipeeeButton.onclick = async function () {
-          console.log("tipeee link", tipeeeLink);
+          //console.log("tipeee link", tipeeeLink);
           window.open(tipeeeLink, 'popup', 'width=1100,height=700');
         }
       }
@@ -444,7 +460,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (bigChat) {
         bigChat.onclick = async function () {
           container.style.height = container.offsetHeight + 512 + 'px';
-          console.log("height", container.style.height, container.offsetHeight);
+          //console.log("height", container.style.height, container.offsetHeight);
           chatSize = 'big';
           //smallChat.hidden = false;
           //bigChat.hidden = true;
@@ -454,49 +470,49 @@ async function register({ registerHook, peertubeHelpers }) {
       if (smallChat) {
         smallChat.onclick = async function () {
           container.style.height = container.offsetHeight - 512 + 'px';
-          console.log("height", container.style.height, container.offsetHeight);
+          //console.log("height", container.style.height, container.offsetHeight);
           chatSize = 'small';
           //smallChat.hidden = true;
           bigChat.hidden = false;
         }
       }
       const closeChat = document.getElementById("closechat");
-      let videoDisplay=document.getElementById("videojs-wrapper");
+      let videoDisplay = document.getElementById("videojs-wrapper");
       let fullVideo = document.getElementById("video-wrapper");
-      var oldVideo,oldChat
+      var oldVideo, oldChat
       if (closeChat) {
         closeChat.onclick = async function () {
-          console.log("click",closeChat.innerHTML,videoDisplay.hidden,container.hidden);
-          console.log(container.clientWidth,videoDisplay.clientWidth,fullVideo.clientWidth);
-          if (closeChat.innerHTML==="full chat"){
-            container.hidden=false;
-            oldVideo=videoDisplay.clientWidth;
-            videoDisplay.hidden=true;
-            closeChat.innerHTML="chat";
-            container.style.flexGrow="1";
-            container.style.flex="wrap";
-            container.style.width="2000px";
-            container.width="2000px"
+          console.log("click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
+          console.log(container.clientWidth, videoDisplay.clientWidth, fullVideo.clientWidth);
+          if (closeChat.innerHTML === "full chat") {
+            container.hidden = false;
+            oldVideo = videoDisplay.clientWidth;
+            videoDisplay.hidden = true;
+            closeChat.innerHTML = "chat";
+            container.style.flexGrow = "1";
+            container.style.flex = "wrap";
+            container.style.width = "2000px";
+            container.width = "2000px"
             //container.width = fullVideo.clientWidth;
-            bigChat.hidden=false;
-            smallChat.hidden = false;
-          } 
-          else if (closeChat.innerHTML==="chat"){
-            container.hidden=false;
-            videoDisplay.hidden=false;
-            closeChat.innerHTML="X";
-            bigChat.hidden=false;
+            bigChat.hidden = false;
             smallChat.hidden = false;
           }
-          else if (closeChat.innerHTML==="X"){
-            container.hidden=true;
-            videoDisplay.hidden=false;
-            closeChat.innerHTML="full chat";
-            bigChat.hidden=true;
+          else if (closeChat.innerHTML === "chat") {
+            container.hidden = false;
+            videoDisplay.hidden = false;
+            closeChat.innerHTML = "X";
+            bigChat.hidden = false;
+            smallChat.hidden = false;
+          }
+          else if (closeChat.innerHTML === "X") {
+            container.hidden = true;
+            videoDisplay.hidden = false;
+            closeChat.innerHTML = "full chat";
+            bigChat.hidden = true;
             smallChat.hidden = true;
           }
-          console.log("after click",closeChat.innerHTML,videoDisplay.hidden,container.hidden);
-          console.log(container,videoDisplay);
+          console.log("after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
+          console.log(container, videoDisplay);
         }
       }
       if (chatEnabled) {
@@ -505,11 +521,11 @@ async function register({ registerHook, peertubeHelpers }) {
           bigChat.hidden = false;
         } else {
           smallChat.hidden = false;
-         // bigChat.hidden = true;
+          // bigChat.hidden = true;
         }
       } else {
-       // smallChat.hidden = true;
-       // bigChat.hidden = true;
+        // smallChat.hidden = true;
+        // bigChat.hidden = true;
       }
       const donationalertsButton = document.getElementById("donationalerts")
       if (donationalertsButton) {
@@ -560,7 +576,7 @@ async function register({ registerHook, peertubeHelpers }) {
         setChatRoom(channel, chatRoom.value);
         chatButton.innerText = "Saved!";
       }
-      console.log("getting create split button")
+      //console.log("getting create split button")
       let createButton = document.getElementById('create-split');
       if (createButton) {
         createButton.onclick = async function () {
@@ -643,11 +659,11 @@ async function register({ registerHook, peertubeHelpers }) {
         }
       }
 
-      console.log("split data", splitData)
+      //console.log("split data", splitData)
       if (splitData && splitData.length > 0) {
         for (var slot in splitData) {
           var editButton = document.getElementById("edit-" + slot);
-          console.log("considering ", slot, splitData[slot].address);
+          //console.log("considering ", slot, splitData[slot].address);
           if (editButton) {
             editButton.onclick = async function () {
               await peertubeHelpers.showModal({
@@ -661,7 +677,7 @@ async function register({ registerHook, peertubeHelpers }) {
               if (ks == undefined) {
                 ks = false;
               }
-              console.log("calling makekeysendhtml", ks, this.slot)
+              // console.log("calling makekeysendhtml", ks, this.slot)
               let html = await makeKeysendHtml(splitData, this.slot, ks);
               let modal = (document.getElementsByClassName('modal-body'))
               modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -693,7 +709,7 @@ async function register({ registerHook, peertubeHelpers }) {
     */
     //fixing millisats for lnpay
     amount = amount * 1000
-    console.log("parsint", parseInt(amount));
+    //("parsint", parseInt(amount));
     let supported = true;
     try {
       await webln.enable();

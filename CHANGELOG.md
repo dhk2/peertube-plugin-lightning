@@ -1,3 +1,8 @@
+v 4.0.2
+- Add more checks to prevent undefined responses from causing erratic behavior.
+- fixed bugs with a split amount being undefined and added clean up code.
+- fixed lnurl message bug
+- improved cross app comment zap icon placement and state and aesthetics
 v 4.0.1
 - fixed error in chatroom autocreation
 - fixed error in IRC library

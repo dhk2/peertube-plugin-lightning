@@ -45,6 +45,7 @@ async function register({
   registerSetting({
     name: 'lightning-split',
     label: 'Requires split for host',
+    default: '0',
     type: 'input',
     descriptionHTML: 'This will add a percentage split to any boostagrams or streams sent to videos hosted on this instance',
     private: false
@@ -53,6 +54,7 @@ async function register({
     name: 'lightning-tipVerb',
     label: 'Verb to use for tipping',
     type: 'input',
+    default: 'Tip',
     descriptionHTML: 'Superchat, Zap, Boostagram, bits, spells, whatever your community would prefer.',
     private: false
   })
@@ -236,7 +238,7 @@ async function register({
     if (req.query.account) {
       let account = req.query.account
       let parts = account.split("@")
-      console.log(parts,parts.length);
+      console.log(parts, parts.length);
       if (parts.length > 1) {
         apiCall = "https://" + parts[1] + "/api/v1/accounts/" + parts[0];
       } else {
@@ -249,23 +251,34 @@ async function register({
       } catch {
         console.log("failed to pull information for provided account id", apiCall);
       }
+      if (!accountData){
+        //hack for mastardon's lame api
+        apiCall = "https://" + parts[1] + "/api/v1/accounts/lookup?acct=" + parts[0]
+        try {
+          accountData = await axios.get(apiCall);
+        } catch {
+          console.log("errored trying to pull information from mastodon", apiCall);
+        }
+        console.log("failed to get mastodon account info ",apiCall);
+      }
       if (accountData) {
-        let account=accountData.data
+        let account = accountData.data
         console.log(account);
-        if (account.description){
+        if (account.description) {
           foundLightningAddress = await findLightningAddress(account.description);
         }
-        console.log("fields",account.fields);
-        if (!foundLightningAddress && account.fields){
-          for (var field in account.fields){
-            if (field.name === "Lightning Address");
-            console.log("good field",field);
-              foundLightningAddress = field.value;
+        console.log("fields", account.fields);
+        if (!foundLightningAddress && account.fields) {
+          for (var field of account.fields) {
+            if (field.name === "Lightning Address"  || field.name === "LUD16"){
+            console.log("good field", field);
+            }
+            foundLightningAddress = field.value;
           }
         }
-        console.log("note",account.note);
+        console.log("note", account.note);
         if (!foundLightningAddress && account.note) {
-          console.log("account note",account.note);
+          console.log("account note", account.note);
           foundLightningAddress = await findLightningAddress(account.note);
         }
         if (foundLightningAddress) {
@@ -1089,7 +1102,7 @@ async function register({
                 var splitData = new Array();
                 walletData.split = 100;
                 splitData.push(walletData);
-                if (hostWalletData) {
+                if (hostWalletData  && (hostWalletData.split>1)) {
                   splitData[0].split = 100 - hostWalletData.split;
                 }
                 splitData.push(hostWalletData);
@@ -1220,6 +1233,9 @@ async function register({
     let otherSplit = 0
     for (i = 1; i < split.length; i++) {
       console.log("split", i, split[i]);
+      if (parseInt(split[i].split)<1){
+        split[i] = 1;
+      }
       otherSplit = otherSplit + split[i].split;
     }
     console.log("othersplit", otherSplit);
@@ -1323,6 +1339,9 @@ async function register({
         let otherSplit = 0;
         for (i = 1; i < split.length; i++) {
           console.log("split", i, split[i].split, split[i].address);
+          if (parseInt(split[i].split) <1){
+            split[i].split =11
+          }
           otherSplit = otherSplit + parseInt(split[i].split);
         }
         console.log("othersplit", otherSplit);
@@ -1403,10 +1422,11 @@ async function register({
                 var splitData = new Array();
                 walletData.split = 100;
                 splitData.push(walletData);
-                if (hostWalletData) {
+                if (hostWalletData && (hostWalletData.split>0)) {
                   splitData[0].split = 100 - hostWalletData.split;
+                  splitData.push(hostWalletData);
                 }
-                splitData.push(hostWalletData);
+                
                 //await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
                 return res.status(200).send(splitData);
               } else {
