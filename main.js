@@ -682,7 +682,7 @@ async function register({
     let chatroom = req.query.chatroom;
     let parts = channel.split('@');
     if (parts.length > 1) {
-      Console.log("don't set chatroom value for remote accounts, rely on remote server");
+      console.log("don't set chatroom value for remote accounts, rely on remote server");
       return res.status(400).send();
     }
     if (channel) {
