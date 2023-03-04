@@ -64,7 +64,7 @@ async function register({ registerHook, peertubeHelpers }) {
           try {
             walletApi = basePath + "/walletinfo?account=" + comment.innerText
             walletData = await axios.get(walletApi);
-            comment.wallet=walletData.data
+            comment.wallet = walletData.data
           } catch {
             console.log("error trying to get wallet info", walletApi);
           }
@@ -83,7 +83,7 @@ async function register({ registerHook, peertubeHelpers }) {
           zap.style = "cursor:pointer";
           let grandParent = comment.parentElement.parentElement;
           let greatGrandParent = comment.parentElement.parentElement.parentElement;
-          console.log("adding ",com,zap,walletData)
+          console.log("adding ", com, zap, walletData)
           greatGrandParent.insertBefore(zap, grandParent);
           let zapButton = document.getElementById("zap-" + com)
           zapButton.onclick = async function () {
@@ -132,7 +132,7 @@ async function register({ registerHook, peertubeHelpers }) {
           try {
             walletApi = basePath + "/walletinfo?account=" + comment.innerText
             walletData = await axios.get(walletApi);
-            comment.wallet=walletData.data;
+            comment.wallet = walletData.data;
           } catch {
             console.log("error trying to get wallet info", walletApi);
           }
@@ -321,19 +321,22 @@ async function register({ registerHook, peertubeHelpers }) {
         }
       }
       if (chatEnabled) {
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▼" + `</button>`
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted">` + "▲" + `</button>`
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted">` + "X" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▼" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▲" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted">` + "Chat" + `</button>`
       }
       if (buttonHTML) {
         elem.innerHTML = buttonHTML;
         addSpot.appendChild(elem);
+
       }
       if (chatEnabled) {
         let newContainer = document.createElement('div');
         newContainer.setAttribute('id', 'peertube-plugin-irc-container')
+        newContainer.setAttribute('hidden', 'true');
         addSpot.append(newContainer)
         var container = document.getElementById('peertube-plugin-irc-container')
+
         if (!container) {
           logger.error('Cant found the irc chat container.')
         }
@@ -460,20 +463,12 @@ async function register({ registerHook, peertubeHelpers }) {
       if (bigChat) {
         bigChat.onclick = async function () {
           container.style.height = container.offsetHeight + 512 + 'px';
-          //console.log("height", container.style.height, container.offsetHeight);
-          chatSize = 'big';
-          //smallChat.hidden = false;
-          //bigChat.hidden = true;
         }
       }
       const smallChat = document.getElementById("smallchat");
       if (smallChat) {
         smallChat.onclick = async function () {
           container.style.height = container.offsetHeight - 512 + 'px';
-          //console.log("height", container.style.height, container.offsetHeight);
-          chatSize = 'small';
-          //smallChat.hidden = true;
-          bigChat.hidden = false;
         }
       }
       const closeChat = document.getElementById("closechat");
@@ -484,48 +479,36 @@ async function register({ registerHook, peertubeHelpers }) {
         closeChat.onclick = async function () {
           console.log("click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
           console.log(container.clientWidth, videoDisplay.clientWidth, fullVideo.clientWidth);
-          if (closeChat.innerHTML === "full chat") {
+          if (closeChat.innerHTML === "Full Chat") {
             container.hidden = false;
             oldVideo = videoDisplay.clientWidth;
             videoDisplay.hidden = true;
-            closeChat.innerHTML = "chat";
+            closeChat.innerHTML = "X";
             container.style.flexGrow = "1";
             container.style.flex = "wrap";
-            container.style.width = "2000px";
-            container.width = "2000px"
+            //container.style.width = "2000px";
+            //container.width = "2000px"
             //container.width = fullVideo.clientWidth;
             bigChat.hidden = false;
             smallChat.hidden = false;
           }
-          else if (closeChat.innerHTML === "chat") {
+          else if (closeChat.innerHTML === "Chat") {
             container.hidden = false;
             videoDisplay.hidden = false;
-            closeChat.innerHTML = "X";
+            closeChat.innerHTML = "Full Chat";
             bigChat.hidden = false;
             smallChat.hidden = false;
           }
           else if (closeChat.innerHTML === "X") {
             container.hidden = true;
             videoDisplay.hidden = false;
-            closeChat.innerHTML = "full chat";
+            closeChat.innerHTML = "Chat";
             bigChat.hidden = true;
             smallChat.hidden = true;
           }
           console.log("after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
           console.log(container, videoDisplay);
         }
-      }
-      if (chatEnabled) {
-        if (chatSize === 'small') {
-          //smallChat.hidden = true;
-          bigChat.hidden = false;
-        } else {
-          smallChat.hidden = false;
-          // bigChat.hidden = true;
-        }
-      } else {
-        // smallChat.hidden = true;
-        // bigChat.hidden = true;
       }
       const donationalertsButton = document.getElementById("donationalerts")
       if (donationalertsButton) {
@@ -646,14 +629,18 @@ async function register({ registerHook, peertubeHelpers }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
+          modal[0].innerHTML = `Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
           <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
           let addFinalButton = document.getElementById("add-split-final")
           if (addFinalButton) {
             addFinalButton.onclick = async function () {
               console.log("call the add api now");
+              this.innerText="adding split";
               let addResult = await doAddSplit(channel);
+              if (!addResult){
+                this.innerText = "Add New Split"
+              }
             }
           }
         }
@@ -754,7 +741,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName) {
-    //console.log(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
+    console.log(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     //console.log("maybe the url:", window.location.href);
     try {
       let supported = await webln.enable();
@@ -763,14 +750,6 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     console.log("boosting", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName);
-    /*if (!message) {
-      message = ":)";
-    }
-    if (!parseInt(amount)) {
-      amount = "69";
-    }
-    */
-    //console.log("parsint", parseInt(amount));
     if (parseInt(amount) < 1) {
       amount = "69";
     }
@@ -783,12 +762,12 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!type) {
       type = "boost";
     }
-    //console.log("wallet data",walletData);
-    //let displayName = walletData.name;
-    //if (!displayName){
-    //  displayName= walletData.address;
-    //}
-    //console.log("parameters normalized", walletData);
+    let parts = channelName.split("@");
+    let remoteHost, remoteUser,localHost;
+    if (parts.length > 1) {
+      remoteHost = parts[1];
+      remoteUser = parts[0];
+    }
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
     let customKeyHack, customValue
@@ -810,7 +789,7 @@ async function register({ registerHook, peertubeHelpers }) {
         version = versionResult.data;
       }
     } catch (err) {
-      console.log("error getting software version", basePath);
+      console.log("error getting software version", basePath, err);
     }
     const boost = {
       action: type,
@@ -847,15 +826,28 @@ async function register({ registerHook, peertubeHelpers }) {
     //  if (episodeGuid) {
     //    boost.episode_guid = episodeGuid;
     //  }
+    
     if (window.location.href) {
       boost.episode_guid = window.location.href;
-      boost.boost_link = window.location.href;
-      if (currentTime) {
-        boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();
+      parts = boost.episode_guid.split('/');
+      localHost=parts[2];
+      if (remoteHost) {
+        console.log("part split");
+        boost.episode_guid = "https://" + remoteHost + "/" + parts[3] + "/" + parts[4];
+        localHost=parts[2];
       }
     }
+    boost.boost_link = window.location.href;
+    if (currentTime) {
+      boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();
+    }
     if (channelName) {
-      boost.url = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channelName
+      if (remoteHost){
+      boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+      } else {
+        boost.url = window.location.protocol + "//" + localHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+      }
+
     }
 
     //if (itemID) {
@@ -1033,6 +1025,11 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     console.log("returned split data", splitApi, splitData.data);
+    for (var split of splitData.data){
+      if (split.split<1){
+        split.split=1;
+      }
+    }
     return splitData.data;
   }
   async function refreshWalletInfo(address) {
@@ -1143,8 +1140,8 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("sending lnurl boost");
         result = await sendSats(wallet.lnurl, splitAmount, message, from);
         if (!result) {
-          error = error + ", " + wallet.address;
-          console.log("errors", error);
+
+          console.log("error sending lnurl boost");
         }
         //walletData = await refreshWalletInfo(walletData.address);
       }
@@ -1420,7 +1417,7 @@ async function register({ registerHook, peertubeHelpers }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="0"><br>
+          modal[0].innerHTML = `Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
           <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
           let addFinalButton = document.getElementById("add-split-final")
@@ -1428,25 +1425,10 @@ async function register({ registerHook, peertubeHelpers }) {
             addFinalButton.onclick = async function () {
               console.log("call the add api now");
               let addResult = await doAddSplit(channel);
-              /*
-              if (addResult) {
-                console.log("button addResult", addResult);
-                await closeModal();
-                console.log("button added split", channel, addResult);
-                let newPanel = await getConfigPanel(addResult, channel);
-                let channelUpdate = document.getElementsByClassName("form-group");
-                channelUpdate[0].removeChild(panelHack)
-                channelUpdate[0].appendChild(newPanel);
-                panelHack = newPanel
-                await assignEditButtons(addResult, channel);
-                notifier.success("edit button added to " + channel);
-              }
-              */
             }
           }
         }
       }
-
       for (var slot in splitData) {
         var editButton = document.getElementById("edit-" + slot);
         console.log("considering ", slot, splitData[slot].address);
@@ -1551,21 +1533,26 @@ async function register({ registerHook, peertubeHelpers }) {
     let newSplit = document.getElementById("modal-split-value").value;
 
     let newAddress = document.getElementById("modal-split-address").value;
-    if (newAddress.indexOf("@") < 1) {
+    if (newAddress.length == 66) {
       console.log(newAddress, newAddress.length);
       let node = newAddress;
       newAddress = "custom"
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
       addApi = addApi + `&customkeysend=true&node=` + node + ``
-    } else {
+    } else if (newAddress.indexOf("@") > 1) {
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+    } else {
+      console.log ("unable to add malformed split address",newAddress);
+      notifier.error("Lightning address is neither an address or a valid server pubkey");
+      return;
     }
     let addResult;
+    console.log("attempting add split to channel",addApi);
     try {
       addResult = await axios.get(basePath + addApi);
     } catch (e) {
       console.log("unable to add split\n", addApi, addResult);
-      notifier.error(e, addApi);
+      notifier.error(e);
       return;
     }
     if (addResult) {
@@ -1581,6 +1568,7 @@ async function register({ registerHook, peertubeHelpers }) {
       notifier.success("split added to " + channel);
       return addResult.data;
     } else {
+      await closeModal();
       notifier.error("failed to add split to " + channel);
       return;
     }
@@ -1589,12 +1577,13 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("making keysend edit panel", slot, ks);
     let html;
     html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
-    html = html + "Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
     if (slot == 0) {
       html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
     } else {
       html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[slot].split + `"><br>`;
     }
+   // html = html + "Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
+
     if (ks) {
       html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" readonly value ="` + splitData[slot].address + `"><br>`;
     } else {

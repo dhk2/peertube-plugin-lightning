@@ -1,3 +1,9 @@
+v 4.0.4
+- Added more error checking in split configuration dialogs
+- Fixed episode_guid for federated boosts to point to the instance the episode originate from with federated boosts
+- fixed boost_link for federated boosts to point to the instance the boost originated from.
+V 4.0.3
+- fixed server crashing typo
 v 4.0.2
 - Add more checks to prevent undefined responses from causing erratic behavior.
 - fixed bugs with a split amount being undefined and added clean up code.
