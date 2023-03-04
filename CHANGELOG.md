@@ -18,7 +18,7 @@ v 4.0.0
 - added federated comment zaps
 - fixed federated chatrooms
 - moved zap button to action button section
-- 
+
 v 0.3.9
 - added channel configurable support IRC chat rooms
 - added IRC chat support
