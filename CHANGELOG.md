@@ -1,3 +1,9 @@
+v 4.0.5
+- improved keysend wallet info caching which improved zap performance greatly
+- Added local caching of wallet info for local and remote user accounts
+- Added local caching of wallet status for local and remote user accounts
+- Added more sysop configuration options to enable or disable features.
+
 v 4.0.4
 - Added more error checking in split configuration dialogs
 - Fixed episode_guid for federated boosts to point to the instance the episode originate from with federated boosts
@@ -96,12 +102,9 @@ v0.2.1
 - fixed error where tip button wasn't being removed for non-wallet creators.
 - removed confirm and maybe later buttons from support dialogs
 
-v0.2.0
-Beta 1 release candidate 1
-
+v0.2.0 Beta 1 release candidate 1
 - Fixed visual irregularities with dynamic changes to streaming amount. Added visual update for changed values from left menu.
 - added basic wallet and rss feed info to channel update interface as well as ability to specify podcast index feed id for interoperability.
 
 v0.1.9
-
 - created changelog
