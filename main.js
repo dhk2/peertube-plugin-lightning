@@ -1558,7 +1558,7 @@ async function register({
                 var splitData = new Array();
                 walletData.split = 100;
                 splitData.push(walletData);
-                if (hostWalletData) {
+                if (hostWalletData && parseInt(hostwalletData.split) > 0) {
                   splitData[0].split = 100 - hostWalletData.split;
                 }
                 splitData.push(hostWalletData);
@@ -1612,9 +1612,11 @@ async function register({
       //var splitData = new Array;
       walletData.name = newAddress;
       split.push(walletData);
-      if (hostWalletData) {
+      if (hostWalletData && hostWalletData.split>0) {
         split[0].split = 100 - hostWalletData.split;
         split.push(hostWalletData);
+      } else {
+        split[0].split=100;
       }
       storageManager.storeData("lightningsplit" + "-" + channel, split);
       await pingPI(channel);

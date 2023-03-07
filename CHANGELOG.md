@@ -1,3 +1,9 @@
+v 4.0.6
+- fixed errors with 0 host split channel creation.
+- added tooltips for video player page buttons
+- Removed non-error console.logs that aren't behind diagnostic setting switch
+- disable keysend boosts even if available from wallet when keysend disabled
+
 v 4.0.5
 - improved keysend wallet info caching which improved zap performance greatly
 - Added local caching of wallet info for local and remote user accounts

@@ -11,6 +11,7 @@ async function register({ registerHook, peertubeHelpers }) {
   let lastTip = 69;
   let convertRate = .0002;
   let userName = "PeerTuber";
+  let accountName, channelName, videoName, instanceName;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -66,25 +67,22 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("error trying to get wallet info", walletApi);
           }
         }
-        if (walletData) {
-          if (debugEnabled) {
-            console.log(walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
-          }
+        if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
-            console.log("found wallet data", walletData);
+            if (debugEnabled) {
+              console.log(walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+            }
             let zap = document.createElement("span");
             zap.innerHTML = "⚡️";
             zap.class = "action-button action-button-zap";
             zap.className = "action-button action-button-zap";
             zap.ariaPressed = "false";
-            zap.ariaLabel = "Zap sats to this user";
-            zap.title = "Zap sats to this user";
+            zap.title = "Zap sats to " + comment.innerText;
             zap.id = "zap-" + com;
             zap.target = comment.innerText;
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
-            console.log("adding ", com, zap, walletData)
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById("zap-" + com)
             zapButton.onclick = async function () {
@@ -102,9 +100,9 @@ async function register({ registerHook, peertubeHelpers }) {
                 wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
                 if (wallet.keysend && (weblnSupport) && keysendEnabled) {
-                  await boost(wallet.keysend, 69, "zap", userName, userName, null, "boost", null, null, null, 69, this.target);
+                  await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target);
                 } else if (wallet.lnurl && lnurlEnabled) {
-                  await sendSats(wallet.lnurl, 69, "zap from " + userName, userName);
+                  await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
                 }
               }
               this.innerHTML = "⚡️";
@@ -126,13 +124,13 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
     handler: async () => {
+      if (debugEnabled) {
+        console.log("replies loaded");
+      }
       let comments = document.getElementsByClassName("comment-account-fid");
-      //console.log(comments, comments.length);
-
       for (var com in comments) {
         let walletApi, walletData;
         let comment = comments[com];
-        //console.log("comment wallet", comment.wallet);
         if (comment.wallet) {
           continue;
         }
@@ -146,58 +144,52 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
         if (walletData) {
-          //console.log("found wallet data", walletData);
-          let zap = document.createElement("span");
-          zap.innerHTML = "⚡️";
-          zap.class = "action-button action-button-zap";
-          zap.className = "action-button action-button-zap";
-          zap.ariaPressed = "false";
-          zap.ariaLabel = "Zap sats to this user";
-          zap.label = "Zap sats to this user";
-          zap.id = "zap-" + com;
-          zap.style = "cursor:pointer";
-          zap.target = comment.innerText;
-          // console.log("comment to add", comment, comment.parentElement);
-          let grandParent = comment.parentElement.parentElement;
-          let greatGrandParent = comment.parentElement.parentElement.parentElement;
-          //console.log("parent", comment.parentElement);
-          //console.log("grand parent", comment.parentElement.parentElement);
-          //console.log("great grand parent", comment.parentElement.parentElement.parentElement);
-          //comment.parentElement.parentElement.parentElement.parentElement.parentElement.append(zap);
-          greatGrandParent.insertBefore(zap, grandParent);
-          let zapButton = document.getElementById("zap-" + com)
-          //console.log(zapButton);
-          zapButton.onclick = async function () {
-            // console.log("this.target", this.target);
-            walletData = null;
-            this.innerText = "🗲";
-            try {
-              walletApi = basePath + "/walletinfo?account=" + this.target;
-              walletData = await axios.get(walletApi);
-            } catch {
-              console.log("error trying to get wallet info", walletApi);
-            }
-            if (walletData) {
-              var wallet = walletData.data;
-              //console.log("wallet", wallet);
-              let weblnSupport = await checkWebLnSupport();
-              if (wallet.keysend && (weblnSupport) && keysendEnabled) {
-                console.log("sending keysend zap");
-                //console.log(wallet.keysend, 69, "zap", userName, userName, episodeName, "boost", episodeGuid, channelName, itemID, 69, this.target)
-                await boost(wallet.keysend, 69, "zap", userName, userName, null, "boost", null, null, null, 69, this.target);
-              } else if (wallet.lnurl && lnurlEnabled) {
-                console.log("sending lnurl zap");
-                await sendSats(wallet.lnurl, 69, zap, userName);
+          if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
+            let zap = document.createElement("span");
+            zap.innerHTML = "⚡️";
+            zap.class = "action-button action-button-zap";
+            zap.className = "action-button action-button-zap";
+            zap.ariaPressed = "false";
+            zap.title = "Zap sats to " + comment.innerText;
+            zap.id = "zap-" + com;
+            zap.style = "cursor:pointer";
+            zap.target = comment.innerText;
+            let grandParent = comment.parentElement.parentElement;
+            let greatGrandParent = comment.parentElement.parentElement.parentElement;
+            greatGrandParent.insertBefore(zap, grandParent);
+            let zapButton = document.getElementById("zap-" + com)
+            zapButton.onclick = async function () {
+              walletData = null;
+              this.innerText = "🗲";
+              try {
+                walletApi = basePath + "/walletinfo?account=" + this.target;
+                walletData = await axios.get(walletApi);
+              } catch {
+                console.log("error trying to get wallet info", walletApi);
               }
+              if (walletData) {
+                var wallet = walletData.data;
+                let weblnSupport = await checkWebLnSupport();
+                if (wallet.keysend && (weblnSupport) && keysendEnabled) {
+                  if (debugEnabled) {
+                    console.log("sending keysend zap", wallet.keysend, 69, "zap from " + userName, userName, userName, null, "boost", null, null, null, 69, this.target);
+                  }
+                  await boost(wallet.keysend, 69, "Cross App Comment Zap from " + userName, userName, userName, null, "boost", null, null, null, 69, this.target);
+                } else if (wallet.lnurl && lnurlEnabled) {
+                  if (debugEnabled) {
+                    console.log("sending lnurl zap", wallet.lnurl, 69, "zap from " + userName, userName);
+                  }
+                  await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
+                }
+              }
+              this.innerHTML = "⚡️";
             }
-            this.innerHTML = "⚡️";
           }
         } else {
-          console.log("didn't find wallet data", walletApi)
+          if (debugEnabled) {
+            console.log("didn't find wallet data", walletApi)
+          }
         }
-
-
-        //console.log(basePath+"/walletinfo?account="+comment.innerText);
       }
     }
   })
@@ -205,7 +197,6 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
-      console.log("here it is");
       let buttonBlock = document.getElementsByClassName('tip-buttons-block')
       if (buttonBlock.length > 0) {
         buttonBlock[0].remove();
@@ -214,68 +205,55 @@ async function register({ registerHook, peertubeHelpers }) {
         clearInterval(streamTimer);
       }
       let videoEl = player.el().getElementsByTagName('video')[0]
-      let instanceName;
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
       }
-      let accountName = video.byAccount;
-      let channelName = video.byVideoChannel;
-      let videoName = video.uuid;
+      accountName = video.byAccount;
+      channelName = video.byVideoChannel;
+      videoName = video.uuid;
       let episodeName = video.name;
       let itemID;
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
-
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
-
-      //console.log("add spot", addSpot.offsetHeight, addSpot.clientHeight);
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
       text = text.split("\n").join(" ");
       var regex = /\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s]*\b)/g;
       var result = null;
       if (regex.test(text)) {
         result = text.match(regex);
-        // console.log("urls found", result);
       }
       var tipeeeLink, streamlabsLink;
       var donationalertsLink, kofiLink, donatestreamLink;
       var buttonHTML = "";
-      console.log("buttons",legacyEnabled,result);
       if (result && legacyEnabled) {
         for (var url of result) {
           if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee") <= 0)) {
-            console.log("found tipeeestream", url);
             tipeeeLink = url;
             buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Tipeee<!----><!----><!----></span><!----><!----></button>`
           }
           if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs") <= 0)) {
             streamlabsLink = url;
-            console.log("found streamlabs", url);
             buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "streamlabs" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Streamlabs<!----><!----><!----></span><!----><!----></button>`
           }
           if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts") <= 0)) {
             donationalertsLink = url;
-            console.log("found donationalerts", url);
             buttonHTML = buttonHTML + ` <a display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">💲Donation Alerts</a>`
           }
           if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream") <= 0)) {
             donatestreamLink = url;
-            console.log("found donatestream", url);
             buttonHTML = buttonHTML + ` <a display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="💲donatestream">donation.stream</a>`
           }
           if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi") <= 0)) {
             kofiLink = url + "#checkoutModal";
-            console.log("found kofi", url);
             buttonHTML = buttonHTML + ` <a display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">💲Ko-Fi</a>`
           }
         }
       }
 
-      let splitData = await getSplit(videoName, accountName, channelName, instanceName);
-      //console.log("Split data",splitData);
-      //let walletData = await getWalletInfo(videoName, accountName, channelName, instanceName);
+      let splitData = await getSplit();
       var streamButtonText;
       if (splitData) {
         if (!document.querySelector('.lightning-buttons-block')) {
@@ -292,7 +270,9 @@ async function register({ registerHook, peertubeHelpers }) {
             currentTime = videoEl.currentTime;
             if (streamEnabled) {
               delta = (currentTime - lastStream).toFixed();
-              console.log(delta, streamEnabled);
+              if (debugEnabled) {
+                console.log("counting for stream payments", delta);
+              }
               if (delta > 60 && delta < 64) {
                 try {
                   await webln.enable();
@@ -318,7 +298,9 @@ async function register({ registerHook, peertubeHelpers }) {
                     result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
                     //walletData = await refreshWalletInfo(walletData.address);
                   }
-                  console.log("boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
+                  if (debugEnabled) {
+                    console.log("boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
+                  }
                 }
                 lastStream = currentTime;
               }
@@ -350,24 +332,21 @@ async function register({ registerHook, peertubeHelpers }) {
           logger.error('Cant found the irc chat container.')
         }
         let chatRoom = await getChatRoom(channelName);
-        console.log("found chat room", chatRoom);
+        if (debugEnabled) {
+          console.log("found chat room", chatRoom);
+        }
         if (!chatRoom) {
           let shortInstance = instanceName.split(".")[0];
           let shortChannel = channelName.split("@")[0];
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
-          //console.log("chatRoom", chatRoom, channelName, shortInstance, shortChannel);
           await setChatRoom(channelName, chatRoom);
-          console.log("made chat room", chatRoom)
         }
         let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
         if (userName === 'PeerTuber') {
           chatLink = chatLink + "???";
         }
-        console.log("full chat link", chatLink);
         container.setAttribute("style", "display:flex");
         container.setAttribute('style', 'height:100%;width:100%;resize:both;display:flex;flex-direction:column;overflow:auto')
-        //console.log("container offsetheight", container.offsetHeight, container.clientHeight);
-        //console.log("add spot offsetheight", addSpot.offsetHeight, addSpot.clientHeight);
         const iframe = document.createElement('iframe')
         iframe.setAttribute('src', chatLink);
         iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -388,29 +367,16 @@ async function register({ registerHook, peertubeHelpers }) {
         //("second add spot", addSpot2Find);
         let addSpot2 = addSpot2Find[0];
         let addSpot3Find = document.getElementsByClassName("action-button")
-        //console.log("third add spot", addSpot3Find);
         let addSpot3 = addSpot3Find[2];
         const transparentButton = document.createElement('button');
-
-        //transparentButton.innerHTML = `<  aria-label="Zap sats to this video"><my-global-icon _ngcontent-lca-c171="" iconname="zap" _nghost-lca-c71="">⚡️Zap</my-global-icon><!----></button>`
         transparentButton.innerHTML = "⚡️" + tipVerb;
-        // console.log(transparentButton);
         transparentButton.class = "action-button action-button-zap";
         transparentButton.className = "action-button action-button-zap";
         transparentButton.ariaPressed = "false";
-        transparentButton.ariaLabel = "Zap sats to this video";
-        transparentButton.label = "Zap sats to this video";
+        transparentButton.title = "Send Sats to " + channelName;
         transparentButton.id = "boostagram"
-        //console.log("stef", transparentButton)
-        //insertBefore(transparentButton, addSpot2);
-        //console.log(addSpot2);
-        //addSpot2.parentElement.insertBefore(transparentButton,addSpot2);
-        //addSpot2.parentElement.parentElement.appendChild(transparentButton);
-        //console.log("addSpot2", addSpot2.className, addSpot2.parentElement.className, addSpot2.childNodes);
-        //console.log("addspot3", addSpot3, addSpot3.parentElement);
         addSpot2.insertBefore(transparentButton, addSpot3);
       }
-      //boost
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
         document.getElementById("boostagram").onclick = async function () {
@@ -426,7 +392,7 @@ async function register({ registerHook, peertubeHelpers }) {
           if (tipButton) {
             tipButton.onclick = async function () {
 
-              await buildTip(splitData, channelName, displayName, episodeName, episodeGuid, itemID);
+              await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
             }
           }
         }
@@ -434,21 +400,18 @@ async function register({ registerHook, peertubeHelpers }) {
       const streamButton = document.getElementById("stream");
       if (streamButton) {
         var popup;
+        streamButton.title = "Stream Sats to " + channelName + " every minute of watching";
         document.getElementById("stream").onclick = async function () {
           popup = await peertubeHelpers.showModal({
             title: 'Stream sats for ' + channelName,
             content: ` `,
             close: true,
-            //confirm: { value: 'close', id: 'streamingsatsclose', action: () => { } },
-
           })
-          // console.log("popup", popup);
           await makeStreamDialog(displayName);
           let streamButton = document.getElementById('modal-streambutton');
           if (streamButton) {
             streamButton.onclick = async function () {
-
-              walletData = await buildTip(walletData, channelName, displayName, episodeName, episodeGuid, itemID);
+              walletData = await buildTip(walletData, displayName, episodeName, episodeGuid, itemID);
             }
           }
         }
@@ -457,25 +420,25 @@ async function register({ registerHook, peertubeHelpers }) {
       if (streamlabsButton) {
         streamlabsButton.onclick = async function () {
           var connectButtons = document.getElementsByClassName("u-button");
-          //console.log("streamlabs link", streamlabsLink, connectButtons.length);
           window.open(streamlabsLink, 'popup', 'width=600,height=800');
         }
       }
       const tipeeeButton = document.getElementById("tipeee")
       if (tipeeeButton) {
         tipeeeButton.onclick = async function () {
-          //console.log("tipeee link", tipeeeLink);
           window.open(tipeeeLink, 'popup', 'width=1100,height=700');
         }
       }
       const bigChat = document.getElementById("bigchat");
       if (bigChat) {
+        bigChat.title = "increase chat window height";
         bigChat.onclick = async function () {
           container.style.height = container.offsetHeight + 512 + 'px';
         }
       }
       const smallChat = document.getElementById("smallchat");
       if (smallChat) {
+        smallChat.title = "Decrease chat window height";
         smallChat.onclick = async function () {
           container.style.height = container.offsetHeight - 512 + 'px';
         }
@@ -485,6 +448,7 @@ async function register({ registerHook, peertubeHelpers }) {
       let fullVideo = document.getElementById("video-wrapper");
       var oldVideo, oldChat
       if (closeChat) {
+
         closeChat.onclick = async function () {
           if (debugEnabled) {
             console.log("clicked", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
@@ -492,6 +456,7 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("height", container.clientheight, videoDisplay.clientHeight);
           }
           if (closeChat.innerHTML === "Full Chat") {
+            closeChat.title = "Close chat window";
             container.hidden = false;
             oldVideo = videoDisplay.clientWidth;
             videoDisplay.hidden = true;
@@ -505,13 +470,14 @@ async function register({ registerHook, peertubeHelpers }) {
             smallChat.hidden = false;
           }
           else if (closeChat.innerHTML === "Chat") {
+            closeChat.title = "make chat full screen"
             container.hidden = false;
             videoDisplay.hidden = false;
             closeChat.innerHTML = "Full Chat";
             bigChat.hidden = false;
             smallChat.hidden = false;
-            if (container.clientHeight<640){
-              container.style.height="640px";
+            if (container.clientHeight < 640) {
+              container.style.height = "640px";
             }
           }
           else if (closeChat.innerHTML === "X") {
@@ -520,29 +486,29 @@ async function register({ registerHook, peertubeHelpers }) {
             closeChat.innerHTML = "Chat";
             bigChat.hidden = true;
             smallChat.hidden = true;
+            closeChat.title = "open chat panel";
           }
-          console.log("after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
-          console.log(container, videoDisplay);
+          if (debugEnabled) {
+            console.log("after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
+            console.log(container, videoDisplay);
+          }
         }
       }
       const donationalertsButton = document.getElementById("donationalerts")
       if (donationalertsButton) {
         donationalertsButton.onclick = async function () {
-          console.log("Donationalerts link", donationalertsLink);
           window.open(donationalertsLink, 'popup', 'width=600,height=800');
         }
       }
       const donatestreamButton = document.getElementById("donatestream")
       if (donatestreamButton) {
         donatestreamButton.onclick = async function () {
-          console.log("donatestream link", donatestreamLink);
           window.open(donatestreamLink, 'popup', 'width=600,height=800');
         }
       }
       const kofiButton = document.getElementById("kofi")
       if (kofiButton) {
         kofiButton.onclick = async function () {
-          console.log("kofi link", kofiLink);
           window.open(kofiLink, 'popup', 'width=600,height=800');
         }
       }
@@ -554,8 +520,8 @@ async function register({ registerHook, peertubeHelpers }) {
     handler: async () => {
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
-      let splitData = await getSplit(null, null, channel);
-      //console.log(splitData);
+      channelName = channel;
+      let splitData = await getSplit();
       //let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
       let panel = await getConfigPanel(splitData, channel);
@@ -570,15 +536,12 @@ async function register({ registerHook, peertubeHelpers }) {
       let chatRoom = document.getElementById("chatroom");
       let chatButton = document.getElementById("update-chat");
       document.getElementById("update-chat").onclick = async function () {
-        console.log("chatroom", chatRoom.value);
         setChatRoom(channel, chatRoom.value);
         chatButton.innerText = "Saved!";
       }
-      //console.log("getting create split button")
       let createButton = document.getElementById('create-split');
       if (createButton) {
         createButton.onclick = async function () {
-          console.log("doin it live!");
           await peertubeHelpers.showModal({
             title: 'Add Lightning Address for' + channel,
             content: ` `,
@@ -594,7 +557,6 @@ async function register({ registerHook, peertubeHelpers }) {
           document.getElementById("add-split-final").onclick = async function () {
             let newAddress = document.getElementById("modal-split-address").value;
             let createApi = `/createsplit?channel=` + channel + `&splitaddress=` + newAddress;
-            console.log("call the create api now", createApi, newAddress.length);
             let createResult;
             try {
               createResult = await axios.get(basePath + createApi);
@@ -604,9 +566,7 @@ async function register({ registerHook, peertubeHelpers }) {
               return;
             }
             if (createResult) {
-              console.log("createResult", createResult.data);
               await closeModal();
-              console.log("added split", channel, createResult.data);
               let newPanel = await getConfigPanel(createResult.data, channel);
               let channelUpdate = document.getElementsByClassName("form-group");
               channelUpdate[0].removeChild(panelHack)
@@ -618,7 +578,6 @@ async function register({ registerHook, peertubeHelpers }) {
             } else {
               notifier.error("failed to CREATE split to " + channel);
             }
-            console.log("regenerating button block", channel, splitData);
             let newPanel = await getConfigPanel(splitData, channel);
             let channelUpdate = document.getElementsByClassName("form-group");
             channelUpdate[0].removeChild(panelHack)
@@ -632,7 +591,6 @@ async function register({ registerHook, peertubeHelpers }) {
       let addButton = document.getElementById("add-split");
       if (addButton) {
         addButton.onclick = async function () {
-          console.log("doin it!");
           await peertubeHelpers.showModal({
             title: 'Add Split for' + channel,
             content: ` `,
@@ -649,7 +607,6 @@ async function register({ registerHook, peertubeHelpers }) {
           let addFinalButton = document.getElementById("add-split-final")
           if (addFinalButton) {
             addFinalButton.onclick = async function () {
-              console.log("call the add api now");
               this.innerText = "adding split";
               let addResult = await doAddSplit(channel);
               if (!addResult) {
@@ -659,12 +616,9 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
-
-      //console.log("split data", splitData)
       if (splitData && splitData.length > 0) {
         for (var slot in splitData) {
           var editButton = document.getElementById("edit-" + slot);
-          //console.log("considering ", slot, splitData[slot].address);
           if (editButton) {
             editButton.onclick = async function () {
               await peertubeHelpers.showModal({
@@ -678,7 +632,6 @@ async function register({ registerHook, peertubeHelpers }) {
               if (ks == undefined) {
                 ks = false;
               }
-              // console.log("calling makekeysendhtml", ks, this.slot)
               let html = await makeKeysendHtml(splitData, this.slot, ks);
               let modal = (document.getElementsByClassName('modal-body'))
               modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -725,26 +678,22 @@ async function register({ registerHook, peertubeHelpers }) {
       //makeQrDialog(invoice);
       supported = false;
     }
-    console.log("webln enabled:", supported);
-    //TODO properly build this
+    if (debugEnabled) {
+      console.log("webln enabled:", supported);
+    }
     let urlCallback = encodeURI(walletData.callback);
-    //let urlFrom = encodeURIComponent(from);
-
     let urlComment = encodeURIComponent(comment);
     let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount;
     if (comment != "") {
       invoiceApi = invoiceApi + "&message=" + urlComment;
     }
-    console.log("invoice api", invoiceApi);
     try {
       result = await axios.get(invoiceApi);
     } catch (err) {
-      console.log("error getting lnurl invoice");
+      console.log("error getting lnurl invoice"), invoiceApi;
       return;
     }
-    console.log("result.data", result.data);
     let invoice = result.data.pr;
-    console.log("invoice", invoice);
     try {
       if (supported) {
         result = await window.webln.sendPayment(invoice);
@@ -760,7 +709,7 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName) {
     if (debugEnabled) {
       console.log("boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
@@ -773,7 +722,6 @@ async function register({ registerHook, peertubeHelpers }) {
       await alertUnsupported();
       return;
     }
-    console.log("boosting", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID, boostTotal, splitName);
     let remoteHost, remoteUser, localHost;
     if (parseInt(amount) < 1) {
       amount = "69";
@@ -804,7 +752,6 @@ async function register({ registerHook, peertubeHelpers }) {
     if (!splitName) {
       splitName = channel;
     }
-    //console.log("wallet variables set");
     if (!boostTotal) {
       boostTotal = amount;
     }
@@ -874,50 +821,32 @@ async function register({ registerHook, peertubeHelpers }) {
       }
 
     }
-
-    //if (itemID) {
-    //  boost.itemID = itemID;
-    //}
     let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
-    //console.log("item api", itemApi);
     try {
       let itemId = await axios.get(itemApi);
-      //console.log("got item", itemId);
       if (itemId) {
-        //console.log("found item id ", itemId.data);
         boost.itemID = itemId.data;
       }
     } catch (err) {
-      //console.log("error attempting to fetch item id", err);
     }
-    console.log("item id", itemID);
     let feedApi = basePath + "/getfeedid?channel=" + channelName;
-    //console.log("feed api", feedApi);
     try {
       let feedId = await axios.get(feedApi);
-      //console.log("got feed", feedId);
       if (feedId) {
-        //console.log("found feed id ", feedId.data);
         boost.feedID = feedId.data;
       }
     } catch (err) {
-      //console.log("error attempting to fetch feed id", err);
     }
     let guid;
     let guidApi = basePath + "/getchannelguid?channel=" + channelName;
-    //console.log("guid api", guidApi);
     try {
       guid = await axios.get(guidApi);
-      //console.log("got guid", guid);
       if (guid) {
-        //console.log("found guid", guid.data);
         boost.guid = guid.data;
       }
     } catch (err) {
-      //console.log("error attempting to fetch guid", err);
     }
     let paymentInfo;
-    // console.log("video boost updated", boost);
     if (customValue) {
       paymentInfo = {
         destination: pubKey,
@@ -936,7 +865,9 @@ async function register({ registerHook, peertubeHelpers }) {
         }
       };
     }
-    console.log("payment info", paymentInfo);
+    if (debugEnabled) {
+      console.log("payment info", paymentInfo);
+    }
     let result;
     try {
       result = await webln.keysend(paymentInfo);
@@ -956,13 +887,11 @@ async function register({ registerHook, peertubeHelpers }) {
         return chatRoom.data;
       }
     } catch (err) {
-      //console.log("error attempting to fetch feed id", err);
       return;
     }
   }
   async function setChatRoom(channel, chatRoom) {
     let chatApi = basePath + "/setchatroom?channel=" + channel + "&chatroom=" + encodeURIComponent(chatRoom);
-    console.log("api call to set chat room", chatApi);
     try {
       await axios.get(chatApi);
     } catch (err) {
@@ -977,7 +906,6 @@ async function register({ registerHook, peertubeHelpers }) {
         return feedId.data;
       }
     } catch (err) {
-      //console.log("error attempting to fetch feed id", err);
       return;
     }
   }
@@ -989,8 +917,10 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("error attempting to fetch feed id", err);
     }
   }
-  async function getWalletInfo(videoName, accountName, channelName, instanceName) {
-    console.log(videoName, accountName, channelName, instanceName);
+  async function getWalletInfo() {
+    if (debugEnabled) {
+      console.log("get wallet info", videoName, accountName, channelName, instanceName);
+    }
     let walletApi = basePath + "/walletinfo";
     if (videoName) {
       if (instanceName) {
@@ -1009,7 +939,9 @@ async function register({ registerHook, peertubeHelpers }) {
         walletApi = walletApi + "@" + instanceName;
       }
     }
-    console.log("api call for video wallet info", walletApi);
+    if (debugEnabled) {
+      console.log("api call for video wallet info", walletApi);
+    }
     let walletData;
     try {
       walletData = await axios.get(walletApi);
@@ -1017,12 +949,12 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("client unable to fetch wallet data\n", walletApi);
       return;
     }
-    console.log("returned wallet data", walletData.data);
     return walletData.data;
   }
-  async function getSplit(videoName, accountName, channelName, instanceName) {
-    console.log(videoName, accountName, channelName, instanceName);
-    console.log("generating split request", videoName, accountName, channelName, instanceName)
+  async function getSplit() {
+    if (debugEnabled) {
+      console.log("generating split request", videoName, accountName, channelName, instanceName)
+    }
     let splitApi = basePath + "/getsplit";
     if (videoName) {
       if (instanceName == "hack") {
@@ -1041,7 +973,9 @@ async function register({ registerHook, peertubeHelpers }) {
         splitApi = splitApi + "@" + instanceName;
       }
     }
-    console.log("api call for split info", splitApi);
+    if (debugEnabled) {
+      console.log("api call for split info", splitApi);
+    }
     let splitData;
     try {
       splitData = await axios.get(splitApi);
@@ -1049,7 +983,6 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("client unable to fetch split data\n", splitApi);
       return;
     }
-    console.log("returned split data", splitApi, splitData.data);
     for (var split of splitData.data) {
       if (split.split < 1) {
         split.split = 1;
@@ -1064,7 +997,9 @@ async function register({ registerHook, peertubeHelpers }) {
         return;
       }
       let walletApi = basePath + "/walletinfo?address=" + address;
-      console.log("api call for video wallet refresh", walletApi);
+      if (debugEnabled) {
+        console.log("api call for video wallet refresh", walletApi);
+      }
       let walletData;
       try {
         walletData = await axios.get(walletApi);
@@ -1072,7 +1007,6 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("client unable to fetch wallet data\n", walletApi);
         return;
       }
-      console.log("returned wallet data", walletData.data);
       return walletData.data;
     }
   }
@@ -1089,12 +1023,11 @@ async function register({ registerHook, peertubeHelpers }) {
   async function getConfigPanel(splitInfo, channel) {
     let feedID = await getFeedID(channel);
     let chatRoom = await getChatRoom(channel);
-    console.log("getting config panel", splitInfo, feedID, chatRoom, channel);
+    if (debugEnabled) {
+      console.log("getting config panel", splitInfo, feedID, chatRoom, channel);
+    }
     let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Plugin Info</label>`
-    if (splitInfo) {
-      console.log("generating split text info");
-      //html = html + "<br> Wallet Address: " + splitInfo[0].address
-      console.log(html.length);
+    if (splitInfo && (keysendEnabled || lnurlEnabled)) {
       if (splitInfo.length > 0) {
         html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
         for (var split in splitInfo) {
@@ -1134,17 +1067,18 @@ async function register({ registerHook, peertubeHelpers }) {
     html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
     html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Save</button>`
     html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
-    html = html + "<br> Channel Chatroom URL:";
-    html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="chatroom" name="chatroom" value="` + chatRoom + `">`
-    html = html + `<button type="button" id="update-chat" name="update-chat" class="peertube-button orange-button ng-star-inserted">Save</button>`
-
+    if (chatEnabled) {
+      html = html + "<br> Channel Chatroom URL:";
+      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="chatroom" name="chatroom" value="` + chatRoom + `">`
+      html = html + `<button type="button" id="update-chat" name="update-chat" class="peertube-button orange-button ng-star-inserted">Save</button>`
+    }
     const panel = document.createElement('div');
     panel.setAttribute('class', 'lightning-button');
     panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
     panel.innerHTML = html;
     return panel;
   }
-  async function buildTip(splitData, channelName, displayName, episodeName, episodeGuid, itemID) {
+  async function buildTip(splitData, displayName, episodeName, episodeGuid, itemID) {
     if (debugEnabled) {
       console.log("clicked on tip button", splitData, channelName, displayName, episodeName, episodeGuid, itemID);
     }
@@ -1158,23 +1092,21 @@ async function register({ registerHook, peertubeHelpers }) {
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
       if (wallet.keysend && (weblnSupport) && keysendEnabled) {
-        //if (wallet.keysend && weblnSupport && (wallet.address.indexOf("fountain.fm") < 1)) {
-        //notifier.success("sending keysend boost");
-        console.log("sending keysend boost");
-        console.log(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
-        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name);
+        if (debugEnabled) {
+          console.log("sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
+        }
+        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name);
       } else if (wallet.lnurl && lnurlEnabled) {
-        console.log("sending lnurl boost");
+        if (debugEnabled) {
+          console.log("sending lnurl boost", wallet.lnurl, splitAmount, message, from);
+        }
         result = await sendSats(wallet.lnurl, splitAmount, message, from);
         if (!result) {
-
-          console.log("error sending lnurl boost");
+          console.log("error sending lnurl boost", wallet.lnurl, splitAmount, message, from);
         }
-        //walletData = await refreshWalletInfo(walletData.address);
       }
     }
     if (result) {
-      console.log(result);
       closeModal();
       return;
     } else {
@@ -1183,7 +1115,9 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function makeQrDialog(invoice) {
-    console.log("making qr dialog", invoice);
+    if (debugEnabled) {
+      console.log("making qr dialog", invoice);
+    }
     let html = "<h1>No WebLN Found</h1>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
@@ -1192,7 +1126,7 @@ async function register({ registerHook, peertubeHelpers }) {
       //`<br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="5" cols=64 id="ln-code" name="ln-code">` + invoice + `</textarea><br>` +
       //`<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
       `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>` +
-      `<a href="lightning:` + invoice + `"><button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>` +
+      `<a href="lightning:` + invoice + `"><button type="button" id="launch" name="launc" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>` +
       `<div id="qr-holder"><canvas id="qr"></canvas></div>`;
     let modal = (document.getElementsByClassName('modal-body'))
     //const panel = document.createElement('div');
@@ -1215,8 +1149,10 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
   }
-  async function makeTipDialog(channelName) {
-    console.log("making tip dialog", channelName);
+  async function makeTipDialog() {
+    if (debugEnabled) {
+      console.log("making tip dialog", channelName);
+    }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     let html = ` <center><table><tr><td>From:</td>
    <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28"></td></tr>
@@ -1233,31 +1169,20 @@ async function register({ registerHook, peertubeHelpers }) {
     </center>`;
 
     let modal = (document.getElementsByClassName('modal-body'))
-    //const panel = document.createElement('div');
-    //panel.setAttribute('class', 'lightning-button');
-    //panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-    //panel.innerHTML = html;
-    //console.log("panel",panel);
     modal[0].innerHTML = html;
-    console.log("assigned html ");
     let modalHack = document.getElementsByClassName("modal-dialog");
-    console.log("got modal");
     if (modalHack) {
-      console.log("modal", modalHack, modalHack[0], modalHack[0].class);
+      if (debugEnabled) {
+        console.log("modal", modalHack, modalHack[0], modalHack[0].class);
+      }
       modalHack[0].setAttribute('class', 'modal-dialog modal-dialog-centered modal-sm');
       document.getElementsByClassName("modal-content")[0].setAttribute('style', 'width:auto;');
-    } else {
-      console.log("no model");
     }
-
-    //modal[0].innerHTML = modal[0].innerHTML + html;
     let modalSatTip = document.getElementById("modal-sats");
     let modalCashTip = document.getElementById("modal-cashtip");
     if (modalSatTip) {
       modalSatTip.onchange = async function () {
-        console.log(modalCashTip);
         modalCashTip.textContent = (modalSatTip.value * convertRate).toFixed(2);
-        console.log(modalCashTip);
       }
     }
     if (modalCashTip) {
@@ -1282,8 +1207,10 @@ async function register({ registerHook, peertubeHelpers }) {
       return 0;
     }
   }
-  async function makeStreamDialog(channelName) {
-    console.log("making stream dialog", channelName);
+  async function makeStreamDialog() {
+    if (debugEnabled) {
+      console.log("making stream dialog", channelName);
+    }
     let buttonText = '⚡️Stream⚡️';
     let html = `<div id="modal-streamdialog">
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
@@ -1292,16 +1219,8 @@ async function register({ registerHook, peertubeHelpers }) {
     / $
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>`;
-
     let modal = (document.getElementsByClassName('modal-body'))
-    //const panel = document.createElement('div');
-    //panel.setAttribute('class', 'lightning-button');
-    //panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-    //panel.innerHTML = html;
-    //console.log("panel",panel);
     modal[0].innerHTML = html;
-
-    //modal[0].innerHTML = modal[0].innerHTML + html;
     let modalSatStream = document.getElementById("modal-streamamount");
     let modalCashStream = document.getElementById("modal-cashamount");
     let modalSatTip = document.getElementById("modal-sats");
@@ -1312,7 +1231,6 @@ async function register({ registerHook, peertubeHelpers }) {
         modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);
         streamAmount = modalSatStream.value
         if (menuStreamAmount) {
-          console.log(menuStreamAmount);
           menuStreamAmount.value = streamAmount;
         }
       }
@@ -1322,7 +1240,6 @@ async function register({ registerHook, peertubeHelpers }) {
         modalSatStream.value = (modalCashStream.value / convertRate).toFixed();
         streamAmount = modalSatStream.value;
         if (menuStreamAmount) {
-          console.log(menuStreamAmount);
           menuStreamAmount.value = streamAmount;
         }
       }
@@ -1351,7 +1268,6 @@ async function register({ registerHook, peertubeHelpers }) {
 
         if (currentStreamAmount) {
           streamAmount = parseInt(currentStreamAmount.value);
-          console.log("setting moidal stream amount to", streamAmount);
           if (menuStreamAmount) {
             menuStreamAmount.value = streamAmount;
           }
@@ -1371,24 +1287,24 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function closeModal() {
     let butts = document.getElementsByClassName("ng-star-inserted")
-    console.log("trying to close modal")
     for (var butt of butts) {
       let iconName = butt.getAttribute("iconname");
       if (iconName == "cross") {
-        console.log("found it, elelementsl", butt);
         butt.click();
         return true;
       }
     }
-    console.log("no match found to close modal", butts);
     return false;
   }
   async function assignSplitEditButtons(splitData, slot, channel, ks) {
-    console.log("assigning split edits", slot, channel, ks);
+    if (debugEnabled) {
+      console.log("assigning split edits", slot, channel, ks);
+    }
     document.getElementById("update-split").onclick = async function () {
-      console.log("update split clicked", channel, slot, ks)
+      if (debugEnabled) {
+        console.log("update split clicked", channel, slot, ks)
+      }
       let updateResult = await doUpdateSplit(channel, slot, ks);
-      console.log("regenerating button block", channel, slot, updateResult);
       let newPanel = await getConfigPanel(updateResult, channel);
       let channelUpdate = document.getElementsByClassName("form-group");
       channelUpdate[0].removeChild(panelHack)
@@ -1398,7 +1314,6 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     document.getElementById("remove-split").onclick = async function () {
       let removeResult = await doRemoveSplit(channel, slot);
-      console.log("regenerating button block", channel, slot, removeResult);
       let newPanel = await getConfigPanel(removeResult, channel);
       let channelUpdate = document.getElementsByClassName("form-group");
       channelUpdate[0].removeChild(panelHack)
@@ -1409,7 +1324,9 @@ async function register({ registerHook, peertubeHelpers }) {
     let manualKeysend = document.getElementById("manualkeysend");
     manualKeysend.checked = ks;
     manualKeysend.onclick = async function () {
-      console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      if (debugEnabled) {
+        console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      }
       if (splitData[slot].customKeysend == true) {
         splitData[slot].customKeysend = false;
         ks = false;
@@ -1419,7 +1336,9 @@ async function register({ registerHook, peertubeHelpers }) {
         ks = true;
         manualKeysend.checked = true;
       }
-      console.log("toggled data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      if (debugEnabled) {
+        console.log("post toggle custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+      }
       //splitData[slot].customKeysend = manualKeysend.checked;
       let html = await makeKeysendHtml(splitData, slot, ks);
       let modal = (document.getElementsByClassName('modal-body'))
@@ -1433,7 +1352,9 @@ async function register({ registerHook, peertubeHelpers }) {
       let addButton = document.getElementById("add-split");
       if (addButton) {
         addButton.onclick = async function () {
-          console.log("doin it!");
+          if (debugEnabled) {
+            console.log("assigning edit butts!", splitData.length, channel);
+          }
           await peertubeHelpers.showModal({
             title: 'Add Split for' + channel,
             content: ` `,
@@ -1450,19 +1371,16 @@ async function register({ registerHook, peertubeHelpers }) {
           let addFinalButton = document.getElementById("add-split-final")
           if (addFinalButton) {
             addFinalButton.onclick = async function () {
-              console.log("call the add api now");
-              let addResult = await doAddSplit(channel);
+              await doAddSplit(channel);
             }
           }
         }
       }
       for (var slot in splitData) {
         var editButton = document.getElementById("edit-" + slot);
-        console.log("considering ", slot, splitData[slot].address);
         if (editButton) {
           editButton.onclick = async function () {
             let editSlot = this.slot;
-            console.log("slot", slot, editSlot);
             await peertubeHelpers.showModal({
               title: 'edit Split for ' + splitData[editSlot].address,
               content: ` `,
@@ -1470,12 +1388,10 @@ async function register({ registerHook, peertubeHelpers }) {
               confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
 
             });
-            console.log("split data for ", slot, splitData[slot]);
             let ks = splitData[slot].customKeysend
             if (ks == undefined) {
               ks = false;
             }
-            console.log("ks from splitdata", ks);
             let html = await makeKeysendHtml(splitData, editSlot, ks);
             let modal = (document.getElementsByClassName('modal-body'))
             modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -1488,12 +1404,16 @@ async function register({ registerHook, peertubeHelpers }) {
 
   }
   async function doUpdateSplit(channel, slot, ks) {
-    console.log("call the update now", channel, slot, ks);
+    if (debugEnabled) {
+      console.log("Do update split", channel, slot, ks);
+    }
     let newSplit = document.getElementById("modal-split-value").value;
     let newAddress = document.getElementById("modal-split-address").value;
     let newName = encodeURI(document.getElementById("modal-split-name").value);
     let customKeysend = document.getElementById("manualkeysend").checked
-    console.log("custom keysend for checked", customKeysend, slot, ks);
+    if (debugEnabled) {
+      console.log("New values from split dialog", customKeysend, newName, newAddress, newSplit, slot, ks);
+    }
     if (ks) {
       var pubKey = document.getElementById("modal-split-pubkey").value
       var customKey = document.getElementById("modal-split-customkey").value
@@ -1518,11 +1438,9 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
     let updateResult;
-    console.log("update", updateApi);
     try {
       updateResult = await axios.get(basePath + updateApi);
       await closeModal();
-      //console.log("update Result", updateResult.data);
       notifier.success("updated " + channel + " splits");
       return updateResult.data;
     } catch {
@@ -1532,20 +1450,16 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function doRemoveSplit(channel, slot) {
-    console.log("call the remove now");
     let removeApi = `/removesplit?channel=` + channel + `&slot=` + slot;
     let removeResult;
-    console.log("remove", removeApi);
     try {
       removeResult = await axios.get(basePath + removeApi);
       await closeModal();
-      console.log("doremove split", channel, slot, removeResult.data);
       let newPanel = await getConfigPanel(removeResult.data, channel);
       let channelUpdate = document.getElementsByClassName("form-group");
       channelUpdate[0].removeChild(panelHack)
       channelUpdate[0].appendChild(newPanel);
       panelHack = newPanel;
-      console.log("remove Result", removeResult.data);
       notifier.success("Removed split");
       return removeResult.data;
     } catch {
@@ -1555,13 +1469,14 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function doAddSplit(channel) {
-    console.log("called the add api now", channel);
+    if (debugEnabled) {
+      console.log("do add split called with ", channel);
+    }
     let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
 
     let newAddress = document.getElementById("modal-split-address").value;
     if (newAddress.length == 66) {
-      console.log(newAddress, newAddress.length);
       let node = newAddress;
       newAddress = "custom"
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
@@ -1574,7 +1489,9 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     let addResult;
-    console.log("attempting add split to channel", addApi);
+    if (debugEnabled) {
+      console.log("attempting add split to channel", addApi);
+    }
     try {
       addResult = await axios.get(basePath + addApi);
     } catch (e) {
@@ -1583,9 +1500,7 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     if (addResult) {
-      console.log("addResult", addApi, addResult.data);
       await closeModal();
-      console.log("added split", channel, addResult);
       let newPanel = await getConfigPanel(addResult.data, channel);
       let channelUpdate = document.getElementsByClassName("form-group");
       channelUpdate[0].removeChild(panelHack)
@@ -1601,7 +1516,9 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function makeKeysendHtml(splitData, slot, ks) {
-    console.log("making keysend edit panel", slot, ks);
+    if (debugEnabled) {
+      console.log("making keysend edit panel", slot, ks);
+    }
     let html;
     html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
     if (slot == 0) {
