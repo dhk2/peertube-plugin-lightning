@@ -35,6 +35,10 @@ async function register({ registerHook, peertubeHelpers }) {
   } catch {
     console.log("error getting conversion rate. Falling back to", convertRate);
   }
+  peertubeHelpers.getServerConfig()
+  .then(config => {
+    console.log('Fetched server config.', config)
+  })
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -99,7 +103,7 @@ async function register({ registerHook, peertubeHelpers }) {
               if (walletData) {
                 wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
-                if (wallet.keysend && (weblnSupport) && keysendEnabled) {
+                if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
                   await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
@@ -170,7 +174,7 @@ async function register({ registerHook, peertubeHelpers }) {
               if (walletData) {
                 var wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
-                if (wallet.keysend && (weblnSupport) && keysendEnabled) {
+                if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
                   if (debugEnabled) {
                     console.log("sending keysend zap", wallet.keysend, 69, "zap from " + userName, userName, userName, null, "boost", null, null, null, 69, this.target);
                   }
@@ -314,7 +318,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (chatEnabled) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▼" + `</button>`
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▲" + `</button>`
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted">` + "Chat" + `</button>`
+        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
       }
       if (buttonHTML) {
         elem.innerHTML = buttonHTML;
@@ -484,6 +488,7 @@ async function register({ registerHook, peertubeHelpers }) {
             container.hidden = true;
             videoDisplay.hidden = false;
             closeChat.innerHTML = "Chat";
+
             bigChat.hidden = true;
             smallChat.hidden = true;
             closeChat.title = "open chat panel";
@@ -518,6 +523,9 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async () => {
+      if (debugEnabled) {
+        console.log("channel update loaded");
+      }
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
       channelName = channel;
@@ -528,6 +536,7 @@ async function register({ registerHook, peertubeHelpers }) {
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
       let id = document.getElementById("id");
+      id.value = feedID;
       let updateButton = document.getElementById("update-feed");
       document.getElementById("update-feed").onclick = async function () {
         setFeedID(channel, id.value);
@@ -588,60 +597,7 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
-      let addButton = document.getElementById("add-split");
-      if (addButton) {
-        addButton.onclick = async function () {
-          await peertubeHelpers.showModal({
-            title: 'Add Split for' + channel,
-            content: ` `,
-            close: true,
-            confirm: { value: 'X', action: () => { } },
-
-          })
-          let modal = (document.getElementsByClassName('modal-body'))
-          //modal[0].setAttribute('class', 'lightning-button');
-          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
-          <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
-          <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
-          let addFinalButton = document.getElementById("add-split-final")
-          if (addFinalButton) {
-            addFinalButton.onclick = async function () {
-              this.innerText = "adding split";
-              let addResult = await doAddSplit(channel);
-              if (!addResult) {
-                this.innerText = "Add New Split"
-              }
-            }
-          }
-        }
-      }
-      if (splitData && splitData.length > 0) {
-        for (var slot in splitData) {
-          var editButton = document.getElementById("edit-" + slot);
-          if (editButton) {
-            editButton.onclick = async function () {
-              await peertubeHelpers.showModal({
-                title: 'edit Split for ' + splitData[this.slot].address,
-                content: ` `,
-                close: true,
-                confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
-
-              });
-              let ks = splitData[this.slot].customKeysend;
-              if (ks == undefined) {
-                ks = false;
-              }
-              let html = await makeKeysendHtml(splitData, this.slot, ks);
-              let modal = (document.getElementsByClassName('modal-body'))
-              modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-              modal[0].innerHTML = html;
-              assignSplitEditButtons(splitData, this.slot, channel, ks);
-            }
-          }
-        }
-
-      }
+      assignEditButtons(splitData, channel);
     }
   })
 
@@ -717,9 +673,16 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     try {
-      let supported = await webln.enable();
+      let supported = await checkWebLnSupport();
+      if (debugEnabled) {
+        console.log("supported value for webln in boost ", supported);
+      }
+      if (supported < 2) {
+        await sendSats(walletData, amount, message);
+      }
     } catch {
-      await alertUnsupported();
+      //not supporting 
+      await sendSats(walletData, amount, message);
       return;
     }
     let remoteHost, remoteUser, localHost;
@@ -880,10 +843,14 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function getChatRoom(channel) {
+    if (debugEnabled){
+      console.log("getting chat room",channel,basePath)
+    }
     let chatApi = basePath + "/getchatroom?channel=" + channel;
     try {
       let chatRoom = await axios.get(chatApi);
       if (chatRoom) {
+        console.log("chatroom returned",chatRoom,"data",chatRoom.data);
         return chatRoom.data;
       }
     } catch (err) {
@@ -1061,7 +1028,7 @@ async function register({ registerHook, peertubeHelpers }) {
     html = html + "<hr>"
     let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
 
-    html = html + `For full Boostagram functionality on sites like <a href="https://saturn.fly.dev">SATurn</a> and <a href="https://conshax.app">Conshax></a> you will need to register your channels podcast 2.0 RSS feed on Podcast Index.  You can do that here <a href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `">here</a>. This will also make audio versions of your videos available as a Podcast on modern Podcast apps. Once registered you can get the ID from the Podcast Index url for the channel`;
+    html = html + `For full Boostagram functionality on sites like <a href="https://saturn.fly.dev">SATurn</a> and <a href="https://conshax.app">Conshax</a> you will need to register your channels podcast 2.0 RSS feed on Podcast Index.  You can do that here <a href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `">here</a>. This will also make audio versions of your videos available as a Podcast on modern Podcast apps. Once registered you can get the ID from the Podcast Index url for the channel`;
     html = html + "<br> Podcast Index Feed ID:";
 
     html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
@@ -1091,7 +1058,7 @@ async function register({ registerHook, peertubeHelpers }) {
     let result;
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
-      if (wallet.keysend && (weblnSupport) && keysendEnabled) {
+      if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
         if (debugEnabled) {
           console.log("sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
@@ -1110,7 +1077,7 @@ async function register({ registerHook, peertubeHelpers }) {
       closeModal();
       return;
     } else {
-      document.getElementById("modal-message").value = "error attempting send " + tipVerb;
+      notifier.error("error attempting send " + tipVerb + " to " + displayName);
       return;
     }
   }
@@ -1118,35 +1085,63 @@ async function register({ registerHook, peertubeHelpers }) {
     if (debugEnabled) {
       console.log("making qr dialog", invoice);
     }
-    let html = "<h1>No WebLN Found</h1>" +
+    if (navigator.userAgentData.mobile) {
+      navigator.clipboard.writeText(invoice);
+      window.open("lightning:" + invoice);
+      return;
+    }
+    //console.log(navigator.userAgent);
+    let html = "<h1>No WebLN Found</h1>" + navigator.userAgentData.mobile + "<br>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
       `<br> If you have a wallet you can scan this qr code, open a local wallet, or copy/paste the ` +
       `provided code to a wallet` +
-      //`<br><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="5" cols=64 id="ln-code" name="ln-code">` + invoice + `</textarea><br>` +
-      //`<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="ln-code" name="ln-code" value="` + invoice + `"><br>` +
-      `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button>` +
-      `<a href="lightning:` + invoice + `"><button type="button" id="launch" name="launc" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>` +
-      `<div id="qr-holder"><canvas id="qr"></canvas></div>`;
+      `<center><div id="qr-holder"></canvas></div>` +
+      `<a href="lightning:` + invoice + `"><button type="button" id="launch" name="launch" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>` +
+      `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button></center>`;
+
     let modal = (document.getElementsByClassName('modal-body'))
-    //const panel = document.createElement('div');
-    //panel.setAttribute('class', 'lightning-button');
-    //panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-    // panel.innerHTML = html;
-    modal[0].innerHTML = html;
-    var qr = new QRious({
+
+    if (modal[0]) {
+      modal[0].innerHTML = html;
+    } else {
+      await peertubeHelpers.showModal({
+        title: 'zap',
+        content: "",
+        close: true,
+        // confirm: { value: 'X', action: () => { } },
+      })
+      modal = (document.getElementsByClassName('modal-body'))
+      if (modal[0]) {
+        modal[0].innerHTML = html;
+      } else {
+        console.log("unable to find new modal window");
+        return;
+      }
+    }
+    var qr = await new QRious({
       element: document.querySelector('qr'),
       value: invoice,
       size: 256,
     });
-    document.getElementById('qr-holder').appendChild(qr.image);
-    let lnCode = document.getElementById('ln-code')
-    lnCode.select;
+    let qrHolder = document.getElementById('qr-holder')
+    if (qrHolder) {
+      qrHolder.appendChild(qr.image);
+    }
     let copyButton = document.getElementById('copy');
-    copyButton.onclick = async function () {
-      navigator.clipboard.writeText(lnCode.value);
-      copyButton.textContent = "Copied!";
-      return;
+    if (copyButton) {
+      copyButton.onclick = async function () {
+        navigator.clipboard.writeText(invoice);
+        copyButton.textContent = "Copied!";
+        return;
+      }
+    }
+    let localWallet = document.getElementById("launch");
+    if (localWallet) {
+      localWallet.onclick = async function () {
+        navigator.clipboard.writeText(invoice);
+        console.log("copied invoice to clipboard");
+      }
     }
   }
   async function makeTipDialog() {
@@ -1300,51 +1295,59 @@ async function register({ registerHook, peertubeHelpers }) {
     if (debugEnabled) {
       console.log("assigning split edits", slot, channel, ks);
     }
-    document.getElementById("update-split").onclick = async function () {
-      if (debugEnabled) {
-        console.log("update split clicked", channel, slot, ks)
+    let updateSplit = document.getElementById("update-split")
+    if (updateSplit) {
+      updateSplit.onclick = async function () {
+        if (debugEnabled) {
+          console.log("update split clicked", channel, slot, ks)
+        }
+        let updateResult = await doUpdateSplit(channel, slot, ks);
+        let newPanel = await getConfigPanel(updateResult, channel);
+        let channelUpdate = document.getElementsByClassName("form-group");
+        channelUpdate[0].removeChild(panelHack)
+        channelUpdate[0].appendChild(newPanel);
+        panelHack = newPanel;
+        await assignEditButtons(updateResult, channel);
       }
-      let updateResult = await doUpdateSplit(channel, slot, ks);
-      let newPanel = await getConfigPanel(updateResult, channel);
-      let channelUpdate = document.getElementsByClassName("form-group");
-      channelUpdate[0].removeChild(panelHack)
-      channelUpdate[0].appendChild(newPanel);
-      panelHack = newPanel;
-      await assignEditButtons(updateResult, channel);
     }
-    document.getElementById("remove-split").onclick = async function () {
-      let removeResult = await doRemoveSplit(channel, slot);
-      let newPanel = await getConfigPanel(removeResult, channel);
-      let channelUpdate = document.getElementsByClassName("form-group");
-      channelUpdate[0].removeChild(panelHack)
-      channelUpdate[0].appendChild(newPanel);
-      panelHack = newPanel;
-      await assignEditButtons(removeResult, channel);
+    let removeSplit = document.getElementById("remove-split")
+    if (removeSplit) {
+      removeSplit.onclick = async function () {
+        let removeResult = await doRemoveSplit(channel, slot);
+        let newPanel = await getConfigPanel(removeResult, channel);
+        let channelUpdate = document.getElementsByClassName("form-group");
+        channelUpdate[0].removeChild(panelHack)
+        channelUpdate[0].appendChild(newPanel);
+        panelHack = newPanel;
+        await assignEditButtons(removeResult, channel);
+      }
     }
     let manualKeysend = document.getElementById("manualkeysend");
-    manualKeysend.checked = ks;
-    manualKeysend.onclick = async function () {
-      if (debugEnabled) {
-        console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+    if (manualKeysend) {
+      manualKeysend.checked = ks;
+      manualKeysend.onclick = async function () {
+        if (debugEnabled) {
+          console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+        }
+        if (splitData[slot].customKeysend == true) {
+          splitData[slot].customKeysend = false;
+          ks = false;
+          manualKeysend.checked = false
+        } else {
+          splitData[slot].customKeysend = true;
+          ks = true;
+          manualKeysend.checked = true;
+        }
+        if (debugEnabled) {
+          console.log("post toggle custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+        }
+        //splitData[slot].customKeysend = manualKeysend.checked;
+        let html = await makeKeysendHtml(splitData, slot, ks);
+        let modal = (document.getElementsByClassName('modal-body'))
+        modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+        modal[0].innerHTML = html;
+        await assignSplitEditButtons(splitData, slot, channel, ks);
       }
-      if (splitData[slot].customKeysend == true) {
-        splitData[slot].customKeysend = false;
-        ks = false;
-        manualKeysend.checked = false
-      } else {
-        splitData[slot].customKeysend = true;
-        ks = true;
-        manualKeysend.checked = true;
-      }
-      if (debugEnabled) {
-        console.log("post toggle custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
-      }
-      //splitData[slot].customKeysend = manualKeysend.checked;
-      let html = await makeKeysendHtml(splitData, slot, ks);
-      let modal = (document.getElementsByClassName('modal-body'))
-      modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-      modal[0].innerHTML = html;
-      await assignSplitEditButtons(splitData, slot, channel, ks);
     }
   }
   async function assignEditButtons(splitData, channel) {
@@ -1533,9 +1536,10 @@ async function register({ registerHook, peertubeHelpers }) {
     } else {
       html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
     }
-    html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
-    html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
+
     if (splitData[slot].keysend) {
+      html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
+      html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
       let status = splitData[slot].keysend.status;
       let pubKey = splitData[slot].keysend.pubkey;
       let customKey = splitData[slot].keysend.customData[0].customKey;

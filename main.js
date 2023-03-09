@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
 const { Console } = require('console');
+const fs = require('fs');
 const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
 async function register({
   registerHook,
@@ -260,11 +261,13 @@ async function register({
     if (req.query.account) {
       var storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
       if (storedWallet) {
-        console.log(" successfully found stored wallet data", storedWallet.address);
-        if (storedWallet.status === "404") {
-          return res.status(400).send();
+        console.log(" successfully found stored wallet data", req.query.account, storedWallet.address, storedWallet.status);
+        if (storedWallet.status === 404) {
+          console.log("not found", storedWallet.cache, Date.now() - storedWallet.cache);
+          //return res.status(400).send();
+        } else {
+          return res.status(200).send(storedWallet);
         }
-        return res.status(200).send(storedWallet);
       } else {
         if (enableDebug) {
           console.log("⚡️⚡️no stored wallet for account", req.query);
@@ -293,6 +296,9 @@ async function register({
       }
       if (accountData) {
         let account = accountData.data
+        if (enableDebug) {
+          console.log("account to search for address", account);
+        }
         if (account.description) {
           foundLightningAddress = await findLightningAddress(account.description);
         }
@@ -323,13 +329,21 @@ async function register({
             walletData.address = foundLightningAddress;
             if (keysendData) {
               walletData.keysend = keysendData;
+              if (req.query.account.indexOf("@") < 0) {
+                if (enableDebug) {
+                  console.log("attempting to save keysend info", req.query.account)
+                }
+                saveWellKnown(req.query.account, keysendData);
+              }
             }
             if (lnurlData) {
               walletData.lnurl = lnurlData;
             }
+            walletData.cache=Date.now();
             if (enableDebug) {
               console.log("⚡️⚡️preparing to save and return found wallet info", req.query.account, walletData.address);
             }
+            
             storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
             return res.status(200).send(walletData);
           } else {
@@ -339,6 +353,7 @@ async function register({
       }
     }
     let notFound = { status: 404 };
+    notFound.cache = Date.now();
     storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
     return res.status(400).send();
   })
@@ -346,7 +361,7 @@ async function register({
     if (enableDebug) {
       console.log("█████████████████ podcast2 request ██████████████", req.query);
     }
-    if (!enableChat) {
+    if (!enableRss) {
       return res.status(503).send();
     }
     if (req.query.channel == undefined) {
@@ -705,11 +720,11 @@ async function register({
       try {
         customChat = await axios.get(chatApi);
       } catch {
-        console.log("hard error getting custom chat room for ", channel, "from", parts[1]);
+        console.log("hard error getting custom chat room for ", channel, "from", parts[1], chatApi);
       }
       if (customChat) {
-        console.log("returning", customChat, "for", channel);
-        return res.status(200).send(customChat.toString());
+        console.log("returning", customChat.toString(), "for", channel);
+        return res.status(200).send(customChat.data);
       }
     }
     let chatRoom;
@@ -722,7 +737,7 @@ async function register({
     }
     console.log("chat room", chatRoom);
     if (chatRoom) {
-      return res.status(200).send(chatRoom.toString());
+      return res.status(200).send(chatRoom);
     } else {
       return res.status(400).send();
     }
@@ -1612,11 +1627,11 @@ async function register({
       //var splitData = new Array;
       walletData.name = newAddress;
       split.push(walletData);
-      if (hostWalletData && hostWalletData.split>0) {
+      if (hostWalletData && hostWalletData.split > 0) {
         split[0].split = 100 - hostWalletData.split;
         split.push(hostWalletData);
       } else {
-        split[0].split=100;
+        split[0].split = 100;
       }
       storageManager.storeData("lightningsplit" + "-" + channel, split);
       await pingPI(channel);
@@ -1662,7 +1677,7 @@ async function register({
     let walletHost = walletParts[1];
     let walletUser = walletParts[0];
     let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
-    console.log("requesting wallet data from provider", apiRequest);
+    console.log("██requesting wallet data from provider", apiRequest);
     let walletData;
     try {
       walletData = await axios.get(apiRequest);
@@ -1674,8 +1689,10 @@ async function register({
       console.log("------------------ \n Error in lightning address data", walletData.data);
       return;
     }
+    walletData.data.cache = Date.now();
     console.log(walletData.data)
     let whatHappened = await storageManager.storeData(storageIndex, walletData.data);
+
     console.log("stored keysend data", whatHappened, storageIndex, walletData.data);
 
     return walletData.data;
@@ -1776,6 +1793,22 @@ async function register({
       return result;
     }
     return;
+  }
+  async function saveWellKnown(account, keySend) {
+    return;
+    const folderName = '/var/www/peertube/storage/well-known/keysend/';
+    try {
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName);
+      }
+    } catch (err) {
+      console.error("problem with well known keysend folder", err, account);
+    }
+    try {
+      fs.writeFileSync('/var/www/peertube/storage/well-known/' + account, JSON.stringify(keySend));
+    } catch (err) {
+      console.error("trouble saving the keysend info to peertube folder", err, account);
+    }
   }
 }
 async function unregister() {

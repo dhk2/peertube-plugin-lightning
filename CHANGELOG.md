@@ -1,3 +1,9 @@
+v 4.0.7
+- fixed behaviour issues when no webln support in browser
+- set mobile behavior to launch local wallet and desktop to show QR code
+- fix bugs in split editting program flow
+- fix bugs with federated chat room names
+
 v 4.0.6
 - fixed errors with 0 host split channel creation.
 - added tooltips for video player page buttons
