@@ -339,11 +339,11 @@ async function register({
             if (lnurlData) {
               walletData.lnurl = lnurlData;
             }
-            walletData.cache=Date.now();
+            walletData.cache = Date.now();
             if (enableDebug) {
               console.log("⚡️⚡️preparing to save and return found wallet info", req.query.account, walletData.address);
             }
-            
+
             storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
             return res.status(200).send(walletData);
           } else {
@@ -817,7 +817,7 @@ async function register({
           console.log("got feed id", feedId.data);
           let podcastIndexId = await podcastIndexApi.episodesByFeedId(feedId.data);
           let finalItemId;
-          let easy = podcastIndexApi.custom("/episodes/byguid",)
+          //let easy = podcastIndexApi.custom("/episodes/byguid",)
           if (podcastIndexId) {
 
             for (var episode in podcastIndexId.items) {
@@ -832,9 +832,9 @@ async function register({
               }
             }
             if (finalItemId) {
-              console.log("obtained id from podcast index", finalItemId);
-              await storageManager.storeData("podcast" + "-" + uuid, finalItemId);
-              return res.status(200).send(podcastIndexId.toString());
+              console.log("obtained id from podcast index",uuid, finalItemId);
+              await storageManager.storeData("podcast" + "-" + uuid,podcastIndexId,finalItemId);
+              return res.status(200).send(finalItemId);
             }
           } else {
             console.log("error getting item id from podcast index", feedId);
@@ -1335,9 +1335,9 @@ async function register({
       }
       if (storedSplitData) {
         //TODO may need to relook at this
-        //if (!storedSplitData[slot].customKeysend) {
-        keysendData = await getKeysendInfo(newAddress);
-        //}
+        if (!storedSplitData[slot].customKeysend) {
+          keysendData = await getKeysendInfo(newAddress);
+        }
         //let lnurlData = await getLnurlInfo(newAddress);
         split = storedSplitData;
         console.log(`updating from`, split[slot]);

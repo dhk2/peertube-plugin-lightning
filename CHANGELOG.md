@@ -1,3 +1,8 @@
+v 4.0.8
+- fixed butting setting fractional boosts to 69
+- fixed editting bug with custom keysend splits
+- changed zaps to use comment id for html id for tracking.
+
 v 4.0.7
 - fixed behaviour issues when no webln support in browser
 - set mobile behavior to launch local wallet and desktop to show QR code

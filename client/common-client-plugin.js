@@ -36,9 +36,9 @@ async function register({ registerHook, peertubeHelpers }) {
     console.log("error getting conversion rate. Falling back to", convertRate);
   }
   peertubeHelpers.getServerConfig()
-  .then(config => {
-    console.log('Fetched server config.', config)
-  })
+    .then(config => {
+      console.log('Fetched server config.', config)
+    })
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -56,9 +56,18 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:video-watch.video-threads.loaded',
     handler: async () => {
       let comments = document.getElementsByClassName("comment-account-fid");
+      let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
-        let walletApi, walletData, wallet;
         let comment = comments[com];
+        let date = dates[com];
+        let thread
+        if (date && date.href) {
+          thread = date.href.split("=")[1];
+        } else {
+          console.log("no thread id", date);
+          continue;
+        }
+        let walletApi, walletData, wallet;
         if (comment.wallet) {
           continue;
         }
@@ -74,21 +83,31 @@ async function register({ registerHook, peertubeHelpers }) {
         if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
             if (debugEnabled) {
-              console.log(walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+              console.log("wallet found", walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
             }
+            let precheck = document.getElementById(thread);
+            if (precheck) {
+              console.log("found zap");
+              continue;
+            }
+
             let zap = document.createElement("span");
             zap.innerHTML = "⚡️";
             zap.class = "action-button action-button-zap";
             zap.className = "action-button action-button-zap";
             zap.ariaPressed = "false";
             zap.title = "Zap sats to " + comment.innerText;
-            zap.id = "zap-" + com;
+            zap.id = thread;
+            zap.url = date.href;
+            zap.comentid = thread;
             zap.target = comment.innerText;
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
+            console.log(zap);
             greatGrandParent.insertBefore(zap, grandParent);
-            let zapButton = document.getElementById("zap-" + com)
+            let zapButton = document.getElementById(thread);
+            console.log(zapButton);
             zapButton.onclick = async function () {
               walletData = null;
               this.innerText = "🗲";
@@ -127,14 +146,22 @@ async function register({ registerHook, peertubeHelpers }) {
 
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
-    handler: async () => {
-      if (debugEnabled) {
-        console.log("replies loaded");
-      }
+    handler: async ({video}) => {
+      console.log("thread action popped",video );
       let comments = document.getElementsByClassName("comment-account-fid");
+      let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
-        let walletApi, walletData;
         let comment = comments[com];
+        let date = dates[com];
+        let thread
+        if (date && date.href) {
+          thread = date.href.split("=")[1];
+        } else {
+          console.log("no thread id", date);
+          continue;
+        }
+        console.log("whatup gee", com, comment.innerText, date.href);
+        let walletApi, walletData, wallet;
         if (comment.wallet) {
           continue;
         }
@@ -142,51 +169,59 @@ async function register({ registerHook, peertubeHelpers }) {
           try {
             walletApi = basePath + "/walletinfo?account=" + comment.innerText
             walletData = await axios.get(walletApi);
-            comment.wallet = walletData.data;
+            comment.wallet = walletData.data
           } catch {
             console.log("error trying to get wallet info", walletApi);
           }
         }
-        if (walletData) {
+        if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
+            if (debugEnabled) {
+              console.log(walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+            }
             let zap = document.createElement("span");
             zap.innerHTML = "⚡️";
             zap.class = "action-button action-button-zap";
             zap.className = "action-button action-button-zap";
             zap.ariaPressed = "false";
             zap.title = "Zap sats to " + comment.innerText;
-            zap.id = "zap-" + com;
-            zap.style = "cursor:pointer";
+            zap.id = thread;
+            zap.url = date.href;
+            zap.comentid = thread;
             zap.target = comment.innerText;
+            zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
+            console.log(zap);
             greatGrandParent.insertBefore(zap, grandParent);
-            let zapButton = document.getElementById("zap-" + com)
+            let zapButton = document.getElementById(thread);
+            console.log(zapButton);
             zapButton.onclick = async function () {
               walletData = null;
               this.innerText = "🗲";
-              try {
-                walletApi = basePath + "/walletinfo?account=" + this.target;
-                walletData = await axios.get(walletApi);
-              } catch {
-                console.log("error trying to get wallet info", walletApi);
+              if (comment.innerText) {
+                try {
+                  walletApi = basePath + "/walletinfo?account=" + comment.innerText
+                  walletData = await axios.get(walletApi);
+                } catch {
+                  console.log("error trying to get wallet info", walletApi);
+                }
               }
               if (walletData) {
-                var wallet = walletData.data;
+                wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
+                let link = window.location.href + ";threadId=" + this.id;
                 if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
-                  if (debugEnabled) {
-                    console.log("sending keysend zap", wallet.keysend, 69, "zap from " + userName, userName, userName, null, "boost", null, null, null, 69, this.target);
-                  }
-                  await boost(wallet.keysend, 69, "Cross App Comment Zap from " + userName, userName, userName, null, "boost", null, null, null, 69, this.target);
+                  await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target);
                 } else if (wallet.lnurl && lnurlEnabled) {
-                  if (debugEnabled) {
-                    console.log("sending lnurl zap", wallet.lnurl, 69, "zap from " + userName, userName);
-                  }
-                  await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
+                  await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
                 }
               }
               this.innerHTML = "⚡️";
+            }
+          } else {
+            if (debugEnabled) {
+              console.log("wallet doesn't support required address type", walletData.data.address);
             }
           }
         } else {
@@ -195,6 +230,14 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
+    }
+  })
+  registerHook({
+    target: 'filter:api.video-watch.video-threads.list.result',
+    handler: async (result, params) => {
+      console.log("thread filter hook", result, params)
+      //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`
+      return result;
     }
   })
 
@@ -687,7 +730,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let remoteHost, remoteUser, localHost;
     if (parseInt(amount) < 1) {
-      amount = "69";
+      amount = "1";
     }
     if (!from) {
       from = "Anon";
@@ -843,14 +886,14 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function getChatRoom(channel) {
-    if (debugEnabled){
-      console.log("getting chat room",channel,basePath)
+    if (debugEnabled) {
+      console.log("getting chat room", channel, basePath)
     }
     let chatApi = basePath + "/getchatroom?channel=" + channel;
     try {
       let chatRoom = await axios.get(chatApi);
       if (chatRoom) {
-        console.log("chatroom returned",chatRoom,"data",chatRoom.data);
+        console.log("chatroom returned", chatRoom, "data", chatRoom.data);
         return chatRoom.data;
       }
     } catch (err) {
