@@ -146,8 +146,8 @@ async function register({ registerHook, peertubeHelpers }) {
 
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
-    handler: async ({video}) => {
-      console.log("thread action popped",video );
+    handler: async ({ video }) => {
+      console.log("thread action popped", video);
       let comments = document.getElementsByClassName("comment-account-fid");
       let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
@@ -643,6 +643,15 @@ async function register({ registerHook, peertubeHelpers }) {
       assignEditButtons(splitData, channel);
     }
   })
+  registerHook({
+    target: 'action:embed.player.loaded',
+    handler: async ({ player, videojs, video }) => {
+      console.log("embedded within the wall",player,videojs,video);
+      let x = document.getElementsByClassName("vjs-control-bar");
+      console.log("menu",x.length);
+    }
+  })
+
 
   async function sendSats(walletData, amount, message, from) {
     if (debugEnabled) {

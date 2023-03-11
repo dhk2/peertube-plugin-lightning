@@ -1,4 +1,5 @@
 v 4.0.8
+- added keysend boosting to embedded video overlay menu
 - fixed butting setting fractional boosts to 69
 - fixed editting bug with custom keysend splits
 - changed zaps to use comment id for html id for tracking.

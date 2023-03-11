@@ -2,7 +2,8 @@ const path = require('path')
 const esbuild = require('esbuild')
 
 const clientFiles = [
-  'common-client-plugin.js'
+  'common-client-plugin.js',
+  'embed-client-plugin.js'
 ]
 
 const configs = clientFiles.map(f => ({

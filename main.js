@@ -350,12 +350,12 @@ async function register({
             console.log("⚡️⚡️lightning address in account description does not resolve", foundLightningAddress, req.query);
           }
         }
+        let notFound = { status: 404 };
+        notFound.cache = Date.now();
+        storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
+        return res.status(400).send();
       }
     }
-    let notFound = { status: 404 };
-    notFound.cache = Date.now();
-    storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
-    return res.status(400).send();
   })
   router.use('/podcast2', async (req, res) => {
     if (enableDebug) {
@@ -832,8 +832,8 @@ async function register({
               }
             }
             if (finalItemId) {
-              console.log("obtained id from podcast index",uuid, finalItemId);
-              await storageManager.storeData("podcast" + "-" + uuid,podcastIndexId,finalItemId);
+              console.log("obtained id from podcast index", uuid, finalItemId);
+              await storageManager.storeData("podcast" + "-" + uuid, podcastIndexId, finalItemId);
               return res.status(200).send(finalItemId);
             }
           } else {
