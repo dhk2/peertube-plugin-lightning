@@ -1,6 +1,22 @@
+v 4.1.0
+- added boostagram dialog to embedded boosts
+- fixed lnurl issues
+- added visual queues to show payments processing
+- cleaned up embedded code
+- Found better open source SVG for lightning icon
+
+v 4.0.9
+- added name field to create and add split
+- extended autogeneration of chat room to edit dialog
+- added LNURL support to embedded overlay menu
+- only add lightning icon to embedded player if webln is available
+- fixed problem with replies not being boostable
+- fixed bug keeping common client code from updating
+- fixed unneccesary api errors in boost function
+
 v 4.0.8
 - added keysend boosting to embedded video overlay menu
-- fixed butting setting fractional boosts to 69
+- fixed bug setting setting fractional boosts to 69
 - fixed editting bug with custom keysend splits
 - changed zaps to use comment id for html id for tracking.
 

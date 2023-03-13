@@ -1354,6 +1354,9 @@ async function register({
             split[slot].keysend.pubkey = node;
             //split[slot].customKeysend = true;
           }
+          if (!split[slot].keysend.customData){
+            split[slot].keysend.customData=[{}];
+          }
           if (customKey != split[slot].keysend.customData[0].customKey) {
             split[slot].keysend.customData[0].customKey = customKey;
             //  split[slot].customKeysend = true;
@@ -1534,6 +1537,7 @@ async function register({
     var newAddress = req.query.splitaddress;
     var newSplit = req.query.split;
     var channel = req.query.channel
+    var name = req.query.name;
     if (req.query.video) {
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
@@ -1572,6 +1576,11 @@ async function register({
                 }
                 var splitData = new Array();
                 walletData.split = 100;
+                if (name) {
+                  walletData.name = name;
+                } else {
+                  walletData.name = "anon";
+                }
                 splitData.push(walletData);
                 if (hostWalletData && parseInt(hostwalletData.split) > 0) {
                   splitData[0].split = 100 - hostWalletData.split;
@@ -1594,6 +1603,9 @@ async function register({
         split = storedSplitData;
       }
     } else if (req.query.channel) {
+      if (newAddress.length === 66){
+
+      }
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
       if (storedSplitData) {
         console.log("█add split retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData.length);
@@ -1605,14 +1617,25 @@ async function register({
       }
     }
     console.log("split", split);
-    console.log("Create split attempting to add new address [" + newAddress + ']', req.query);
-    let keysendData = await getKeysendInfo(newAddress);
-    let lnurlData = await getLnurlInfo(newAddress);
+    console.log("Create split attempting to add new address [" + newAddress.length + ']', req.query);
+    let keysendData,lnurlData;
+
+    if (newAddress.length === 66){
+     keysendData={pubkey:newAddress};
+     keysendData.customData = [];
+     newAddress="custom";
+    } else {
+      if (newAddress.indexOf("@")<0){
+        console.log("malformed address without @");
+        return res.status(400).send();
+      }
+      keysendData = await getKeysendInfo(newAddress);
+      lnurlData = await getLnurlInfo(newAddress);
+    }
     let walletData = {};
     if (lnurlData || keysendData) {
-
       walletData.address = newAddress;
-      walletData.split = parseInt(newSplit);
+      walletData.split = 100;
       if (keysendData) {
         walletData.keysend = keysendData;
         console.log("successfully retrieved keysend data for wallet in channel", channel, keysendData);
@@ -1625,7 +1648,11 @@ async function register({
 
       }
       //var splitData = new Array;
-      walletData.name = newAddress;
+      if (name){
+      walletData.name = name;
+      } else {
+        walletData.name = newAddress;
+      }
       split.push(walletData);
       if (hostWalletData && hostWalletData.split > 0) {
         split[0].split = 100 - hostWalletData.split;

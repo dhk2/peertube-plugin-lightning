@@ -1,4 +1,4 @@
-import axios from 'axios'; 1000
+import axios from 'axios';
 import QRious from 'qrious';
 //import QRCode from 'qrcode';
 //var qrcode = new QRCode("qrcode");
@@ -37,8 +37,10 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   peertubeHelpers.getServerConfig()
     .then(config => {
-      console.log('Fetched server config.', config)
+      console.log('Fetched server config.', config);
+      instanceName = config.instance.name;
     })
+  
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -49,6 +51,8 @@ async function register({ registerHook, peertubeHelpers }) {
           userName = userName.replace(" ", "-")
         }
       }
+      let what = document.getElementById("plugin-selector-menu-user-dropdown-language-item");
+      console.log(what);
     }
   })
 
@@ -146,8 +150,8 @@ async function register({ registerHook, peertubeHelpers }) {
 
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
-    handler: async ({ video }) => {
-      console.log("thread action popped", video);
+    handler: async () => {
+      console.log("thread action popped wtfbbq");
       let comments = document.getElementsByClassName("comment-account-fid");
       let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
@@ -163,7 +167,10 @@ async function register({ registerHook, peertubeHelpers }) {
         console.log("whatup gee", com, comment.innerText, date.href);
         let walletApi, walletData, wallet;
         if (comment.wallet) {
-          continue;
+          if (debugEnabled)
+          {
+            console.log("wallet already set for comment",comment.wallet);
+          }          continue;
         }
         if (comment.innerText) {
           try {
@@ -185,7 +192,8 @@ async function register({ registerHook, peertubeHelpers }) {
             zap.className = "action-button action-button-zap";
             zap.ariaPressed = "false";
             zap.title = "Zap sats to " + comment.innerText;
-            zap.id = thread;
+            zap.id = thread +"-"+ com;
+            //console.log(thread,com,zap.id,thread+"-"+com,com.toString());
             zap.url = date.href;
             zap.comentid = thread;
             zap.target = comment.innerText;
@@ -194,7 +202,7 @@ async function register({ registerHook, peertubeHelpers }) {
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
             console.log(zap);
             greatGrandParent.insertBefore(zap, grandParent);
-            let zapButton = document.getElementById(thread);
+            let zapButton = document.getElementById(zap.id);
             console.log(zapButton);
             zapButton.onclick = async function () {
               walletData = null;
@@ -210,7 +218,11 @@ async function register({ registerHook, peertubeHelpers }) {
               if (walletData) {
                 wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
-                let link = window.location.href + ";threadId=" + this.id;
+                let threadId = this.id.split("-")[0];
+                let link = window.location.href + ";threadId=" + threadId;
+                if (debugEnabled){
+                console.log("thread link",link, this.id);
+                }
                 if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
                   await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target);
                 } else if (wallet.lnurl && lnurlEnabled) {
@@ -384,6 +396,7 @@ async function register({ registerHook, peertubeHelpers }) {
         }
         if (!chatRoom) {
           let shortInstance = instanceName.split(".")[0];
+          shortInstance = shortInstance.split(" ")[0];
           let shortChannel = channelName.split("@")[0];
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
           await setChatRoom(channelName, chatRoom);
@@ -604,11 +617,13 @@ async function register({ registerHook, peertubeHelpers }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          modal[0].innerHTML = `<label for="name">Display name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name"><br>
+          Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
           document.getElementById("add-split-final").onclick = async function () {
             let newAddress = document.getElementById("modal-split-address").value;
-            let createApi = `/createsplit?channel=` + channel + `&splitaddress=` + newAddress;
+            let newName = encodeURI(document.getElementById("modal-split-name").value);
+            let createApi = `/createsplit?channel=` + channel + `&splitaddress=` + newAddress+ `&name=` + newName;
             let createResult;
             try {
               createResult = await axios.get(basePath + createApi);
@@ -733,7 +748,7 @@ async function register({ registerHook, peertubeHelpers }) {
         await sendSats(walletData, amount, message);
       }
     } catch {
-      //not supporting 
+      //not supporting
       await sendSats(walletData, amount, message);
       return;
     }
@@ -836,30 +851,37 @@ async function register({ registerHook, peertubeHelpers }) {
       }
 
     }
-    let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
-    try {
-      let itemId = await axios.get(itemApi);
-      if (itemId) {
-        boost.itemID = itemId.data;
+    if (episodeGuid){
+      let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
+      try {
+        let itemId = await axios.get(itemApi);
+        if (itemId) {
+          boost.itemID = itemId.data;
+        }
+      } catch (err) {
+        console.log("error getting itemid",itemApi,err);
       }
-    } catch (err) {
     }
-    let feedApi = basePath + "/getfeedid?channel=" + channelName;
-    try {
-      let feedId = await axios.get(feedApi);
-      if (feedId) {
-        boost.feedID = feedId.data;
+    if (channelName){
+      let feedApi = basePath + "/getfeedid?channel=" + channelName;
+      try {
+        let feedId = await axios.get(feedApi);
+        if (feedId) {
+          boost.feedID = feedId.data;
+        }
+      } catch (err) {
+        console.log("error getting feed id error",feedApi,err);
       }
-    } catch (err) {
-    }
-    let guid;
-    let guidApi = basePath + "/getchannelguid?channel=" + channelName;
-    try {
-      guid = await axios.get(guidApi);
-      if (guid) {
-        boost.guid = guid.data;
+      let guid;
+      let guidApi = basePath + "/getchannelguid?channel=" + channelName;
+      try {
+        guid = await axios.get(guidApi);
+        if (guid) {
+          boost.guid = guid.data;
+        }
+      } catch (err) {
+        console.log("error getting channel guid",guidApi,err)
       }
-    } catch (err) {
     }
     let paymentInfo;
     if (customValue) {
@@ -1042,6 +1064,12 @@ async function register({ registerHook, peertubeHelpers }) {
   async function getConfigPanel(splitInfo, channel) {
     let feedID = await getFeedID(channel);
     let chatRoom = await getChatRoom(channel);
+    if (!chatRoom) {
+      let shortInstance = instanceName.split(".")[0];
+      let shortChannel = channel.split("@")[0];
+      chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
+      await setChatRoom(channelName, chatRoom);
+    }
     if (debugEnabled) {
       console.log("getting config panel", splitInfo, feedID, chatRoom, channel);
     }
@@ -1205,11 +1233,11 @@ async function register({ registerHook, peertubeHelpers }) {
    <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28"></td></tr>
    <tr><td>Sats:</td>
    <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="`+ lastTip + `" size="6"></td></tr>
-    
+
     <td>&nbsp;</td><td style="text-align:right;">~$ <label id="modal-cashtip" name="modal-cashtip">`+ (lastTip * convertRate).toFixed(3) + `</label></td></tr>
-    
+
     <tr><td><label for="message">Message:</label><br></td></tr>
-    
+
     <tr><td colspan="2"><textarea STYLE="color: #000000; background-color: #ffffff; flex: 1;" rows="3" cols=30 id="modal-message" name="modal-message"></textarea>
     </td></tr></table>
     <br><button _ngcontent-vww-c178=""  id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</button>
@@ -1420,7 +1448,8 @@ async function register({ registerHook, peertubeHelpers }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
+          modal[0].innerHTML = `<label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
+          Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
           <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
           let addFinalButton = document.getElementById("add-split-final")
@@ -1529,15 +1558,15 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
-
+    let newName = document.getElementById('modal-split-name').value;
     let newAddress = document.getElementById("modal-split-address").value;
     if (newAddress.length == 66) {
       let node = newAddress;
       newAddress = "custom"
-      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;
       addApi = addApi + `&customkeysend=true&node=` + node + ``
     } else if (newAddress.indexOf("@") > 1) {
-      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress;
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;;
     } else {
       console.log("unable to add malformed split address", newAddress);
       notifier.error("Lightning address is neither an address or a valid server pubkey");
@@ -1588,30 +1617,32 @@ async function register({ registerHook, peertubeHelpers }) {
     } else {
       html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
     }
-
+    let customKey,customValue,status,pubKey;
+    html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
+    html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
     if (splitData[slot].keysend) {
-      html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
-      html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
-      let status = splitData[slot].keysend.status;
-      let pubKey = splitData[slot].keysend.pubkey;
-      let customKey = splitData[slot].keysend.customData[0].customKey;
-      let customValue = splitData[slot].keysend.customData[0].customValue;
-      if (!customKey) {
-        customKey = "";
+      status = splitData[slot].keysend.status;
+      pubKey = splitData[slot].keysend.pubkey;
+      if (splitData[slot].keysend.customData){
+        customKey = splitData[slot].keysend.customData[0].customKey;
+        customValue = splitData[slot].keysend.customData[0].customValue;
       }
-      if (!customValue) {
-        customValue = "";
-      }
-      if (ks) {
-        html = html + `<label for="address">Keysend pubkey:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
-        html = html + `<br><label for="address">Custom Key:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
-        html = html + `<br><label for="address">Custom Value:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
-      } else {
-        html = html + "Keysend: " + status;
-        html = html + "<br> Keysend pubkey: " + pubKey;
-        html = html + "<br> keysend custom key:" + customKey;
-        html = html + "<br> keysend custom value:" + customValue;
-      }
+    } 
+    if (!customKey) {
+      customKey = "";
+    }
+    if (!customValue) {
+      customValue = "";
+    }
+    if (ks) {
+      html = html + `<label for="address">Keysend pubkey:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
+      html = html + `<br><label for="address">Custom Key:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
+      html = html + `<br><label for="address">Custom Value:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
+    } else {
+      html = html + "Keysend: " + status;
+      html = html + "<br> Keysend pubkey: " + pubKey;
+      html = html + "<br> keysend custom key:" + customKey;
+      html = html + "<br> keysend custom value:" + customValue;
     }
     if (splitData[slot].lnurl) {
       html = html + "<br> LNURL callback: " + splitData[slot].lnurl.callback;
