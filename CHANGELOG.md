@@ -1,3 +1,11 @@
+v 4.1.1
+- fixed invalid address format error crashing plugin install
+- 
+
+v 4.1.0
+- added minimal activitypub actor format verification to prevent server crashing issue
+- added try blocks around all storagemanager calls with relevant catch error messages
+
 v 4.1.0
 - added boostagram dialog to embedded boosts
 - fixed lnurl issues

@@ -101,9 +101,6 @@ async function register({
   if (!lightningAddress) {
     console.log("⚡️⚡️No wallet configured for system");
   }
-  if (lightningAddress.indexOf("@") < 1) {
-    console.log("███⚡️⚡️malformed wallet address for system", lightningAddress);
-  }
   let hostSplit = await settingsManager.getSetting("lightning-split");
   if (!hostSplit) {
     hostSplit = 0;
@@ -259,7 +256,12 @@ async function register({
       }
     }
     if (req.query.account) {
-      var storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
+      var storedWallet
+      try {
+        storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
+      }catch {
+        console.log ("███failed to get stored lighting address",req.query.account);
+      }
       if (storedWallet) {
         console.log(" successfully found stored wallet data", req.query.account, storedWallet.address, storedWallet.status);
         if (storedWallet.status === 404) {
@@ -343,8 +345,11 @@ async function register({
             if (enableDebug) {
               console.log("⚡️⚡️preparing to save and return found wallet info", req.query.account, walletData.address);
             }
-
-            storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
+            try {
+              storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
+            }catch {
+              console.log ("███failed to get stored lighting address",req.query.account,walletData);
+            }
             return res.status(200).send(walletData);
           } else {
             console.log("⚡️⚡️lightning address in account description does not resolve", foundLightningAddress, req.query);
@@ -352,7 +357,11 @@ async function register({
         }
         let notFound = { status: 404 };
         notFound.cache = Date.now();
-        storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
+        try {
+          storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
+        } catch {
+          console.log ("███failed to store lighting address",req.query.account,notFound);
+        }
         return res.status(400).send();
       }
     }
@@ -700,7 +709,7 @@ async function register({
         await storageManager.storeData("podcast" + "-" + channel, feedID);
         return res.status(200).send();
       } catch (err) {
-        console.log("error getting feedid", channel);
+        console.log("error storing feedid", channel,feedID);
         return res.status(400).send();
       }
     }
@@ -760,7 +769,7 @@ async function register({
         await storageManager.storeData("irc" + "-" + channel, chatroom);
         return res.status(200).send(chatroom);
       } catch (err) {
-        console.log("███ error getting chatroom", channel);
+        console.log("███ error getting chatroom", channel,chatroom);
       }
     }
     return res.status(400).send();
@@ -799,7 +808,11 @@ async function register({
             console.log("██failed to pull item ID from video host", hostApi);
           }
           if (hostItemId) {
+          try {
             await storageManager.storeData("podcast" + "-" + uuid, hostItemId);
+          } catch {
+            console.log ("███failed to get stored lighting address",uuid, hostItemId);
+          }
             return res.status(200).send(hostItemId.data.toString());
           } else {
             console.log("██ No id provided by hosting instance");
@@ -833,7 +846,11 @@ async function register({
             }
             if (finalItemId) {
               console.log("obtained id from podcast index", uuid, finalItemId);
-              await storageManager.storeData("podcast" + "-" + uuid, podcastIndexId, finalItemId);
+              try {
+                await storageManager.storeData("podcast" + "-" + uuid, podcastIndexId, finalItemId);
+              } catch {
+                console.log ("███failed to get stored podcast ",uuid, podcastIndexId, finalItemId);
+              }
               return res.status(200).send(finalItemId);
             }
           } else {
@@ -873,7 +890,7 @@ async function register({
         await storageManager.storeData("podcast" + "-" + uuid, itemID);
         return res.sendStatus(200);
       } catch (err) {
-        console.log("███error setting item id", uuid);
+        console.log("███error setting item id", uuid,itemID);
         return res.sendStatus(400).send();
       }
     }
@@ -931,8 +948,12 @@ async function register({
     } else {
       channelGuid = crypto.randomUUID();
       if (channelGuid) {
+      try {
         await storageManager.storeData("channelguid" + "-" + channel, channelGuid);
-        return res.status(200).send(channelGuid);
+      } catch {
+        console.log ("███failed to get stored guid",channel, channelGuid);
+      }
+      return res.status(200).send(channelGuid);
       } else {
         console.log("██ error attempting to generate channel guiid");
         return res.status(400).send();
@@ -968,7 +989,11 @@ async function register({
         if (videoData) {
           console.log("videodata", videoData.streamingPlaylists);
           let videoChannel = videoData.data.channel.name;
-          storedSplitData = await storageManager.getData("lightningsplit" + "-" + videoChannel);
+          try {
+            storedSplitData = await storageManager.getData("lightningsplit" + "-" + videoChannel);
+          } catch {
+            console.log ("███failed to get lightning split",videoChannel);
+          } 
           console.log("█retrieved chaNNEL split info", videoChannel, storedSplitData.length);
           if (storedSplitData) {
             console.log("returning stored channel split", req.query.channel);
@@ -1021,7 +1046,11 @@ async function register({
                 splitData[0].split = 100 - hostWalletData.split;
                 splitData.push(hostWalletData);
               }
-              await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
+              try {
+                await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
+              } catch {
+                console.log ("███failed to store lightning split",req.query.video,splitData);
+              } 
               return res.status(200).send(splitData);
             } else {
               console.log("lightning address in video description does not resolve", foundLightningAddress);
@@ -1036,8 +1065,11 @@ async function register({
     }
     if (req.query.channel) {
       var storedSplitData;
-      var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
-
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.channel);
+      } 
       if (storedSplitData) {
         return res.status(200).send(storedSplitData);
       }
@@ -1099,7 +1131,11 @@ async function register({
               splitData[0].split = 100 - hostWalletData.split;
             }
             splitData.push(hostWalletData);
-            await storageManager.storeData("lightningsplit" + "-" + req.query.channel, splitData);
+            try {
+              await storageManager.storeData("lightningsplit" + "-" + req.query.channel, splitData);
+            } catch {
+              console.log ("███failed to store lightning split",req.query.channel,splitData);
+            } 
             return res.status(200).send(splitData);
           } else {
             console.log("lightning address in channel description does not resolve", foundLightningAddress);
@@ -1132,7 +1168,11 @@ async function register({
     var customKeysend = req.query.customkeysend;
 
     if (req.query.video) {
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.video);
+      } 
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (!storedSplitData) {
         console.log("stored split data not found");
@@ -1196,8 +1236,12 @@ async function register({
         split = storedSplitData;
       }
     } else if (req.query.channel) {
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
-      if (storedSplitData) {
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.channel);
+      } 
+        if (storedSplitData) {
         console.log("█add split retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData.length);
         split = storedSplitData;
 
@@ -1276,7 +1320,11 @@ async function register({
     let creatorSplit = split[0].split - newSplit
     split[0].split = parseInt(creatorSplit);
     console.log("split about to be written to storage manager", split);
-    storageManager.storeData("lightningsplit" + "-" + channel, split);
+    try {
+      storageManager.storeData("lightningsplit" + "-" + channel, split);
+    } catch {
+      console.log ("███failed to store lightning split",channel,split);
+    } 
     await pingPI(channel);
     return res.status(200).send(split);
   })
@@ -1303,7 +1351,11 @@ async function register({
       return res.status(400).send();
     }
     if (video && !channel) {
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + video);
+      try {
+       storedSplitData = await storageManager.getData("lightningsplit" + "-" + video);
+      } catch {
+        console.log ("███failed to GET lightning split",video);
+      } 
       console.log("█retrieved split info for video ", video, "\n", storedSplitData.length);
       if (!storedSplitData) {
         console.log("stored split data not found");
@@ -1330,7 +1382,11 @@ async function register({
     }
     if (channel) {
       if (!storedSplitData) {
-        storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+        try {
+          storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+        } catch {
+          console.log ("███failed to get lightning split",channel);
+        } 
         console.log("█retrieved chaNNEL split info", channel, "\n", storedSplitData.length);
       }
       if (storedSplitData) {
@@ -1389,13 +1445,16 @@ async function register({
         let creatorSplit = 100 - otherSplit
         split[0].split = parseInt(creatorSplit);
         console.log(split);
-        if (req.query.channel) {
-          await storageManager.storeData("lightningsplit" + "-" + channel, split);
-        }
-        if (req.query.video) {
-          await storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
-
-        }
+        try {
+          if (req.query.channel) {
+            await storageManager.storeData("lightningsplit" + "-" + channel, split);
+          }
+          if (req.query.video) {
+            await storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
+          }
+        } catch {
+          console.log ("███failed to store lightning split",req.query.video,channel,split);
+        } 
         console.log("updated slot", slot, "with", split[slot]);
         await pingPI(channel);
         return res.status(200).send(split);
@@ -1424,7 +1483,11 @@ async function register({
       return res.status(400).send();
     }
     if (req.query.video) {
-      var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.video);
+      } 
       var apiCall;
       console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (!storedSplitData) {
@@ -1488,7 +1551,12 @@ async function register({
         split = storedSplitData;
       }
     } else if (channel) {
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+      } catch {
+        console.log ("███failed to get lightning split",channel);
+      } 
+
       console.log("█retrieved chaNNEL split info", channel, "\n", storedSplitData);
 
       if (storedSplitData) {
@@ -1511,8 +1579,12 @@ async function register({
         let creatorSplit = 100 - otherSplit
         newSplit[0].split = parseInt(creatorSplit);
         console.log("split about to be writ", newSplit);
-        await storageManager.storeData("lightningsplit" + "-" + channel, newSplit);
-        console.log("█████ slot removed", slot, ".", newSplit.length, "splits remaining");
+        try {
+          await storageManager.storeData("lightningsplit" + "-" + channel, newSplit);
+        } catch {
+          console.log ("███failed to store lightning split",channel,newSplit);
+        } 
+          console.log("█████ slot removed", slot, ".", newSplit.length, "splits remaining");
         await pingPI(channel);
         return res.status(200).send(newSplit);
       } else {
@@ -1539,8 +1611,12 @@ async function register({
     var channel = req.query.channel
     var name = req.query.name;
     if (req.query.video) {
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
-      console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
+      try {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.video);
+      } 
+        console.log("█retrieved split info", req.query.key, "\n", storedSplitData);
       if (!storedSplitData) {
         console.log("stored split data not found");
         if (req.query.video) {
@@ -1606,7 +1682,11 @@ async function register({
       if (newAddress.length === 66){
 
       }
-      storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      try {
+       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+      } catch {
+        console.log ("███failed to get lightning split",req.query.channel);
+      } 
       if (storedSplitData) {
         console.log("█add split retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData.length);
         console.log('already existing splitData for', req.query.channel, storedSplitData);
@@ -1660,7 +1740,11 @@ async function register({
       } else {
         split[0].split = 100;
       }
-      storageManager.storeData("lightningsplit" + "-" + channel, split);
+      try {
+        storageManager.storeData("lightningsplit" + "-" + channel, split);
+      } catch {
+        console.log ("███failed to store lightning split",channel,split);
+      } 
       await pingPI(channel);
       return res.status(200).send(split);
     } else {
@@ -1688,10 +1772,22 @@ async function register({
       console.log("getting keysend info for", address);
     }
     if (!address) { return };
+    //TODO need proper function to validate actor address and derived index value
+    if ((address.indexOf(`"`)>=0) || (address.indexOf(">")>=0) || (address.indexOf("<")>=0)){
+      return;
+    }
+    let parts = address.split("@");
+    if ((parts.length<2) || (parts[1].indexOf(".")<1)){
+      return;
+    }  
     var storageIndex = "lightning-" + address.replace(/\./g, "-");
     console.log("█Getting Address", address, storageIndex);
     var storedLightning;
-    storedLightning = await storageManager.getData(storageIndex);
+    try {
+     storedLightning = await storageManager.getData(storageIndex);
+    } catch {
+      console.log ("███failed to get stored lighting address",storageIndex);
+    }
     if (storedLightning) {
       console.log("███returning stored lightning address", storageIndex);
       return storedLightning;
@@ -1718,8 +1814,12 @@ async function register({
     }
     walletData.data.cache = Date.now();
     console.log(walletData.data)
-    let whatHappened = await storageManager.storeData(storageIndex, walletData.data);
-
+    let whatHappened;
+    try{
+      whatHappened = await storageManager.storeData(storageIndex, walletData.data);
+    } catch {
+      console.log ("███failed to store lighting address",storageIndex,walletData.data);
+    }
     console.log("stored keysend data", whatHappened, storageIndex, walletData.data);
 
     return walletData.data;

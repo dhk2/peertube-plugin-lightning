@@ -112,7 +112,8 @@ async function register({ registerHook, peertubeHelpers }) {
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(thread);
             console.log(zapButton);
-            zapButton.onclick = async function () {
+            if (zapButton){
+              zapButton.onclick = async function () {
               walletData = null;
               this.innerText = "🗲";
               if (comment.innerText) {
@@ -134,6 +135,7 @@ async function register({ registerHook, peertubeHelpers }) {
               }
               this.innerHTML = "⚡️";
             }
+          }
           } else {
             if (debugEnabled) {
               console.log("wallet doesn't support required address type", walletData.data.address);
@@ -203,7 +205,8 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log(zap);
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(zap.id);
-            console.log(zapButton);
+            console.log("zapButton",zapButton);
+            if (zapButton){
             zapButton.onclick = async function () {
               walletData = null;
               this.innerText = "🗲";
@@ -231,6 +234,7 @@ async function register({ registerHook, peertubeHelpers }) {
               }
               this.innerHTML = "⚡️";
             }
+          }
           } else {
             if (debugEnabled) {
               console.log("wallet doesn't support required address type", walletData.data.address);
