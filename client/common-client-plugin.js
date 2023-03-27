@@ -267,7 +267,13 @@ async function register({ registerHook, peertubeHelpers }) {
       if (streamTimer) {
         clearInterval(streamTimer);
       }
-      let videoEl = player.el().getElementsByTagName('video')[0]
+      let videoEl;
+      if (player.el()){
+        videoEl = player.el().getElementsByTagName('video')[0]
+      } else {
+        //weird error condition avoidance
+        videoEl - {time:0};
+      }
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
       }
@@ -389,6 +395,8 @@ async function register({ registerHook, peertubeHelpers }) {
         newContainer.setAttribute('id', 'peertube-plugin-irc-container')
         newContainer.setAttribute('hidden', 'true');
         addSpot.append(newContainer)
+        //addSpot.append()
+
         var container = document.getElementById('peertube-plugin-irc-container')
 
         if (!container) {
@@ -405,7 +413,8 @@ async function register({ registerHook, peertubeHelpers }) {
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
           await setChatRoom(channelName, chatRoom);
         }
-        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
+        let chatLink = "https://kiwiirc.com/nextclient/#"+chatRoom+ '?nick=' + userName + '&autoconnect=true&startupscreen=welcome';
+        //let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
         if (userName === 'PeerTuber') {
           chatLink = chatLink + "???";
         }
@@ -425,6 +434,14 @@ async function register({ registerHook, peertubeHelpers }) {
         docIframe.style.flexDirection = "column";
         docIframe.style.resize = "both";
         docIframe.style.overflow = "auto";
+        docIframe.contentWindow.kiwiconfig =  () => {console.log("███kiwi config called ")}
+        let idoc=docIframe.contentWindow.document;
+        let ibody = idoc.getElementsByTagName('body');
+        let configScript = document.createElement(`div`);
+        configScript.innerHTML=`<script name="kiwiconfig">{"startupScreen": "welcome", "startupOptions": { "server": "irc.freenode.net", "port": 6697, "tls": true, "direct": false, "nick": "specialk" "autoConnect": true }}</script>`;
+        console.log("before",ibody,configScript);
+        ibody[0].appendChild(configScript)
+        console.log("after",ibody,configScript);
       }
       if (splitData) {
         let addSpot2Find = document.getElementsByClassName("video-actions");
@@ -577,6 +594,7 @@ async function register({ registerHook, peertubeHelpers }) {
           window.open(kofiLink, 'popup', 'width=600,height=800');
         }
       }
+
     }
   })
 
@@ -598,15 +616,19 @@ async function register({ registerHook, peertubeHelpers }) {
       let id = document.getElementById("id");
       id.value = feedID;
       let updateButton = document.getElementById("update-feed");
-      document.getElementById("update-feed").onclick = async function () {
-        setFeedID(channel, id.value);
-        updateButton.innerText = "Saved!";
+      if (updateButton){
+      updateButton.onclick = async function () {
+          setFeedID(channel, id.value);
+          updateButton.innerText = "Saved!";
+        }
       }
       let chatRoom = document.getElementById("chatroom");
       let chatButton = document.getElementById("update-chat");
-      document.getElementById("update-chat").onclick = async function () {
-        setChatRoom(channel, chatRoom.value);
-        chatButton.innerText = "Saved!";
+      if (chatButton) {
+        chatButton.onclick = async function () {
+          setChatRoom(channel, chatRoom.value);
+          chatButton.innerText = "Saved!";
+        }
       }
       let createButton = document.getElementById('create-split');
       if (createButton) {
@@ -1026,6 +1048,7 @@ async function register({ registerHook, peertubeHelpers }) {
       splitData = await axios.get(splitApi);
     } catch {
       console.log("client unable to fetch split data\n", splitApi);
+
       return;
     }
     for (var split of splitData.data) {

@@ -1,6 +1,9 @@
+v 4.1.2
+- fixed bug with videoEl not existing.
+- fixed bug breaking split editting if chat disabled.
+
 v 4.1.1
 - fixed invalid address format error crashing plugin install
-- 
 
 v 4.1.0
 - added minimal activitypub actor format verification to prevent server crashing issue

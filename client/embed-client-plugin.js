@@ -110,7 +110,9 @@ function register({ registerHook }) {
                 boost.episode = video.title;
                 let shortUrl = "https://"+video.channel.host+"/w/"+video.shortUUID;
                 boost.url = shortUrl;
-                boost.link = shortUrl;
+                console.log(window.top);
+                //boost.link = window.top.location.href;
+                boost.link =shortUrl;
                 boost.episode_guid = video.uuid
                 let pubKey = walletData.keysend.pubkey;
                 let customKeyHack, customValue
