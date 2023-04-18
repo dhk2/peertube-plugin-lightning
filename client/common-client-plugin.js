@@ -1458,7 +1458,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
   }
   async function assignEditButtons(splitData, channel) {
-    if (splitData.length > 0) {
+    if (splitData && splitData.length > 0) {
       let addButton = document.getElementById("add-split");
       if (addButton) {
         addButton.onclick = async function () {
