@@ -55,7 +55,7 @@ async function register({
     name: 'lightning-tipVerb',
     label: 'Verb to use for tipping',
     type: 'input',
-    default: 'Tip',
+    default: 'Boost',
     descriptionHTML: 'Superchat, Zap, Boostagram, bits, spells, whatever your community would prefer.',
     private: false
   })
@@ -68,6 +68,7 @@ async function register({
   })
   registerSetting({
     name: 'legacy-enable',
+    default:true,
     label: 'Enable legacy fiat tip services',
     type: 'input-checkbox',
     descriptionHTML: 'This will search support and description fields for various third party tip providers',
@@ -75,6 +76,7 @@ async function register({
   })
   registerSetting({
     name: 'keysend-enable',
+    default: true,
     label: 'Enable Keysend lightning transactions',
     type: 'input-checkbox',
     descriptionHTML: 'This will enable keysend lightning tips, with boostagram meta data',
@@ -82,6 +84,7 @@ async function register({
   })
   registerSetting({
     name: 'lnurl-enable',
+    default: true,
     label: 'Enable LNURL lightning wallet transactions',
     type: 'input-checkbox',
     descriptionHTML: 'This will enable LNURL lightning wallet transactions, lacks any metadata and is much more data intensive but supports less advanced lighting wallets',
