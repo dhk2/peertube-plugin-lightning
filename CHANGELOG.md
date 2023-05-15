@@ -1,3 +1,6 @@
+v 4.1.4
+- Moved stream button out of player-next and to the top right.
+
 v 4.1.3
 - fixed SplitData undefined crashing bug
 - changed default values to enable payments

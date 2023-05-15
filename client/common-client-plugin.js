@@ -285,6 +285,8 @@ async function register({ registerHook, peertubeHelpers }) {
       let episodeGuid = video.uuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
+      let addSpot4 = document.getElementsByClassName('root-header-right')[0];
+      console.log("addspit section",addSpot4)
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
@@ -329,10 +331,10 @@ async function register({ registerHook, peertubeHelpers }) {
           if (streamEnabled) {
             streamButtonText = "⚡️" + streamAmount + "/min";
           } else {
-            streamButtonText = "⚡️Stream";
+            streamButtonText = "V4V";
           }
           //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
-          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted">` + streamButtonText + `</button>`
+          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -386,8 +388,9 @@ async function register({ registerHook, peertubeHelpers }) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
       }
       if (buttonHTML) {
+        console.log("--------------button hmtl",buttonHTML)
         elem.innerHTML = buttonHTML;
-        addSpot.appendChild(elem);
+        addSpot4.appendChild(elem);
 
       }
       if (chatEnabled) {
