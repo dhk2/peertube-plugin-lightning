@@ -11,7 +11,7 @@ async function register({ registerHook, peertubeHelpers }) {
   let lastTip = 69;
   let convertRate = .0002;
   let userName = "PeerTuber";
-  let accountName, channelName, videoName, instanceName;
+  let accountName, channelName, videoName, instanceName,accountAddress;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -44,15 +44,25 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
-      if (user && user.account && user.account.displayName) {
-        userName = user.account.displayName;
-        while (userName.indexOf(' ') > 0) {
-          //TODO smart people use pattern matching
-          userName = userName.replace(" ", "-")
+      if (user ) {
+        console.log("user",user);
+        let accountWalletApi = basePath + "/walletinfo?account="+user.username;
+        console.log("wallet api call",accountWalletApi,user.username);
+        try {
+          let accountWallet = await axios.get(accountWalletApi);
+          if (accountWallet){
+            accountAddress=accountWallet.data.address;
+            console.log("account wallet info",accountWallet.data,accountAddress);
+          } else {
+            console.log("no wallet data found for",user.username);
+          }
+        } catch (err) {
+          console.log("hard error getting wallet data",err);
         }
       }
-      let what = document.getElementById("plugin-selector-menu-user-dropdown-language-item");
-      console.log(what);
+
+      //let what = document.getElementById("plugin-selector-menu-user-dropdown-language-item");
+      //console.log(what);
     }
   })
 
@@ -128,7 +138,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
                 if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
-                  await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target);
+                  await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
                 }
@@ -227,7 +237,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 console.log("thread link",link, this.id);
                 }
                 if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
-                  await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target);
+                  await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
                 }
@@ -303,29 +313,30 @@ async function register({ registerHook, peertubeHelpers }) {
         for (var url of result) {
           if ((url.indexOf("tipeeestream.com") > 0) && (buttonHTML.indexOf("tipeee") <= 0)) {
             tipeeeLink = url;
-            buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Tipeee<!----><!----><!----></span><!----><!----></button>`
+            //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Tipeee<!----><!----><!----></span><!----><!----></button>`
+            buttonHTML = buttonHTML + ` <button title="tipeee pop up fiat payment" id = "tipeee" class="action-button">💲Tipeee</button>`
           }
           if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs") <= 0)) {
             streamlabsLink = url;
-            buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "streamlabs" type="button" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Streamlabs<!----><!----><!----></span><!----><!----></button>`
+            buttonHTML = buttonHTML + ` <button id="streamlabs" class="action-button">💲Streamlabs</button>`
           }
           if ((url.indexOf("donationalerts.com") > 0) && (buttonHTML.indexOf("donationalerts") <= 0)) {
             donationalertsLink = url;
-            buttonHTML = buttonHTML + ` <a display:none id = "donationalerts" class="peertube-button orange-button ng-star-inserted" title="donationalerts">💲Donation Alerts</a>`
+            buttonHTML = buttonHTML + ` <a display:none id = "donationalerts" class="action-button" title="donationalerts">💲Donation Alerts</a>`
           }
           if ((url.indexOf("donate.stream") > 0) && (buttonHTML.indexOf("donatestream") <= 0)) {
             donatestreamLink = url;
-            buttonHTML = buttonHTML + ` <a display:none id = "donatestream" class="peertube-button orange-button ng-star-inserted" title="💲donatestream">donation.stream</a>`
+            buttonHTML = buttonHTML + ` <a display:none id = "donatestream" class="action-button" title="donatestream">💲donation.stream</a>`
           }
           if ((url.indexOf("ko-fi.com") > 0) && (buttonHTML.indexOf("kofi") <= 0)) {
             kofiLink = url + "#checkoutModal";
-            buttonHTML = buttonHTML + ` <a display:none id = "kofi" class="peertube-button orange-button ng-star-inserted" title="kofi">💲Ko-Fi</a>`
+            buttonHTML = buttonHTML + ` <a display:none id = "kofi" class="action-button" title="kofi">💲Ko-Fi</a>`
           }
         }
       }
 
       let splitData = await getSplit();
-      var streamButtonText;
+      var streamButtonText,v4vButtonHTML;
       if (splitData) {
         if (!document.querySelector('.lightning-buttons-block')) {
           if (streamEnabled) {
@@ -334,7 +345,7 @@ async function register({ registerHook, peertubeHelpers }) {
             streamButtonText = "V4V";
           }
           //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
-          buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
+          v4vButtonHTML = ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
           let delta = 0;
           let lastStream = videoEl.currentTime;
           streamTimer = setInterval(async function () {
@@ -364,7 +375,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   var amount = streamAmount * (wallet.split / 100);
                   let result;
                   if (wallet.keysend && keysendEnabled) {
-                    result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name);
+                    result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name,accountAddress);
                   } else if (wallet.lnurl && lnurlEnabled) {
                     result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
                     //walletData = await refreshWalletInfo(walletData.address);
@@ -387,9 +398,9 @@ async function register({ registerHook, peertubeHelpers }) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▲" + `</button>`
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
       }
-      if (buttonHTML) {
-        console.log("--------------button hmtl",buttonHTML)
-        elem.innerHTML = buttonHTML;
+      if (v4vButtonHTML) {
+        console.log("--------------button hmtl",v4vButtonHTML)
+        elem.innerHTML = v4vButtonHTML;
         addSpot4.appendChild(elem);
 
       }
@@ -459,7 +470,21 @@ async function register({ registerHook, peertubeHelpers }) {
         transparentButton.ariaPressed = "false";
         transparentButton.title = "Send Sats to " + channelName;
         transparentButton.id = "boostagram"
+        let fiatButtons=document.createElement('span');
+        fiatButtons.innerHTML=buttonHTML;
         addSpot2.insertBefore(transparentButton, addSpot3);
+        //let hackspot = document.getElementById("boostagram")
+        addSpot2.insertBefore(fiatButtons, addSpot3);
+        buttonHTML=undefined;
+      }
+      if (buttonHTML){
+        let addSpot2Find = document.getElementsByClassName("video-actions");
+        let addSpot2 = addSpot2Find[0];
+        let addSpot3Find = document.getElementsByClassName("action-button")
+        let addSpot3 = addSpot3Find[2];
+        let fiatButtons=document.createElement('span');
+        fiatButtons.innerHTML=buttonHTML;
+        addSpot2.insertBefore(fiatButtons, addSpot3);  
       }
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
@@ -761,7 +786,7 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
     if (debugEnabled) {
       console.log("boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
@@ -911,6 +936,9 @@ async function register({ registerHook, peertubeHelpers }) {
       } catch (err) {
         console.log("error getting channel guid",guidApi,err)
       }
+    }
+    if (replyAddress){
+      boost.reply_address=replyAddress;
     }
     let paymentInfo;
     if (customValue) {
@@ -1172,7 +1200,7 @@ async function register({ registerHook, peertubeHelpers }) {
         if (debugEnabled) {
           console.log("sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
-        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name);
+        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress);
       } else if (wallet.lnurl && lnurlEnabled) {
         if (debugEnabled) {
           console.log("sending lnurl boost", wallet.lnurl, splitAmount, message, from);
@@ -1316,8 +1344,13 @@ async function register({ registerHook, peertubeHelpers }) {
     if (debugEnabled) {
       console.log("making stream dialog", channelName);
     }
-    let buttonText = '⚡️Stream⚡️';
+    let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
+    Lightning address for boostbacks and cross app zaps. <br>
+    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
+    <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>
+  
+    <hr>
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
@@ -1331,6 +1364,28 @@ async function register({ registerHook, peertubeHelpers }) {
     let modalSatTip = document.getElementById("modal-sats");
     let modalCashTip = document.getElementById("modal-cashtip");
     let menuStreamAmount = document.getElementById('streamamount');
+    let modalAddressUpdate = document.getElementById('modal-address-update')
+    let userAddress = document.getElementById('modal-address')
+    if (modalAddressUpdate){
+      modalAddressUpdate.onclick = async function () {
+        let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
+        console.log("api call to get update user lightningAddres",setWalletApi);
+        try {
+          let setWalletApi = basePath + "/walletinfo?account="+user.username;
+          let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
+          console.log("user lightning address",userData.data.address);
+          if (userData && userData.data){
+            console.log("user lightning address",userData.data.address);
+            accountAddress=userData.data.address;
+          } else {
+            console.log("didn't get good user address");
+          }
+        } catch (err){
+          console.log("error attempting to login",userApi,matrixUser,err);
+        }
+
+      }
+    }
     if (modalSatStream) {
       modalSatStream.onchange = async function () {
         modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);

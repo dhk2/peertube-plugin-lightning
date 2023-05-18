@@ -1,3 +1,8 @@
+v 4.1.5
+- added reply_to field boosts
+- add lighting address configuration for users to v4v dialog
+- moved fiat tip buttons down next to boost button
+
 v 4.1.4
 - Moved stream button out of player-next and to the top right.
 
