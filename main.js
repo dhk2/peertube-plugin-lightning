@@ -376,7 +376,7 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ podcast2 request ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", req.query);
     }
     if (!enableRss) {
-      return res.status(503).send();
+      return res.status(503).send("rss feed disabled by sysop");
     }
     if (req.query.channel == undefined) {
       console.log("⚡️⚡️no channel requested", req.query);
@@ -697,7 +697,24 @@ async function register({
       console.log("⚡️⚡️getting feed id", req.query);
     }
     let channel = req.query.channel;
+    if (!channel){
+      return res.status(420).send("no channel in feed id request");
+    }
     let feed;
+    let parts = channel.split('@');
+    if (parts.length > 1) {
+      let feedApi = "https://" + parts[1] + "/plugins/lightning/router/getfeedid?channel=" + parts[0];
+      try {
+        feed = await axios.get(feedApi);
+      } catch {
+        console.log("⚡️⚡️hard error getting feed id for ", channel, "from", parts[1], feedApi);
+      }
+      if (feed && feed.data) {
+        console.log("⚡️⚡️ returning", feed.data, "for", channel,feed.data.toString());
+        return res.status(200).send(feed.data.toString());
+      }
+      return res.status(420).send("remote channel returned no feed id");
+    }
     if (channel) {
       try {
         feed = await storageManager.getData("podcast" + "-" + channel)
@@ -709,7 +726,7 @@ async function register({
     if (feed) {
       return res.status(200).send(feed.toString());
     } else {
-      return res.status(400).send();
+      return res.status(400).send("no feed id found for requested channel");
     }
   })
   router.use('/setfeedid', async (req, res) => {
@@ -798,7 +815,7 @@ async function register({
       try {
         item = await storageManager.getData("podcast" + "-" + uuid);
       } catch (err) {
-        console.log("⚡️⚡️ error getting itemid", uuid);
+        console.log("⚡️⚡️ error getting stored itemid", uuid);
       }
     }
     if (item) {
@@ -1773,6 +1790,7 @@ async function register({
     }
     return res.status(400).send("failed to update");
   })
+
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
     try {
@@ -1830,7 +1848,7 @@ async function register({
       return;
     }
     if (walletData.data.status != "OK") {
-      console.log("-⚡️⚡️ Error in lightning address data", walletData.data);
+      console.log("⚡️⚡️ Error in lightning address data", walletData.data);
       return;
     }
     walletData.data.cache = Date.now();
