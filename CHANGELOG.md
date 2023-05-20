@@ -1,3 +1,7 @@
+v 4.1.6
+- fixed feed ID to federate
+- added fix to item ID federation
+
 v 4.1.5
 - added reply_to field boosts
 - add lighting address configuration for users to v4v dialog
