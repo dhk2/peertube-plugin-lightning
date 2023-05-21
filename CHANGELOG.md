@@ -1,3 +1,8 @@
+v 4.1.7
+- commented out enable-rss feature to fix possible bug
+- fixed name for host split, and fee value in podcast rss
+- added support for matrix plugin for podcast:chat
+
 v 4.1.6
 - fixed feed ID to federate
 - added fix to item ID federation

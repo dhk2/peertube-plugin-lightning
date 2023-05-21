@@ -118,7 +118,7 @@ async function register({
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
   let enableDebug = await settingsManager.getSetting("debug-enable");
-  let enableRss = await settingsManager.getSetting("debug-enable");
+  //let enableRss = await settingsManager.getSetting("debug-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
   if (enableDebug) {
@@ -142,6 +142,7 @@ async function register({
         hostWalletData.split = parseInt(hostSplit);
       }
       hostWalletData.fee = true;
+      hostWalletData.name = hostName;
     }
   }
   const router = getRouter();
@@ -375,9 +376,11 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ podcast2 request ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", req.query);
     }
+    /*
     if (!enableRss) {
-      return res.status(503).send("rss feed disabled by sysop");
+      return res.status(503).send();
     }
+    */
     if (req.query.channel == undefined) {
       console.log("⚡️⚡️no channel requested", req.query);
       return res.status(400).send();
@@ -394,7 +397,7 @@ async function register({
     }
     console.log("⚡️⚡️ channel", channel, "instance", instance, instanceUrl);
     let apiUrl = instanceUrl + "/api/v1/video-channels/" + channel;
-    let mirrorUrl = instanceUrl + `/api/v1/server/redundancy/videos?target=my-videos`;
+   // let mirrorUrl = instanceUrl + `/api/v1/server/redundancy/videos?target=my-videos`;
     let channelData;
     try {
       channelData = await axios.get(apiUrl);
@@ -447,15 +450,26 @@ async function register({
     let channelGuid;
     apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + req.query.channel;
     try {
-      guidData = await axios.get(apiUrl);
-      if (guidData.data) {
+      let guidData = await axios.get(apiUrl);
+      if (guidData && guidData.data) {
         console.log("⚡️⚡️channel guid", guidData.data);
         channelGuid = guidData.data;
       }
     } catch {
       console.log("⚡️⚡️unable to load channel guid", apiUrl);
     }
-
+    //TODO figure out how to get info for livechat plugin as well
+    let chatInfo;
+    apiUrl = base + "/plugins/matrixchat/router/getchatjson?channel=" + req.query.channel;
+    try {
+      let chatData = await axios.get(apiUrl);
+      if (chatData && chatData.data) {
+        console.log("⚡️⚡️chat info", chatData.data);
+         chatInfo = chatData.data;
+      }
+    } catch {
+      console.log("⚡️⚡️unable to load chat info", apiUrl);
+    }
     let counter = 0;
     let fixed = "";
     let spacer = "";
@@ -534,7 +548,11 @@ async function register({
                   fixed = fixed + ' customKey="' + ck + '"'
                 }
               }
+              if (split.fee){
+                fixed = fixed + ` fee="true" `
+              }
               fixed = fixed + ` split="` + split.split + `" />\n`;
+
             }
           }
           fixed = fixed + spacer + '</podcast:value>\n';
@@ -546,6 +564,25 @@ async function register({
         } else {
           console.log("⚡️⚡️no channel guid available");
         }
+        if (chatInfo){
+          fixed = fixed+spacer+`<podcast:chat\n`;
+          if (chatInfo.protocol){
+            fixed = fixed+spacer+`\tprotocol="`+chatInfo.protocol+`"\n`;
+          }
+          if (chatInfo.accountId){
+            fixed = fixed+spacer+`\taccountId="`+chatInfo.accountId+`"\n`;
+          }
+          if (chatInfo.server){
+            fixed = fixed+spacer+`\tserver="`+chatInfo.server+`"\n`;
+          }
+          if (chatInfo.space){
+            fixed = fixed+spacer+`\tspace="`+chatInfo.space+`"\n`;
+          }
+          if (chatInfo.embedUrl){
+            fixed = fixed+spacer+`\tembedUrl="`+chatInfo.embedUrl+`"\n`;
+          }
+          fixed=fixed+spacer+`/>`
+        } 
       }
       if (line.indexOf("<url>") > 0) {
         spacer = (line.substring(0, line.indexOf('<')));
