@@ -526,7 +526,8 @@ async function register({
       }
       if (line.indexOf('atom:link') > 0) {
         spacer = (line.substring(0, line.indexOf('<')));
-
+        //let atompart = line.split("");
+        line=spacer+`<atom:link href="`+base+req.originalUrl+`" rel="self" type="application/rss+xml"/>`;
         fixed = fixed + "\n" + spacer + '<podcast:locked owner="' + req.query.channel + '">no</podcast:locked>';
         fixed = fixed + '\n' + spacer + '<itunes:owner>\n'
         //fixed = fixed + spacer + '\t<itunes:email>' + 'errhead@gmail.com' + '</itunes:email>\n'

@@ -17,7 +17,13 @@
       "scopes": [
         "common"
       ]
-    }
+    },
+    {
+      "script": "dist/video-edit-client-plugin.js",
+      "scopes": [
+        "video-edit"
+      ]
+    } 
   ],
   "css": [
     "assets/style.css"
