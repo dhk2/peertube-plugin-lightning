@@ -1,3 +1,7 @@
+v 4.1.8
+- added video-edit-client-plugin.js and updates scripts and package
+- fixed server support and added client support for episode splits
+
 v 4.1.7
 - commented out enable-rss feature to fix possible bug
 - fixed name for host split, and fee value in podcast rss
