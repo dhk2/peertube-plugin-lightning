@@ -2,25 +2,84 @@ import axios from 'axios';
 function register({ registerHook, peertubeHelpers }) {
     registerHook({
         target: 'action:video-edit.init',
-        handler: async ({ video }) => {
+        handler: async () => {
             const { notifier } = peertubeHelpers
             const basePath = await peertubeHelpers.getBaseRouterRoute();
-            console.log("video edit",video);
             let uuidFromUrl = (window.location.href).split("/").pop();
-            let splitApi = basePath + "/getsplit?video="+uuidFromUrl;
-            let splitData;
-            try {
-                splitData = await axios.get(splitApi);
-            } catch (err){
-                console.log("client unable to fetch split data\n", splitApi,err);
-                return;
-            }
-            if (!splitData){
-                console.log("no split info at video level");
-                return;
-            }
-            let splitInfo = splitData.data;
+            let splitInfo = await getSplit();
             console.log("split info",splitInfo);
+            let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
+            if (splitInfo && splitInfo.length > 0) {
+                
+                html = await makePanelHtml(await getSplit());
+                await addPanel(html);
+            }
+            async function makeKeysendHtml(splitData, slot, ks) {
+                let html;
+                html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
+                if (slot == 0) {
+                html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
+                } else {
+                html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[slot].split + `"><br>`;
+                }
+                // html = html + "Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
+
+                if (ks) {
+                html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" readonly value ="` + splitData[slot].address + `"><br>`;
+                } else {
+                html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
+                }
+                let customKey,customValue,status,pubKey;
+                html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
+                html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
+                if (splitData[slot].keysend) {
+                status = splitData[slot].keysend.status;
+                pubKey = splitData[slot].keysend.pubkey;
+                if (splitData[slot].keysend.customData){
+                    customKey = splitData[slot].keysend.customData[0].customKey;
+                    customValue = splitData[slot].keysend.customData[0].customValue;
+                }
+                } 
+                if (!customKey) {
+                customKey = "";
+                }
+                if (!customValue) {
+                customValue = "";
+                }
+                if (ks) {
+                html = html + `<label for="address">Keysend pubkey:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
+                html = html + `<br><label for="address">Custom Key:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
+                html = html + `<br><label for="address">Custom Value:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
+                } else {
+                html = html + "Keysend: " + status;
+                html = html + "<br> Keysend pubkey: " + pubKey;
+                html = html + "<br> keysend custom key:" + customKey;
+                html = html + "<br> keysend custom value:" + customValue;
+                }
+                if (splitData[slot].lnurl) {
+                html = html + "<br> LNURL callback: " + splitData[slot].lnurl.callback;
+                }
+                html = html + `<hr><button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="update-split">Update Split</button>`;
+                if (slot != 0) {
+                html = html + ` - <button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="remove-split">remove this Split</button>`;
+                }
+                return html;
+            }
+            async function closeModal() {
+                let butts = document.getElementsByClassName("ng-star-inserted")
+                for (var butt of butts) {
+                    let iconName = butt.getAttribute("iconname");
+                    if (iconName == "cross") {
+                        butt.click();
+                        return true;
+                    }
+                }
+                return false;
+            }
+            async function sleep (ms) {
+                await new Promise(resolve => setTimeout(resolve, ms))
+            }
+            async function makePanelHtml (splitInfo){
             let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
             if (splitInfo && splitInfo.length > 0) {
                 html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
@@ -48,112 +107,220 @@ function register({ registerHook, peertubeHelpers }) {
                 html = html + "</table>";
             }
             html = html + `<button type="button" id="add-split" class="peertube-button orange-button ng-star-inserted">Add Split</button>`
-            const panel = document.createElement('div');
-            panel.setAttribute('class', 'lightning-button');
-            panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-            panel.innerHTML = html;
-            console.log("html",html);
-            let countnap=0;
-            let spot = document.getElementById("ngb-nav-0-panel");
-            while (!spot && countnap<100){
-                countnap+=5;
-                spot = document.getElementById("ngb-nav-"+countnap+"-panel");
+            return html    
             }
-            console.log("spot info",spot);
-            spot.append(panel);
-            let addButton = document.getElementById("add-split");
-            if (addButton) {
-                addButton.onclick = async function () {
-                    await peertubeHelpers.showModal({
-                        title: 'Add Split',
-                        content: ` `,
-                        close: true,
-                        confirm: { value: 'X', action: () => { } },
-                    })
-                    let modal = (document.getElementsByClassName('modal-body'))
-                    //modal[0].setAttribute('class', 'lightning-button');
-                    modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-                    modal[0].innerHTML = `<label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
-                    Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
-                    <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
-                    <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
-                    let addFinalButton = document.getElementById("add-split-final")
-                    if (addFinalButton) {
-                        addFinalButton.onclick = async function () {
-                            let addApi;
-                            let newSplit = document.getElementById("modal-split-value").value;
-                            let newName = document.getElementById('modal-split-name').value;
-                            let newAddress = document.getElementById("modal-split-address").value;
-                            if (newAddress.length == 66) {
-                                let node = newAddress;
-                                newAddress = "custom"
-                                addApi = `/addsplit?video=` +uuidFromUrl + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;
-                                addApi = addApi + `&customkeysend=true&node=` + node + ``
-                            } else if (newAddress.indexOf("@") > 1) {
-                                addApi = `/addsplit?video=` + uuidFromUrl + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;;
-                            } else {
-                                console.log("unable to add malformed split address", newAddress);
-                                notifier.error("Lightning address is neither an address or a valid server pubkey");
-                                return;
-                            }
-                            let addResult;
-                            console.log("attempting add split for video", addApi);
-                            try {
-                                addResult = await axios.get(basePath + addApi);
-                            } catch (e) {
-                                console.log("unable to add split for video\n", addApi);
-                                notifier.error(e);
-                                return;
-                            }
-                            if (addResult) {
-                                await closeModal();
-                                notifier.success("split added to " + uuidFromUrl);
-                                return;
-                            } else {
-                                await closeModal();
-                                notifier.error("failed to add split to " + uuidFromUrl);
-                                return;
-                            }    
+            async function editButtons(splitInfo,editSlot,ks){
+                let updateSplit = document.getElementById("update-split")
+                if (updateSplit) {
+                    updateSplit.onclick = async function () {
+                        console.log("update split clicked", uuidFromUrl, editSlot, ks)
+                        //let updateResult = await doUpdateSplit(channel, slot, ks);
+                        let newSplit = document.getElementById("modal-split-value").value;
+                        let newAddress = document.getElementById("modal-split-address").value;
+                        let newName = encodeURI(document.getElementById("modal-split-name").value);
+                        let customKeysend = document.getElementById("manualkeysend").checked
+                        console.log("New values from split dialog", customKeysend, newName, newAddress, newSplit, editSlot, ks);
+                        if (ks) {
+                        var pubKey = document.getElementById("modal-split-pubkey").value
+                        var customKey = document.getElementById("modal-split-customkey").value
+                        var customValue = document.getElementById("modal-split-customvalue").value
+                        } else {
+                        var pubKey, customKey, customValue;
+                        }
+                        console.log("new values 2",pubKey,customKey,customValue);
+                        let updateApi = `/updatesplit?video=` + uuidFromUrl + `&split=` + newSplit + `&splitaddress=` + newAddress + `&slot=` + editSlot;
+                        if (newName) {
+                        updateApi = updateApi + `&name=` + newName;
+                        }
+                        if (ks) {
+                        updateApi = updateApi + `&customkeysend=true`
+                        if (customKey) {
+                            updateApi = updateApi + `&customkey=` + customKey;
+                        }
+                        if (customValue) {
+                            updateApi = updateApi + `&customvalue=` + customValue;
+                        }
+                        if (pubKey) {
+                            updateApi = updateApi + `&node=` + pubKey;
+                        }
+                        console.log("update api",updateApi);
+                        }
+                        let updateResult;
+                        try {
+                        updateResult = await axios.get(basePath + updateApi);
+                        await closeModal();
+                        notifier.success("updated " + uuidFromUrl + " splits");
+                        await addPanel(await makePanelHtml(await getSplit()));
+                        } catch {
+                        console.log("unable to update split\n", updateApi);
+                        notifier.error("unable to update splits for " + uuidFromUrl);
                         }
                     }
                 }
-                for (var slot in splitData) {
+                let removeSplit = document.getElementById("remove-split")
+                if (removeSplit) {
+                    removeSplit.onclick = async function () {
+                        //let removeResult = await doRemoveSplit(cha, slot);
+                        let removeApi = `/removesplit?video=` + uuidFromUrl + `&slot=` + editSlot;
+                        let removeResult;
+                        try {
+                            removeResult = await axios.get(basePath + removeApi);
+                            await closeModal();
+                            notifier.success("Removed split");
+                            await addPanel(await makePanelHtml(await getSplit()));
+                            return removeResult.data;
+                        } catch {
+                            console.log("unable to remove split\n", removeApi);
+                            notifier.error("unable to remove split");
+                            return;
+                        }
+                        
+                    }
+                }
+                let manualKeysend = document.getElementById("manualkeysend");
+                if (manualKeysend) {
+                    manualKeysend.checked = ks;
+                    manualKeysend.onclick = async function () {
+                        console.log("custom keysend data", manualKeysend, ks, splitInfo[editSlot]);
+                        if (ks == true) {
+                            splitInfo[editSlot].customKeysend = false;
+                            ks = false;
+                            manualKeysend.checked = false
+                        } else {
+                            splitInfo[editSlot].customKeysend = true;
+                            ks = true;
+                            manualKeysend.checked = true;
+                        }
+                        console.log("post toggle custom keysend data", manualKeysend, editSlot, ks, splitInfo[editSlot].customKeysend);
+                        let html = await makeKeysendHtml(splitInfo, editSlot, ks);
+                        let modal = (document.getElementsByClassName('modal-body'))
+                        modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+                        modal[0].innerHTML = html;
+                        await editButtons(splitInfo,editSlot,ks);
+                    }
+                }
+            }
+            async function addPanel (html){
+                let panel = document.createElement('div');
+                panel.setAttribute('class', 'lightning-button');
+                panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+                panel.setAttribute('id','episodesplitpanel');
+                panel.innerHTML = html;
+                
+                let countnap=0;
+                let oldpanel = document.getElementById('episodesplitpanel');
+                if (oldpanel){
+                    oldpanel.remove();
+                }
+                let spot = document.getElementById("ngb-nav-0-panel");
+                while (!spot && countnap<100){
+                    countnap++;
+                    spot = document.getElementById("ngb-nav-"+countnap+"-panel");
+                }
+                console.log("spot info",spot);
+                if (!spot){
+                    console.log("unable to add to html page");
+                    return;
+                }
+                spot.append(panel);
+                let addButton = document.getElementById("add-split");
+                if (addButton) {
+                    addButton.onclick = async function () {
+                        await peertubeHelpers.showModal({
+                            title: 'Add Split',
+                            content: ` `,
+                            close: true,
+                            confirm: { value: 'X', action: () => { } },
+                        })
+                        let modal = (document.getElementsByClassName('modal-body'))
+                        //modal[0].setAttribute('class', 'lightning-button');
+                        modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+                        modal[0].innerHTML = `<label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
+                        Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
+                        <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+                        <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
+                        let addFinalButton = document.getElementById("add-split-final")
+                        if (addFinalButton) {
+                            addFinalButton.onclick = async function () {
+                                let addApi;
+                                let newSplit = document.getElementById("modal-split-value").value;
+                                let newName = document.getElementById('modal-split-name').value;
+                                let newAddress = document.getElementById("modal-split-address").value;
+                                if (newAddress.length == 66) {
+                                    let node = newAddress;
+                                    newAddress = "custom"
+                                    addApi = `/addsplit?video=` +uuidFromUrl + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;
+                                    addApi = addApi + `&customkeysend=true&node=` + node + ``
+                                } else if (newAddress.indexOf("@") > 1) {
+                                    addApi = `/addsplit?video=` + uuidFromUrl + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;;
+                                } else {
+                                    console.log("unable to add malformed split address", newAddress);
+                                    notifier.error("Lightning address is neither an address or a valid server pubkey");
+                                    return;
+                                }
+                                let addResult;
+                                console.log("attempting add split for video", addApi);
+                                try {
+                                    addResult = await axios.get(basePath + addApi);
+                                } catch (e) {
+                                    console.log("unable to add split for video\n", addApi);
+                                    notifier.error(e);
+                                    return;
+                                }
+                                if (addResult) {
+                                    await closeModal();
+                                    notifier.success("split added to " + uuidFromUrl);
+                                    await addPanel(await makePanelHtml(await getSplit()));
+                                    return;
+                                } else {
+                                    await closeModal();
+                                    notifier.error("failed to add split to " + uuidFromUrl);
+                                    return;
+                                }    
+                            }
+                        }
+                    }
+                }
+                for (var slot in splitInfo) {
+                    console.log("iterating slot",slot)
                     var editButton = document.getElementById("edit-" + slot);
                     if (editButton) {
+                        console.log("setting up edit button",slot)
                         editButton.onclick = async function () {
                             let editSlot = this.slot;
+                            console.log("edit slot", editSlot);
                             await peertubeHelpers.showModal({
-                                title: 'edit Split for ' + splitData[editSlot].address,
+                                title: 'edit Split for ' + splitInfo[editSlot].address,
                                 content: ` `,
                                 close: true,
                                 confirm: { value: 'X', id: 'streamingsatsclose', action: () => { } },
                             });
-                            let ks = splitData[slot].customKeysend
+                            let ks = splitInfo[slot].customKeysend
                             if (ks == undefined) {
                                 ks = false;
                             }
-                            let html = await makeKeysendHtml(splitData, editSlot, ks);
+                            let html = await makeKeysendHtml(splitInfo, editSlot, ks);
                             let modal = (document.getElementsByClassName('modal-body'))
                             modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
                             modal[0].innerHTML = html;
-                            //await assignSplitEditButtons(splitData, editSlot, channel, ks);
+                            await editButtons(splitInfo,editSlot,ks);
                         }
                     }
                 }
             }
-            async function closeModal() {
-                let butts = document.getElementsByClassName("ng-star-inserted")
-                for (var butt of butts) {
-                    let iconName = butt.getAttribute("iconname");
-                    if (iconName == "cross") {
-                        butt.click();
-                        return true;
-                    }
+            async function getSplit(){
+                const basePath = await peertubeHelpers.getBaseRouterRoute();
+                let uuidFromUrl = (window.location.href).split("/").pop();
+                let splitApi = basePath + "/getsplit?video="+uuidFromUrl;
+                let splitData;
+                try {
+                    splitData = await axios.get(splitApi);
+                } catch (err){
+                    console.log("client unable to fetch split data\n", splitApi,err);
+                    return;
                 }
-                return false;
-            }
-            async function sleep (ms) {
-                await new Promise(resolve => setTimeout(resolve, ms))
+                console.log("got split info",splitData,splitApi);
+                return splitData.data;
             }
         }
 

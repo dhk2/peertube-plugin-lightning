@@ -895,7 +895,7 @@ async function register({
           console.log("⚡️⚡️ error when tring to get feed id ", feedApi);
           return res.status(404).send();
         }
-//        if (feedId) {
+        /*if (feedId) {
           console.log("⚡️⚡️got feed id", feedId.data);
           let podcastIndexId = await podcastIndexApi.episodesByFeedId(feedId.data);
           let finalItemId;
@@ -929,6 +929,7 @@ async function register({
           console.log("⚡️⚡️can't get video from host");
           return res.status(400).send();
         }
+        */
       }
       console.log("⚡️⚡️no videodata available", apiCall);
       return res.status(400).send();
@@ -1446,7 +1447,7 @@ async function register({
       if (!storedSplitData) {
         console.log("⚡️⚡️stored split data for video not found");
         console.log("⚡️⚡️base", base);
-        var apiCall = base + "/api/v1/videos/" + req.query.video;
+        var apiCall = base + "/api/v1/videos/" + video;
         console.log("⚡️⚡️ getting video data", apiCall);
         let videoData;
         try {
@@ -1458,6 +1459,7 @@ async function register({
         if (videoData && !channel) {
           console.log("⚡️⚡️getting channel split instead", videoData.data.channel.name);
           channel = videoData.data.channel.name;
+
         } else {
           console.log("⚡️⚡️failed to find video data", apiCall);
           return res.status(400).send();
@@ -1466,93 +1468,87 @@ async function register({
         split = storedSplitData;
       }
     }
-    if (channel) {
-      if (!storedSplitData) {
-        try {
-          storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
-        } catch {
-          console.log ("⚡️⚡️failed to get lightning split",channel);
-        } 
-        console.log("⚡️⚡️retrieved chaNNEL split info", channel, "\n", storedSplitData.length);
+    if (channel && !split) {
+      try {
+        split = await storageManager.getData("lightningsplit" + "-" + channel);
+      } catch {
+        console.log ("⚡️⚡️failed to get lightning split",channel);
       }
-      if (storedSplitData) {
-        //TODO may need to relook at this
-        if (!storedSplitData[slot].customKeysend) {
-          keysendData = await getKeysendInfo(newAddress);
+      console.log("⚡️⚡️retrieved chaNNEL split info", channel, "\n", split);
+    }
+    console.log("⚡️⚡️retrieved split info", split);
+    if (split){ 
+      //TODO may need to relook at this
+      if (!customKeysend) {
+        keysendData = await getKeysendInfo(newAddress);
+      }
+      //let lnurlData = await getLnurlInfo(newAddress);
+      console.log(`⚡️⚡️updating from`, split[slot]);
+      if (newAddress) {
+        split[slot].address = newAddress;
+      }
+      if (newSplit) {
+        split[slot].split = parseInt(newSplit);
+      }
+      if (customKeysend) {
+        console.log("⚡️⚡️custom keysend enabled")
+        split[slot].customKeysend = true;
+        if (node) {
+          split[slot].keysend.pubkey = node;
+          //split[slot].customKeysend = true;
         }
-        //let lnurlData = await getLnurlInfo(newAddress);
-        split = storedSplitData;
-        console.log(`⚡️⚡️updating from`, split[slot]);
-        if (newAddress) {
-          split[slot].address = newAddress;
+        if (!split[slot].keysend.customData){
+          split[slot].keysend.customData=[{}];
         }
-        if (newSplit) {
-          split[slot].split = parseInt(newSplit);
+        if (customKey != split[slot].keysend.customData[0].customKey) {
+          split[slot].keysend.customData[0].customKey = customKey;
+          //  split[slot].customKeysend = true;
         }
-        if (customKeysend) {
-          console.log("⚡️⚡️custom keysend enabled")
-          split[slot].customKeysend = true;
-          if (node) {
-            split[slot].keysend.pubkey = node;
-            //split[slot].customKeysend = true;
-          }
-          if (!split[slot].keysend.customData){
-            split[slot].keysend.customData=[{}];
-          }
-          if (customKey != split[slot].keysend.customData[0].customKey) {
-            split[slot].keysend.customData[0].customKey = customKey;
-            //  split[slot].customKeysend = true;
-          }
-          if (customValue != split[slot].keysend.customData[0].customValue) {
-            split[slot].keysend.customData[0].customValue = customValue;
-            //   split[slot].customKeysend = true;
-          }
-        } else {
-          console.log("⚡️⚡️regular lightning address keysend");
-          keysendData = await getKeysendInfo(newAddress);
-          split[slot].keysend = keysendData;
-          split[slot].customKeysend = false;
+        if (customValue != split[slot].keysend.customData[0].customValue) {
+          split[slot].keysend.customData[0].customValue = customValue;
+          //   split[slot].customKeysend = true;
         }
-        if (name) {
-          split[slot].name = name;
-        }
-
-        //split[slot].keysend = keysendData;
-        //split[slot].lnurl = lnurlData;
-        let otherSplit = 0;
-        for (i = 1; i < split.length; i++) {
-          console.log("⚡️⚡️split", i, split[i].split, split[i].address);
-          if (parseInt(split[i].split) < 1) {
-            split[i].split = 11
-          }
-          otherSplit = otherSplit + parseInt(split[i].split);
-        }
-        console.log("⚡️⚡️othersplit", otherSplit);
-        let creatorSplit = 100 - otherSplit
-        split[0].split = parseInt(creatorSplit);
-        console.log("⚡️⚡️ split",split);
-        try {
-          if (req.query.channel) {
-            await storageManager.storeData("lightningsplit" + "-" + channel, split);
-            saveWellKnownSplit(channel,split); 
-          }
-          if (req.query.video) {
-            await storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
-          }
-        } catch {
-          console.log ("⚡️⚡️failed to store lightning split",req.query.video,channel,split);
-        } 
-        console.log("⚡️⚡️updated slot", slot, "with", split[slot]);
-        //saveWellKnownSplit(channel,split); 
-        await pingPI(channel);
-        return res.status(200).send(split);
       } else {
-        console.log("⚡️⚡️⚡️⚡️stored split data not found, nothing to update, should maybe create?");
-        //TODO check channel owner account for wallet info
-        return res.status(400).send();
+        console.log("⚡️⚡️regular lightning address keysend");
+        split[slot].keysend = keysendData;
+        split[slot].customKeysend = false;
       }
-    } else {
-      console.log("no channel or video to update", newAddress);
+      console.log("⚡️⚡️customs ",split[slot].keysend,split[slot].keysend.customData);
+      if (name) {
+        split[slot].name = name;
+      }
+
+      //split[slot].keysend = keysendData;
+      //split[slot].lnurl = lnurlData;
+      let otherSplit = 0;
+      for (i = 1; i < split.length; i++) {
+        console.log("⚡️⚡️split", i, split[i].split, split[i].address);
+        if (parseInt(split[i].split) < 1) {
+          split[i].split = 11
+        }
+        otherSplit = otherSplit + parseInt(split[i].split);
+      }
+      console.log("⚡️⚡️othersplit", otherSplit);
+      let creatorSplit = 100 - otherSplit
+      split[0].split = parseInt(creatorSplit);
+      console.log("⚡️⚡️ split",split);
+      try {
+        if (req.query.channel) {
+          await storageManager.storeData("lightningsplit" + "-" + channel, split);
+          saveWellKnownSplit(channel,split); 
+        }
+        if (req.query.video) {
+          await storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
+        }
+      } catch {
+        console.log ("⚡️⚡️failed to store lightning split",req.query.video,channel,split);
+      }
+      console.log("⚡️⚡️updated slot", slot, "with", split[slot]);
+      //saveWellKnownSplit(channel,split); 
+      if (channel){
+        await pingPI(channel);
+      }
+      return res.status(200).send(split)
     }
     return res.status(400).send();
   })
@@ -1567,6 +1563,7 @@ async function register({
     var split;
     var slot = req.query.slot;
     var channel = req.query.channel;
+    var video = req.query.video;
     if (!slot) {
       return res.status(400).send();
     }
@@ -1592,95 +1589,59 @@ async function register({
           }
           if (videoData) {
             console.log("⚡️⚡️video channel data",videoData.data.channel);
-            let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support + " " + videoData.data.channel.description + " " + videoData.data.channel.support + " " + videoData.data.account.description);
-            if (foundLightningAddress) {
-              console.log("⚡️⚡️lightning address found in video description [" + foundLightningAddress + ']');
-              let keysendData = await getKeysendInfo(foundLightningAddress);
-              let lnurlData = await getLnurlInfo(foundLightningAddress);
-              if (lnurlData || keysendData) {
-                let walletData = {};
-                walletData.address = foundLightningAddress;
-                if (keysendData) {
-                  walletData.keysend = keysendData;
-                  console.log("⚡️⚡️successfully retrieved keysend data for wallet in video", videoData.data.channel.name, keysendData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-                }
-                if (lnurlData) {
-                  walletData.lnurl = lnurlData;
-                  console.log("⚡️⚡️successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
-                  //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-                }
-                if (walletData.keysend) {
-                  if (walletData.address.indexOf("fountain.fm") > 0) {
-                    walletData.keysend = null;
-                  }
-                }
-                var splitData = new Array();
-                walletData.split = 100;
-                splitData.push(walletData);
-                if (hostWalletData && (hostWalletData.split > 0)) {
-                  splitData[0].split = 100 - hostWalletData.split;
-                  splitData.push(hostWalletData);
-                }
-
-                //await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
-                return res.status(200).send(splitData);
-              } else {
-                console.log("⚡️⚡️lightning address in video description does not resolve", foundLightningAddress);
-              }
-            } else {
-              console.log("⚡️⚡️no lightning address found in video description");
-            }
+            channel = videoData.data.channel
           }
         }
-        return res.status(400).send();
+ 
       } else {
         split = storedSplitData;
       }
-    } else if (channel) {
+    } 
+    if (channel) {
       try {
-        storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+        split = await storageManager.getData("lightningsplit" + "-" + channel);
       } catch {
-        console.log ("⚡️⚡️failed to get lightning split",channel);
+        console.log ("⚡️⚡️failed to get lightning split for channel",channel);
       } 
-
-      console.log("⚡️⚡️retrieved chaNNEL split info", channel, "\n", storedSplitData);
-
-      if (storedSplitData) {
-        split = storedSplitData;
-        console.log(`⚡️⚡️removing`, split[slot].address, " of ", split.length, " from ", channel);
-        let otherSplit = 0
-        let newSplit = new Array();
-        for (i = 0; i < split.length; i++) {
-          console.log("⚡️⚡️split", i, "of ", split.length, split[i].address);
-          if (i == slot) {
-            console.log("⚡️⚡️skipping", i)
-          } else {
-            newSplit.push(split[i]);
-            if (i > 0) {
-              otherSplit = otherSplit + split[i].split;
-            }
+      console.log("⚡️⚡️retrieved chaNNEL split info", channel, "\n", split);
+    }
+    if (split) {
+      console.log(`⚡️⚡️removing`, split[slot].address, " of ", split.length, " from ", channel);
+      let otherSplit = 0
+      let newSplit = new Array();
+      for (i = 0; i < split.length; i++) {
+        console.log("⚡️⚡️split", i, "of ", split.length, split[i].address);
+        if (i == slot) {
+          console.log("⚡️⚡️skipping", i)
+        } else {
+          newSplit.push(split[i]);
+          if (i > 0) {
+            otherSplit = otherSplit + split[i].split;
           }
         }
-        console.log("⚡️⚡️othersplit", otherSplit);
-        let creatorSplit = 100 - otherSplit
-        newSplit[0].split = parseInt(creatorSplit);
-        console.log("⚡️⚡️split about to be writ", newSplit);
-        try {
-          await storageManager.storeData("lightningsplit" + "-" + channel, newSplit);
-          saveWellKnownSplit(channel,newSplit); 
-        } catch {
-          console.log ("⚡️⚡️failed to store lightning split",channel,newSplit);
-        } 
-          console.log("⚡️⚡️⚡️⚡️ slot removed", slot, ".", newSplit.length, "splits remaining");
-        await pingPI(channel);
-        return res.status(200).send(newSplit);
-      } else {
-        console.log("⚡️⚡️stored split data not found");
-        //TODO check channel owner account for wallet info
-        return res.status(400).send();
       }
+      console.log("⚡️⚡️othersplit", otherSplit);
+      let creatorSplit = 100 - otherSplit
+      newSplit[0].split = parseInt(creatorSplit);
+      console.log("⚡️⚡️split about to be writ",video, newSplit.length);
+      try {
+        if (req.query.channel) {
+          await storageManager.storeData("lightningsplit" + "-" + channel, newSplit);
+          saveWellKnownSplit(channel,split); 
+        }
+        if (req.query.video) {
+          await storageManager.storeData("lightningsplit" + "-" + video, newSplit);
+        }
+      } catch (err){
+        console.log ("⚡️⚡️failed to store lightning split",channel,newSplit,err);
+      } 
+        console.log("⚡️⚡️⚡️⚡️ slot removed", slot, ".", newSplit.length, "splits remaining");
+      await pingPI(channel);
+      return res.status(200).send(newSplit);
+    } else {
+      console.log("⚡️⚡️stored split data not found");
+      //TODO check channel owner account for wallet info
+      return res.status(400).send();
     }
   })
   router.use('/getversion', async (req, res) => {

@@ -1545,7 +1545,9 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
+      console.log("split data for making buttons",splitData);
       for (var slot in splitData) {
+        console.log("iterating slot",slot)
         var editButton = document.getElementById("edit-" + slot);
         if (editButton) {
           editButton.onclick = async function () {
