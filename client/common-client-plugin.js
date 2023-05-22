@@ -632,6 +632,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (debugEnabled) {
         console.log("channel update loaded");
       }
+      videoName=undefined;
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
       channelName = channel;
@@ -1371,7 +1372,6 @@ async function register({ registerHook, peertubeHelpers }) {
         let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
         console.log("api call to get update user lightningAddres",setWalletApi);
         try {
-          let setWalletApi = basePath + "/walletinfo?account="+user.username;
           let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
           console.log("user lightning address",userData.data.address);
           if (userData && userData.data){
@@ -1381,7 +1381,7 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("didn't get good user address");
           }
         } catch (err){
-          console.log("error attempting to login",userApi,matrixUser,err);
+          console.log("error attempting to login",setWalletApi,matrixUser,err);
         }
 
       }
