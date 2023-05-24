@@ -1,6 +1,15 @@
+v 4.2.0
+- fixed federated item level split
+- fixed logging and error catching issues with setting user lightning address
+- added callback route for using alby API
+ 
+v 4.1.9
+- fixed hostsplit for channel level splits
+
 v 4.1.8
 - added video-edit-client-plugin.js and updates scripts and package
 - fixed server support and added client support for episode splits
+- updated hostsplit to use currently configured address
 
 v 4.1.7
 - commented out enable-rss feature to fix possible bug

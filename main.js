@@ -36,6 +36,9 @@ async function register({
       private: true
     })
   */
+
+
+
   registerSetting({
     name: 'lightning-address',
     label: 'Lightning address',
@@ -1042,8 +1045,33 @@ async function register({
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       console.log("⚡️⚡️retrieved split info", req.query.video, storedSplitData);
       if (storedSplitData) {
+        for (var splitSlot in storedSplitData){
+          if (storedSplitData[splitSlot].fee && storedSplitData[splitSlot].address != hostWalletData.address){
+            console.log("⚡️ old information on host split, updating",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+            storedSplitData[splitSlot] = hostWalletData;
+            await storageManager.storeData("lightningsplit" + "-" + req.query.video,storedSplitData,);
+            console.log("⚡️ updated host split",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+          }
+        }        
         console.log("⚡️⚡️returning video split info", req.query.video,storedSplitData.length);
         return res.status(200).send(storedSplitData);
+      }
+      let parts
+      if (req.query.channel && req.query.channel.indexOf("@")>0 ) {
+        parts = req.query.channel.split("@");
+        var apiCall = "https://" + parts[1] + "/plugins/lightning/router/getsplit?video=" + req.query.video;
+        let remoteSplit;
+        try {
+          remoteSplit = await axios.get(apiCall);
+        } catch {
+          console.log("⚡️⚡️unable to fetch remote split data", apiCall);
+        }
+        if (remoteSplit) {
+          if (enableDebug) {
+            console.log("⚡️⚡️returning remote split", apiCall, remoteSplit.data);
+          }
+          return res.status(200).send(remoteSplit.data);
+        }
       }
       console.log("⚡️⚡️stored split data not found for video",req.query.video);
       if (!req.query.channel) {
@@ -1059,6 +1087,9 @@ async function register({
         if (videoData) {
           console.log("⚡️⚡️videodata for",req.query.video, videoData.data);
           let videoChannel = videoData.data.channel.name;
+          let videoHost = "https://" + videoData.data.channel.host;
+          console.log("⚡️⚡️ Video data ", videoChannel, videoHost,base);
+         
           try {
             storedSplitData = await storageManager.getData("lightningsplit" + "-" + videoChannel);
           } catch {
@@ -1070,7 +1101,7 @@ async function register({
             //TODO save video split info?
             return res.status(200).send(storedSplitData);
           }
-          let videoHost = "https://" + videoData.data.channel.host;
+          
           if (videoHost != base) {
             remoteWalletApi = videoHost + "/plugins/lightning/router/getsplit?channel=" + channel.name;
             let remoteSplitData;
@@ -1133,7 +1164,7 @@ async function register({
       //console.log("unable to find any split info in video data");
       //return res.status(400).send();
     }
-    if (req.query.channel) {
+     if (req.query.channel) {
       var storedSplitData;
       try {
         storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
@@ -1141,6 +1172,13 @@ async function register({
         console.log ("⚡️⚡️failed to get lightning split",req.query.channel);
       } 
       if (storedSplitData) {
+        for (var splitSlot in storedSplitData){
+          if (storedSplitData[splitSlot].fee){
+            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+            storedSplitData[splitSlot] = hostWalletData;
+            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+           }
+        } 
         return res.status(200).send(storedSplitData);
       }
       let remoteHost, remoteChannel;
@@ -1804,7 +1842,101 @@ async function register({
     }
     return res.status(400).send("failed to update");
   })
+  router.use('/callback', async (req, res) => {
+    console.log("⚡️⚡️ callback",req.query,req.body);
+    return res.status(200).send();
+    /*
+    var chatID = req.query.id;
+    console.log("\n\nchatID", chatID);
+    var user = {};
+    if (!botChats.includes(chatID)) {
+      botChats.push(chatID);
+      await storageManager.storeData("telegram-chats", botChats);
+      console.log("added chat id " + chatID + " to existing telegram users")
+    }
+    try {
+      user = await storageManager.getData(chatID)
+      console.log("user data loaded", user);
+    } catch (err) {
+      console.log("error loading user data", err);
+    }
+    var userChannels = "";
+    if (user) {
+      //upgrade hacks
+      console.log("existing user detected");
+      if (user.muteAnnouncements == undefined) { user.muteAnnouncements = false }
+      if (user.muteLives == undefined) { user.muteLives = false }
+      if (user.muteSubscriptions == undefined) { user.muteSubscriptions = false }
+      if (user.muteWelcome == undefined) { user.muteWelcome = false }
+      if (user.pending) { user.pending = undefined }
+      if (user.pending2) { user.pending = undefined }
+      await storageManager.storeData(user.id, user);
+      if (botChats == undefined) {
+        console.log("need to initialize botchats");
+        botChats = [user.id];
 
+      }
+      console.log("\n\nStored telegram user info", user);
+      javascriptisstupid = user.id;
+      console.log(javascriptisstupid, "welcome back to peertube " + user.displayname);
+      if (!user.muteWelcome) {
+        sendTelegram(javascriptisstupid, "welcome back to peertube " + user.displayname);
+      }
+      if (user.avatar != req.query.photo_url) {
+        user.avatar = req.query.photo_url;
+        console.log("need to update avatar url for user", user.avatar);
+        await storageManager.storeData(user.id, user);
+      }
+      console.log("getting user channels for ", user.username);
+      console.log(`/api/v1/accounts/${user.username}/video-channels`)
+      try {
+        userChannels = await axios.get(`${instance}/api/v1/accounts/${user.username}/video-channels`);
+        console.log("User channels loaded during authentication ", userChannels);
+        for (const channel of userChannels.data.data) {
+          console.log("channel name:", channel.name, "\ndisplay name", channel.displayName, channel.sync);
+        }
+      } catch (err) { console.log("failed load user channels", user, err) }
+    } else {
+      user = {};
+      console.log("Building new user", req.query);
+      var displayname = req.query.username;
+      console.log("first try at username", req.query.username);
+      if (displayname == undefined) {
+        displayname = req.query.first_name + "." + req.query.last_name;
+        console.log("fixed username", displayname);
+      }
+      if (displayname == ".") {
+        displayname = req.query.id;
+      }
+      console.log("displayname: ", displayname);
+      user.displayname = displayname;
+      user.id = req.query.id;
+      user.username = displayname.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, ".");
+      user.role = 2;
+      user.email = user.username + `@telegram.com`
+      user.avatar = req.query.photo_url;
+      user.muteAnnouncements = await settingsManager.getSetting("telegram-default-announcements");
+      user.muteLives = await settingsManager.getSetting("telegram-default-lives");
+      user.muteSubscriptions = await settingsManager.getSetting("telegram-default-subscriptions");
+      user.muteWelcome = await settingsManager.getSetting("telegram-default-welcome");
+      console.log("saving new user", user);
+      await storageManager.storeData(user.id, user);
+      await sendTelegram(chatID, instance + "/a/" + user.username);
+      // if (user.avatar != undefined) {
+      // console.log("attempting to download avatar", user.avatar);
+      // avatar = await axios.get(user.avatar);
+    }
+    console.log("pre-authentication user returned", user, user.id, user.username, user.email, user.role);
+    return result.userAuthenticated({
+      req,
+      res,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      displayName: user.displayname,
+    });
+    */
+  })
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
     try {

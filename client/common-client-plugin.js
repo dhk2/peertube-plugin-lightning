@@ -1370,10 +1370,9 @@ async function register({ registerHook, peertubeHelpers }) {
     if (modalAddressUpdate){
       modalAddressUpdate.onclick = async function () {
         let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
-        console.log("api call to get update user lightningAddres",setWalletApi);
+        console.log("api call to update user lightningAddress",setWalletApi);
         try {
           let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
-          console.log("user lightning address",userData.data.address);
           if (userData && userData.data){
             console.log("user lightning address",userData.data.address);
             accountAddress=userData.data.address;
@@ -1381,7 +1380,7 @@ async function register({ registerHook, peertubeHelpers }) {
             console.log("didn't get good user address");
           }
         } catch (err){
-          console.log("error attempting to login",setWalletApi,matrixUser,err);
+          console.log("error attempting to update user wallet",setWalletApi,err);
         }
 
       }

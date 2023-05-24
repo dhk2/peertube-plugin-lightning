@@ -49,7 +49,7 @@ function register({ registerHook }) {
                 console.log(errorBlock.innerHTML)
                 errorBlock.parentElement.insertBefore(zapDialog,errorBlock);
                 let zapButton=document.getElementById("zap-send");
-                let zapHandle = document.getElementById("")
+                let zapHandle = document.getElementById("zap-from")
                 zapButton.onclick = async function () {
                     
                     let creator = video.channel.name + "@" + video.channel.host;
@@ -63,13 +63,15 @@ function register({ registerHook }) {
                     for (var split of wallet){
                         zapButton.innerText="sending";
                         let splitAmount = (totalBoost*split.split)/100
-                        console.log(splitAmount);
+                        console.log("trying ",splitAmount,split);
                         if (split.keysend){
                             console.log("trying keysend",split);
                             await boost(split,splitAmount,totalBoost,from,message);
                         } else if (split.lnurl){
                             console.log("trying lnurl",split);
                             await sendSats(split,splitAmount,message)
+                        } else {
+                            console.log("no payment method found in split",split);
                         }
                         zapButton.innerText="Zapped!"
                     }
