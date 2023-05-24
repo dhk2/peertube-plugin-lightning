@@ -1,6 +1,5 @@
 const axios = require('axios');
 const crypto = require('crypto');
-//const IRC = require('irc-framework');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
 const { Console } = require('console');
@@ -14,31 +13,6 @@ async function register({
   settingsManager,
   storageManager,
 }) {
-  /*
-    registerSetting({
-      name: 'lightning-custom-key',
-      label: 'Custom Key',
-      type: 'input',
-      private: true
-    })
-  
-    registerSetting({
-      name: 'lightning-custom-value',
-      label: 'Custom Value',
-      type: 'input',
-      private: true
-    })
-  
-    registerSetting({
-      name: 'lightning-node-address',
-      label: 'Node Address',
-      type: 'input',
-      private: true
-    })
-  */
-
-
-
   registerSetting({
     name: 'lightning-address',
     label: 'Lightning address',
@@ -125,7 +99,7 @@ async function register({
   let enableChat = await settingsManager.getSettings("irc-enable");
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
   if (enableDebug) {
-    console.log("⚡️⚡️ server settings", hostName, base, hostSplit, lightningAddress);
+    console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
   }
   let hostWalletData = {};
   if (enableKeysend || enableLnurl) {
@@ -135,12 +109,12 @@ async function register({
       if (enableKeysend) {
         let hostKeysendData = await getKeysendInfo(lightningAddress);
         if (!hostKeysendData) {
-          console.log("⚡️⚡️⚡️⚡️failed to get system wallet data from provider");
+          console.log("⚡️⚡️⚡️⚡️failed to get system wallet data from provider",lightningAddress);
         } else {
           hostWalletData.keysend = hostKeysendData;
         }
       }
-      if (hostSplit > 0 || hostSplit <= 100) {
+      if ((hostSplit > 0 || hostSplit <= 100) && enableDebug) {
         console.log("⚡️⚡️setting host split to ", hostSplit);
         hostWalletData.split = parseInt(hostSplit);
       }
@@ -188,6 +162,7 @@ async function register({
         return res.status(400).send("Lightning address"+address+"does not resolve");
       }
     }
+    /* Videos and channels should have splits, not single wallets.
     if (req.query.video) {
       //var helpervideo = await peertubeHelpers.videos.loadByIdOrUUID(req.query.video);
       apiCall = base + "/api/v1/videos/" + req.query.video;
@@ -262,18 +237,20 @@ async function register({
         }
       }
     }
+    */
     if (req.query.account) {
       var storedWallet
       try {
         storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
-      }catch {
-        console.log ("⚡️⚡️failed to get stored lighting address",req.query.account);
+      }catch (err) {
+        console.log ("⚡️⚡️failed to get stored lightning address for account",req.query.account,err);
       }
       if (storedWallet) {
-        console.log("⚡️⚡️ successfully found stored wallet data", req.query.account, storedWallet.address, storedWallet.status);
+        if (enableDebug){
+          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
+        }
         if (storedWallet.status === 404) {
-          console.log("⚡️⚡️not found", storedWallet.cache, Date.now() - storedWallet.cache);
-          //return res.status(400).send();
+          console.log("⚡️⚡️404 not found error, cache dates", storedWallet.cache, Date.now() - storedWallet.cache);
         } else {
           return res.status(200).send(storedWallet);
         }
@@ -291,16 +268,16 @@ async function register({
       let accountData;
       try {
         accountData = await axios.get(apiCall);
-      } catch {
-        console.log("⚡️⚡️failed to pull information for provided account id", apiCall);
+      } catch (err){
+        console.log("⚡️⚡️hard failure pulling acount information", apiCall,err);
       }
       if (!accountData) {
         //hack for mastardon's lame api
         apiCall = "https://" + parts[1] + "/api/v1/accounts/lookup?acct=" + parts[0]
         try {
           accountData = await axios.get(apiCall);
-        } catch {
-          console.log("⚡️⚡️errored trying to pull information from mastodon", apiCall);
+        } catch (err){
+          console.log("⚡️⚡️errored trying to pull information from mastodon", apiCall,err);
         }
       }
       if (accountData) {
@@ -314,15 +291,12 @@ async function register({
         if (!foundLightningAddress && account.fields) {
           for (var field of account.fields) {
             if (field.name === "Lightning Address" || field.name === "LUD16") {
+              foundLightningAddress = field.value;
             }
-            foundLightningAddress = field.value;
           }
         }
         if (!foundLightningAddress && account.note) {
           foundLightningAddress = await findLightningAddress(account.note);
-        }
-        if (enableDebug) {
-          console.log("⚡️⚡️Found lightning address", foundLightningAddress);
         }
         if (foundLightningAddress) {
           let keysendData
@@ -336,17 +310,15 @@ async function register({
           if (lnurlData || keysendData) {
             let walletData = {};
             walletData.address = foundLightningAddress;
-            /*
             if (keysendData) {
               walletData.keysend = keysendData;
               if (req.query.account.indexOf("@") < 0) {
                 if (enableDebug) {
                   console.log("attempting to save keysend info", req.query.account)
                 }
-                saveWellKnown(req.query.account, keysendData);
+                //saveWellKnown(req.query.account, keysendData);
               }
             }
-            */
             if (lnurlData) {
               walletData.lnurl = lnurlData;
             }
@@ -357,11 +329,11 @@ async function register({
             try {
               storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
             }catch {
-              console.log ("⚡️⚡️failed to get stored lighting address",req.query.account,walletData);
+              console.log ("⚡️⚡️failed to store lighting address",req.query.account,walletData);
             }
             return res.status(200).send(walletData);
           } else {
-            console.log("⚡️⚡️lightning address in account description does not resolve", foundLightningAddress, req.query);
+            console.log("⚡️⚡️ no lightning address support enabled", foundLightningAddress, req.query);
           }
         }
         let notFound = { status: 404 };
@@ -369,7 +341,7 @@ async function register({
         try {
           storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
         } catch {
-          console.log ("⚡️⚡️failed to store lighting address",req.query.account,notFound);
+          console.log ("⚡️⚡️hard error storing address not found",req.query.account,notFound);
         }
         return res.status(400).send();
       }
@@ -656,14 +628,22 @@ async function register({
 
   })
   router.use('/setWallet', async (req, res) => {
-    console.log("⚡️⚡️wallet setting",req);
-    let user = await peertubeHelpers.user.getAuthUser(res);
-    if (user && user.dataValues && req.address) {
-      console.log("███ got authorized peertube user",user.dataValues.username);
-      let userName = user.dataValues.username;
-      console.log("⚡️⚡️⚡️⚡️ user",user,username);
-      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"),);
+    if (enableDebug){
+       console.log("⚡️⚡️wallet setting request",req.query);
     }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues && req.query.address) {
+      if (enableDebug){
+         console.log("███ got authorized peertube user",user.dataValues.username);
+      }
+      let userName = user.dataValues.username;
+      if (enableDebug){
+        console.log("⚡️⚡️⚡️⚡️ user",user,username);
+      }
+      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"),);
+      return res.status(200).send();
+    }
+    /* disabling pubkey/custom value for now
     if (!req.query.key) {
       return res.status(400).send("missing key");
     }
@@ -711,6 +691,7 @@ async function register({
     console.log("⚡️⚡️saving wallet data", req.query.key, lightning);
     //storageManager.storeData("lightning" + "-" + req.query.key, lightning);
     return res.status(200).send(lightning);
+    */
   })
   router.use('/getinvoice', async (req, res) => {
     //  console.log(req);
@@ -968,40 +949,6 @@ async function register({
       }
     }
   })
-  /* never used
-  router.use("/getAllWallets", async (req, res) => {
-    console.log("⚡️⚡️getting all wallet info for channel");
-    let channel = req.query.channel;
-    let fullWalletData;
-    if (channel) {
-      try {
-        fullWalletData = await storageManager.getData("fullWalletData" + "-" + channel)
-      } catch (err) {
-        console.log("error getting all wallet data", channel);
-      }
-    }
-    console.log("all wallet data", fullWalletData);
-    if (fullWalletData) {
-      return res.status(200).send(fullWalletData);
-    } else {
-      return res.status(400).send();
-    }
-  })
-  router.use("/setAllWallets", async (req, res) => {
-    console.log("⚡️⚡️setting all wallets for a channel");
-    let channel = req.query.channel;
-    let wallets = req.body.wallets;
-    if (channel && wallets) {
-      try {
-        await storageManager.storeData("fullwallets" + "-" + channel, wallets);
-        return res.sendStatus(200);
-      } catch (err) {
-        console.log("error storing full wallets", channel, wallets);
-        return res.sendStatus(400).send();
-      }
-    }
-  })
-  */
   router.use('/getchannelguid', async (req, res) => {
     if (enableDebug) {
       console.log("⚡️⚡️getting channel guid", req.query);
@@ -1941,15 +1888,12 @@ async function register({
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
     try {
       let feedId = await axios.get(feedApi);
-      console.log("⚡️⚡️feed id ", feedId.data);
       let pingResult = await axios.get("https://api.podcastindex.org/api/1.0/hub/pubnotify?id=" + feedId.data);
-      console.log("⚡️⚡️ping result", pingResult.data);
       return (pingResult.data);
     } catch {
-      console.log("⚡️⚡️error when tring ping podcast inedex ", feedApi);
+      console.log("⚡️⚡️hard error when trying ping podcast index ", feedId,feedApi);
       return;
     }
-
   }
   async function getKeysendInfo(address) {
     if (enableDebug) {
@@ -2010,47 +1954,6 @@ async function register({
 
     return walletData.data;
   }
-  /*
-  router.use('/getsplit', async (req, res) => {
-    console.log("⚡️⚡️Request for split info\n", req.query)
-    if (req.query.key) {
-      var splitData =new Array;
-      splitData  = await storageManager.getData("lightningsplit" + "-" + req.query.key);
-      console.log("⚡️⚡️retrieved split info", req.query.key,"\n",splitData);
-      if (splitData) {
-        console.log("returning stored data", splitData);
-        return res.status(200).send(splitData);
-      } else {
-        console.log("stored split data not found");
-         
-   
-        return res.status(400).send();
-      }
-    }
-    console.log("no key to lookup split info for");
-    return res.status(400).send();
-  })
-  router.use('/setWallet', async (req, res) => {
-    if (!req.query.key) {
-      return res.status(400).send("missing key");
-    }
-    if (req.query.address) {
-      let walletInfo = getWalletInfo(req.query.address);
-      if (walletInfo) {
-        let lightning = {};
-        lightning.address = req.query.address;
-        lightning.data = newData
-        console.log("⚡️⚡️saving wallet data", req.query.key, lightning);
-        storageManager.storeData("lightning" + "-" + req.query.key, lightning);
-        return res.status(200).send(lightning);
-      } else {
-        console.log("failed to get wallet info for provided address", req.query.address);
-        return res.status(400).send();
-      }
-    }
-  })
-   
-  */
   async function getLnurlInfo(address) {
     if (enableDebug) {
       console.log("⚡️⚡️getting lnurl info", address);
@@ -2091,21 +1994,6 @@ async function register({
 
       return matchAlbyLink[3] + "@getalby.com";
     }
-  }
-  //currently done client side
-  async function findLinks(textblock) {
-    if (!textblock) {
-      return;
-    }
-    text = textblock.toString();
-
-    var regex = /(https:[/][/]|http:[/][/]|www.)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?\/?([a-zA-Z0-9\-\._\?\,\'/\\\+&amp;%\$#\=~])/g;
-    if (regex.test(text)) {
-      let result = text.match(regex);
-      console.log("⚡️⚡️urls found", result);
-      return result;
-    }
-    return;
   }
   async function saveWellKnown(account, keySend) {
     //return;

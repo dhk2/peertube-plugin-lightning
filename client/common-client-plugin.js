@@ -1347,7 +1347,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
-    Lightning address for boostbacks and cross app zaps. <br>
+    Lightning address for boostbacks and cross app zaps. Needs to an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet">Alby</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet">Fountain</b><br>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
     <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>
   

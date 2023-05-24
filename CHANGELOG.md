@@ -1,6 +1,8 @@
 v 4.2.0
 - fixed federated item level split
 - fixed logging and error catching issues with setting user lightning address
+- disabled nonworking custom node settings for user address
+- cleaned up server side code
 - added callback route for using alby API
  
 v 4.1.9
