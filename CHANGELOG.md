@@ -1,3 +1,10 @@
+v 4.2.1
+- added Alby API integration to work better with browsers without WebLN
+- added ability to authorize or de-authoraize an alby address
+- standardized closing models after button click
+- started on cleaning up boostagram metadata generation
+- added rounding boost sats to an integer and not sending anything under 3 sats
+- 
 v 4.2.0
 - fixed federated item level split
 - fixed logging and error catching issues with setting user lightning address

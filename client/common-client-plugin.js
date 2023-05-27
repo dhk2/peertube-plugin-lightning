@@ -11,7 +11,8 @@ async function register({ registerHook, peertubeHelpers }) {
   let lastTip = 69;
   let convertRate = .0002;
   let userName = "PeerTuber";
-  let accountName, channelName, videoName, instanceName,accountAddress;
+  let walletAuthorized = false;
+  let accountName, channelName, videoName, instanceName,accountAddress,softwareVersion,client_id;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -23,6 +24,7 @@ async function register({ registerHook, peertubeHelpers }) {
       legacyEnabled = s['legacy-enable'];
       lnurlEnabled = s['lnurl-enable'];
       debugEnabled = s['debug-enable'];
+      client_id = s['alby-client-id'];
       if (debugEnabled) {
         console.log("settings", s);
       }
@@ -40,19 +42,37 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log('Fetched server config.', config);
       instanceName = config.instance.name;
     })
-  
+  try {
+    let versionResult = await axios.get(basePath + "/getversion");
+    if (versionResult && versionResult.data) {
+      softwareVersion = versionResult.data;
+    }
+  } catch (err) {
+    console.log("error getting software version", basePath, err);
+  }
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
       if (user ) {
         console.log("user",user);
+        userName=user.username
         let accountWalletApi = basePath + "/walletinfo?account="+user.username;
         console.log("wallet api call",accountWalletApi,user.username);
         try {
           let accountWallet = await axios.get(accountWalletApi);
           if (accountWallet){
-            accountAddress=accountWallet.data.address;
-            console.log("account wallet info",accountWallet.data,accountAddress);
+            accountAddress=accountWallet.data;
+            console.log("account wallet info",accountAddress);
+            let authorizedWalletApi = basePath +"/checkauthorizedwallet";
+            console.log("authorized wallet api:",authorizedWalletApi);
+            let headers = { headers: await peertubeHelpers.getAuthHeader() }
+            console.log("headers",headers)
+            let authorized = await axios.get(authorizedWalletApi, headers);
+            console.log("authorized result",authorized);
+            if (authorized.data){
+              
+              walletAuthorized=true;
+            }
           } else {
             console.log("no wallet data found for",user.username);
           }
@@ -512,7 +532,7 @@ async function register({ registerHook, peertubeHelpers }) {
         streamButton.title = "Stream Sats to " + channelName + " every minute of watching";
         document.getElementById("stream").onclick = async function () {
           popup = await peertubeHelpers.showModal({
-            title: 'Stream sats for ' + channelName,
+            title: 'V4V settings',
             content: ` `,
             close: true,
           })
@@ -678,10 +698,10 @@ async function register({ registerHook, peertubeHelpers }) {
           document.getElementById("add-split-final").onclick = async function () {
             let newAddress = document.getElementById("modal-split-address").value;
             let newName = encodeURI(document.getElementById("modal-split-name").value);
-            let createApi = `/createsplit?channel=` + channel + `&splitaddress=` + newAddress+ `&name=` + newName;
+            let createApi = basePath + `/createsplit?channel=` + channel + `&splitaddress=` + newAddress+ `&name=` + newName;
             let createResult;
             try {
-              createResult = await axios.get(basePath + createApi);
+              createResult = await axios.get(createApi);
             } catch (e) {
               console.log("unable to create split\n", createApi, createResult);
               notifier.error(e, createResult, newAddress, newAddress.length);
@@ -789,28 +809,31 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
     if (debugEnabled) {
-      console.log("boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
+      console.log("boost called", walletAuthorized, walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
     if (!keysendEnabled) {
       return;
     }
-    try {
-      let supported = await checkWebLnSupport();
-      if (debugEnabled) {
-        console.log("supported value for webln in boost ", supported);
-      }
-      if (supported < 2) {
+    if (!walletAuthorized){
+      try {
+        let supported = await checkWebLnSupport();
+        if (debugEnabled) {
+          console.log("supported value for webln in boost ", supported);
+        }
+        if (supported < 2) {
+          await sendSats(walletData, amount, message);
+          return;
+        }
+      } catch {
+        //not supporting
         await sendSats(walletData, amount, message);
+        return;
       }
-    } catch {
-      //not supporting
-      await sendSats(walletData, amount, message);
-      return;
     }
     let remoteHost, remoteUser, localHost;
-    if (parseInt(amount) < 1) {
-      amount = "1";
-    }
+    amount = Math.floor(amount)
+    if (parseInt(amount) < 3) {return}
+    
     if (!from) {
       from = "Anon";
     }
@@ -849,7 +872,7 @@ async function register({ registerHook, peertubeHelpers }) {
     } catch (err) {
       console.log("error getting software version", basePath, err);
     }
-    const boost = {
+    var boost = {
       action: type,
       value_msat: amount * 1000,
       value_msat_total: boostTotal * 1000,
@@ -964,16 +987,147 @@ async function register({ registerHook, peertubeHelpers }) {
       console.log("payment info", paymentInfo);
     }
     let result;
+    let albyBoostResult;
+    if (walletAuthorized){
+      try {
+        let sendBoostApi=basePath+"/sendalbypayment"
+        console.log("send boost api",sendBoostApi)
+        albyBoostResult = await axios.post(sendBoostApi,paymentInfo,{ headers: await peertubeHelpers.getAuthHeader() });
+        console.log("alby boost result",albyBoostResult);
+        var tipfixed = amount
+        notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
+        return albyBoostResult;
+      } catch (err) {
+        console.log("error attempting to send sats using integrated wallet", err);
+        notifier.error("⚡ not sent via integrated wallet");
+        return albyBoostResult;
+      }
+    }
     try {
       result = await webln.keysend(paymentInfo);
       var tipfixed = amount
       notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
       return result;
     } catch (err) {
-      console.log("error attempting to send sats using keysend", err.message);
+      notifier.error("⚡ error attempting to send sats using keysend", err.message);
       return;
     }
   }
+  async function buildBoostObject(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
+    if (debugEnabled) {
+      console.log("boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
+    }
+    let remoteHost, remoteUser, localHost;
+    if (parseInt(amount) < 5) {return}
+    if (!type) {type = "boost"}
+    if (channelName) {
+      let parts = channelName.split("@");
+      remoteUser = parts[0];
+      if (parts.length > 0) {
+        remoteHost = parts[1];
+      }
+    }
+    let pubKey = walletData.pubkey;
+    let tag = walletData.tag;
+    let customKeyHack, customValue
+    if (walletData.customData) {
+      customKeyHack = walletData.customData[0].customKey;
+      customValue = walletData.customData[0].customValue;
+    }
+    if (!splitName) {splitName = channel}
+    if (!boostTotal) {boostTotal = amount}
+    let version =softwareVersion;
+    var boost = {
+      action: type,
+      value_msat: amount * 1000,
+      value_msat_total: boostTotal * 1000,
+      app_name: "PeerTube",
+      app_version: version,
+      name: splitName,
+    };
+// deprecated if (type == "stream") {boost.seconds_back = 60}
+    if (from) {boost.sender_name = from}
+    if (message) {boost.message = message}
+    if (currentTime) {boost.ts = parseInt(currentTime.toFixed())}
+    if (channel) {boost.podcast = channel}
+    if (episode) {boost.episode = episode}
+    if (window.location.href) {
+      boost.episode_guid = window.location.href;
+      let parts = boost.episode_guid.split('/');
+      localHost = parts[2];
+      if (remoteHost) {
+        boost.episode_guid = "https://" + remoteHost + "/" + parts[3] + "/" + parts[4];
+        localHost = parts[2];
+      }
+    }
+    boost.boost_link = window.location.href;
+    if (currentTime) {boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed()}
+    if (channelName) {
+      if (remoteHost) {
+        boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+      } else {
+        boost.url = window.location.protocol + "//" + localHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+      }
+
+    }
+    if (episodeGuid){
+      let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
+      try {
+        let itemId = await axios.get(itemApi);
+        if (itemId) {
+          boost.itemID = itemId.data;
+        }
+      } catch (err) {
+        console.log("error getting itemid",itemApi,err);
+      }
+    }
+    if (channelName){
+      let feedApi = basePath + "/getfeedid?channel=" + channelName;
+      try {
+        let feedId = await axios.get(feedApi);
+        if (feedId) {
+          boost.feedID = feedId.data;
+        }
+      } catch (err) {
+        console.log("error getting feed id error",feedApi,err);
+      }
+      let guid;
+      let guidApi = basePath + "/getchannelguid?channel=" + channelName;
+      try {
+        guid = await axios.get(guidApi);
+        if (guid) {
+          boost.guid = guid.data;
+        }
+      } catch (err) {
+        console.log("error getting channel guid",guidApi,err)
+      }
+    }
+    if (replyAddress){boost.reply_address=replyAddress}
+    let paymentInfo;
+    if (customValue) {
+      paymentInfo = {
+        destination: pubKey,
+        amount: amount,
+        customRecords: {
+          7629169: JSON.stringify(boost),
+          [customKeyHack]: customValue,
+        }
+      };
+    } else {
+      paymentInfo = {
+        destination: pubKey,
+        amount: amount,
+        customRecords: {
+          7629169: JSON.stringify(boost),
+        }
+      };
+    }
+    if (debugEnabled) {
+      console.log("payment info", paymentInfo);
+    }
+    return paymentInfo;
+  }
+
   async function getChatRoom(channel) {
     if (debugEnabled) {
       console.log("getting chat room", channel, basePath)
@@ -1062,9 +1216,9 @@ async function register({ registerHook, peertubeHelpers }) {
         splitApi = splitApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
       }
     } else {
-      if (accountName) {
-        splitApi = splitApi + "?account=" + accountName;
-      }
+      //if (accountName) {
+      //  splitApi = splitApi + "?account=" + accountName;
+      //}
       if (channelName) {
         splitApi = splitApi + "?channel=" + channelName;
       }
@@ -1167,7 +1321,7 @@ async function register({ registerHook, peertubeHelpers }) {
     html = html + "<hr>"
     let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
 
-    html = html + `For full Boostagram functionality on sites like <a href="https://saturn.fly.dev">SATurn</a> and <a href="https://conshax.app">Conshax</a> you will need to register your channels podcast 2.0 RSS feed on Podcast Index.  You can do that here <a href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `">here</a>. This will also make audio versions of your videos available as a Podcast on modern Podcast apps. Once registered you can get the ID from the Podcast Index url for the channel`;
+    html = html + `For full Boostagram functionality on sites like <a href="https://saturn.fly.dev" target="_blank" rel="noopener noreferrer"">SATurn</a> and <a href="https://conshax.app" target="_blank" rel="noopener noreferrer">Conshax</a> you will need to register your channels podcast 2.0 RSS feed on Podcast Index.  You can do that here <a target="_blank" rel="noopener noreferrer" href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `">here</a>. This will also make audio versions of your videos available as a Podcast on modern Podcast apps. Once registered you can get the ID from the Podcast Index url for the channel`;
     html = html + "<br> Podcast Index Feed ID:";
 
     html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
@@ -1191,13 +1345,18 @@ async function register({ registerHook, peertubeHelpers }) {
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
-    let weblnSupport = await checkWebLnSupport();
+    let weblnSupport;
+     if (!walletAuthorized){
+      weblnSupport = await checkWebLnSupport();
+    } else {
+      weblnSupport =69
+    }
     lastTip = amount;
     //notifier.success(weblnSupport);
     let result;
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
-      if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
+      if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
         if (debugEnabled) {
           console.log("sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
@@ -1327,6 +1486,9 @@ async function register({ registerHook, peertubeHelpers }) {
 
   }
   async function checkWebLnSupport() {
+    if (walletAuthorized){
+      return 69;
+    }
     try {
       await webln.enable()
       if (typeof webln.keysend === 'function') {
@@ -1347,10 +1509,11 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
-    Lightning address for boostbacks and cross app zaps. Needs to an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet">Alby</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet">Fountain</b><br>
+    Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
     <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>
-  
+    <br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments in any browser<br>
+    <button id = "modal-address-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
     <hr>
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
@@ -1358,31 +1521,89 @@ async function register({ registerHook, peertubeHelpers }) {
     / $
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>`;
-    let modal = (document.getElementsByClassName('modal-body'))
+    let modal = (document.getElementsByClassName('modal-body'));
     modal[0].innerHTML = html;
     let modalSatStream = document.getElementById("modal-streamamount");
     let modalCashStream = document.getElementById("modal-cashamount");
     let modalSatTip = document.getElementById("modal-sats");
     let modalCashTip = document.getElementById("modal-cashtip");
     let menuStreamAmount = document.getElementById('streamamount');
-    let modalAddressUpdate = document.getElementById('modal-address-update')
-    let userAddress = document.getElementById('modal-address')
+    let modalAddressUpdate = document.getElementById('modal-address-update');
+    let userAddress = document.getElementById('modal-address');
+    let modalAddressAuthorize = document.getElementById("modal-address-authorize");
+    if (modalAddressAuthorize) {
+      let authorizedWalletApi = basePath +"/checkauthorizedwallet";
+      console.log("authorized wallet api:",authorizedWalletApi);
+      let headers = { headers: await peertubeHelpers.getAuthHeader() }
+      console.log("headers",headers)
+      let authorized;
+      try {
+        authorized = await axios.get(authorizedWalletApi, headers);
+        walletAuthorized = true;
+      } catch {
+        console.log("unable to confirm authorized");
+        walletAuthorized = false;
+      }
+      console.log("authorized result",authorized);
+      let newUserAddress =userAddress.value;
+      console.log("wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
+      
+      modalAddressAuthorize.style.visible=true;
+      if (!walletAuthorized && newUserAddress.indexOf('@')>1 && newUserAddress.indexOf('getalby.com')>1){
+        modalAddressAuthorize.textContent="Authorize "+newUserAddress+""
+        console.log("making button for authorize");
+      } else if (walletAuthorized){
+        modalAddressAuthorize.textContent = "De-Authorize";
+      } else {
+        modalAddressAuthorize.style.visible=false;
+      }
+      modalAddressAuthorize.onclick = async function (){
+        console.log("authorize button clicked",walletAuthorized);
+        if (walletAuthorized){
+          try {
+            await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
+            notifier.success("De-Authorized getalby wallet");
+            walletAuthorized=false;
+          } catch {
+            notifier.error("error trying to deauthorize wallet")
+          }
+          closeModal();
+          return;
+        }        
+        try {
+          axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
+        } catch {
+          notifier.error("error trying to inform peertube of incoming authorization");
+        }  
+        let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=https://p2ptube.us/plugins/lightning/router/callback&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
+        console.log("alby url",albyUrl);
+        window.open(albyUrl, 'popup', 'width=600,height=800');  
+        closeModal();
+    }
+    } else {
+      console.log("no authorize button dinglebut");
+    }
     if (modalAddressUpdate){
       modalAddressUpdate.onclick = async function () {
+        console.log("")
         let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
         console.log("api call to update user lightningAddress",setWalletApi);
+        modalAddressUpdate.value="updating";
         try {
           let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
           if (userData && userData.data){
-            console.log("user lightning address",userData.data.address);
-            accountAddress=userData.data.address;
+            console.log("user lightning address",userData.data);
+            userAddress.value=userData.data;
+            accountAddress=userData.data;
+            notifier.success("updated "+userName+"'s lighting address to "+accountAddress);
           } else {
             console.log("didn't get good user address");
+            notifier.error("failed to udate "+userName+"'s lighting address to "+userAddress.value);
           }
         } catch (err){
           console.log("error attempting to update user wallet",setWalletApi,err);
         }
-
+        closeModal();
       }
     }
     if (modalSatStream) {

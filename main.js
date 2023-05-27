@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 const crypto = require('crypto');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
@@ -13,6 +14,7 @@ async function register({
   settingsManager,
   storageManager,
 }) {
+  
   registerSetting({
     name: 'lightning-address',
     label: 'Lightning address',
@@ -35,6 +37,20 @@ async function register({
     default: 'Boost',
     descriptionHTML: 'Superchat, Zap, Boostagram, bits, spells, whatever your community would prefer.',
     private: false
+  })
+    registerSetting({
+    name: 'alby-client-id',
+    label: 'Alby Api Client ID',
+    type: 'input',
+    descriptionHTML: 'This is the client ID obtained from Alby. Needed to allow users to authorize payments directly from PeerTube in any browser',
+    private: false
+  })
+  registerSetting({
+    name: 'alby-client-secret',
+    label: 'Alby API client secret',
+    type: 'input-password',
+    descriptionHTML: 'The client secret',
+    private: true
   })
   registerSetting({
     name: 'irc-enable',
@@ -97,6 +113,8 @@ async function register({
   let enableDebug = await settingsManager.getSetting("debug-enable");
   //let enableRss = await settingsManager.getSetting("debug-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
+  let client_id=await settingsManager.getSetting("alby-client-id");
+  let client_secret=await settingsManager.getSetting("alby-client-secret");
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
   if (enableDebug) {
     console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
@@ -633,16 +651,17 @@ async function register({
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
     if (user && user.dataValues && req.query.address) {
+      let userName = user.dataValues.username;
       if (enableDebug){
          console.log("███ got authorized peertube user",user.dataValues.username);
       }
-      let userName = user.dataValues.username;
       if (enableDebug){
-        console.log("⚡️⚡️⚡️⚡️ user",user,username);
+        console.log("⚡️⚡️⚡️⚡️ user",userName);
       }
-      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"),);
-      return res.status(200).send();
+      storageManager.storeData("lightning-" + user.dataValues.username.replace(/\./g, "-"),req.query.address);
+      return res.status(200).send(req.query.address);
     }
+    return res.status(420).send();
     /* disabling pubkey/custom value for now
     if (!req.query.key) {
       return res.status(400).send("missing key");
@@ -1790,8 +1809,46 @@ async function register({
     return res.status(400).send("failed to update");
   })
   router.use('/callback', async (req, res) => {
-    console.log("⚡️⚡️ callback",req.query,req.body);
-    return res.status(200).send();
+    console.log("\n⚡️⚡️\n callback",req.query,req.body);
+
+    let state;
+    if (req.query.state){
+      state = await storageManager.getData("alby-" + req.query.state.replace(/\./g, "-"));
+      console.log("\n⚡️⚡️\ncurrent wallet value",state,req.query.state);
+    }
+    if (state == 'pending'){
+      var formFull = new URLSearchParams();
+      //formFull = new FormData();
+      formFull.append('code', req.query.code);
+      formFull.append('grant_type', 'authorization_code');
+      formFull.append('redirect_uri', 'https://p2ptube.us/plugins/lightning/router/callback');
+      formFull.append('client_id',client_id);
+      formFull.append('client_secret',client_secret);
+      
+      let url = "https://api.getalby.com/oauth/token";
+      let response;
+      try {
+        response = await axios.post(url,formFull,{ auth: { username: client_id, password: client_secret}});
+      } catch (err){
+        console.log("\n⚡️⚡️⚡️⚡️axios failed to post to alby",err,url,formFull)
+      }
+      if (response && response.data){
+        console.log("\n⚡️⚡️⚡️⚡️response to token request axios",response.data);
+        storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"),response.data);
+        let albyToken = response.data.access_token
+        let albyWalletData
+        let headers = { headers: {"Authorization" : `Bearer `+albyToken} }
+        let walletApiUrl="https://api.getalby.com/user/me"
+        try {
+          
+         albyWalletData=await axios.get(walletApiUrl,headers)
+        } catch (err) {
+          console.log("\n⚡️⚡️⚡️⚡️error attempting to get wallet data\n",walletApiUrl,headers,err);
+        }
+        console.log("\n⚡️⚡️⚡️⚡️wallet data:\n",albyWalletData);
+      }
+    }
+    return res.status(200).send("User authorized to boost");
     /*
     var chatID = req.query.id;
     console.log("\n\nchatID", chatID);
@@ -1884,15 +1941,114 @@ async function register({
     });
     */
   })
+  router.use('/setauthorizedwallet', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting authorized wallet", req.query);
+    }
+    let userName;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues) {
+      if (enableDebug){
+         console.log("⚡️⚡️ got authorized peertube user",user.dataValues.username);
+      }
+      userName = user.dataValues.username;
+    } else {
+      return res.status(420).send("not a logged in PeerTube user ("+req.query+") ["+user+")");
+    }
+    if (req.query.clear){
+      storageManager.storeData("alby-" + userName.replace(/\./g, "-"),"cleared");
+      console.log("⚡️⚡️cleared",userName);
+    } else {
+      storageManager.storeData("alby-" + userName.replace(/\./g, "-"),"pending");
+      console.log("⚡️⚡️set",userName,"to pending");
+    }
+    return res.status(200).send(true);
+  })
+  router.use('/checkauthorizedwallet', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️checking authorized wallet", req.query);
+    }
+    let userName;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+    } else {
+      console.log("⚡️⚡️no user found");
+      return res.status(420).send();
+    }
+    let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
+    console.log("⚡️⚡️stored data", albyData);
+    if (albyData && albyData.access_token){
+      return res.status(200).send(true);
+    } else {
+      console.log("failed to get alby data",albyData);
+      return res.status(420).send(false);
+    }
+  })
+  router.use('/sendalbypayment', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️sending payment", req.query,req.body);
+    }
+    let userName;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+    } else {
+      console.log("⚡️⚡️no user found");
+      return res.status(420).send();
+    }
+    let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
+    console.log("⚡️⚡️stored data", albyData);
+    if (albyData.access_token){
+        let albyToken = albyData.access_token
+        let albyWalletData
+        let headers = { headers: {"Authorization" : `Bearer `+albyToken} }
+        let walletApiUrl="https://api.getalby.com/payments/keysend"
+        let data = req.body;
+        console.log("-=--=-=-=-=-",data,headers,walletApiUrl)
+        try {
+          albyWalletData=await axios.post(walletApiUrl,data,headers)
+        } catch (err) {
+          console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n",err.response.status);
+          albyWalletData = err.response.status;
+        }
+        if (albyWalletData == 401){
+          console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          let albyUrl = 'https://api.getalby.com/oauth/token'
+          var form = new URLSearchParams();
+          form.append('refresh_token', albyData.refresh_token);
+          form.append('grant_type',"refresh_token");
+          let headers = { auth: { username: client_id, password: client_secret}};
+          let response;
+          try {
+            response = await axios.post(albyUrl,form,headers);
+          } catch (err){
+            console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token",err,url,formFull)
+          }
+          if (response && response.data){
+            console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios",response.data);
+            storageManager.storeData("alby-" + userName.replace(/\./g, "-"),response.data);
+          }
+        }
+      return res.status(200).send(true);
+    } else {
+      return res.status(420).send(false);
+    }
+  })
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
+    let feedId;
     try {
-      let feedId = await axios.get(feedApi);
-      let pingResult = await axios.get("https://api.podcastindex.org/api/1.0/hub/pubnotify?id=" + feedId.data);
-      return (pingResult.data);
+      feedId = await axios.get(feedApi);
+      let pingResult;
+      if (feedId){
+        pingResult = await axios.get("https://api.podcastindex.org/api/1.0/hub/pubnotify?id=" + feedId.data);
+      }
+      if (pingResult && pingResult.data){
+        return (pingResult.data);
+      }
     } catch {
       console.log("⚡️⚡️hard error when trying ping podcast index ", feedId,feedApi);
-      return;
     }
   }
   async function getKeysendInfo(address) {
@@ -2038,6 +2194,25 @@ async function register({
     } catch (err) {
       console.error("⚡️⚡️ trouble saving the keysend split info to peertube folder", err, account);
     }
+  }
+  async function buildFormData(formData, data, parentKey) {
+  if (data && typeof data === 'object' && !(data instanceof Date)) {
+    Object.keys(data).forEach(key => {
+      buildFormData(formData, data[key], parentKey ? `${parentKey}[${key}]` : key);
+    });
+  } else {
+    const value = data == null ? '' : data;
+
+    formData.append(parentKey, value);
+  }
+  }
+
+  function jsonToFormData(data) {
+  const formData = new URLSearchParams();
+  
+  buildFormData(formData, data);
+  
+  return formData;
   }
 }
 async function unregister() {
