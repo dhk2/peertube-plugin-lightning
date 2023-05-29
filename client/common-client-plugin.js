@@ -157,7 +157,7 @@ async function register({ registerHook, peertubeHelpers }) {
               if (walletData) {
                 wallet = walletData.data;
                 let weblnSupport = await checkWebLnSupport();
-                if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
+                if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
                   await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
@@ -256,7 +256,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 if (debugEnabled){
                 console.log("thread link",link, this.id);
                 }
-                if (wallet.keysend && (weblnSupport > 1) && keysendEnabled) {
+                if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
                   await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
@@ -357,61 +357,62 @@ async function register({ registerHook, peertubeHelpers }) {
 
       let splitData = await getSplit();
       var streamButtonText,v4vButtonHTML;
-      if (splitData) {
-        if (!document.querySelector('.lightning-buttons-block')) {
-          if (streamEnabled) {
-            streamButtonText = "⚡️" + streamAmount + "/min";
-          } else {
-            streamButtonText = "V4V";
-          }
-          //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
-          v4vButtonHTML = ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
-          let delta = 0;
-          let lastStream = videoEl.currentTime;
-          streamTimer = setInterval(async function () {
-            currentTime = videoEl.currentTime;
-            if (streamEnabled) {
-              delta = (currentTime - lastStream).toFixed();
-              if (debugEnabled) {
-                console.log("counting for stream payments", delta);
-              }
-              if (delta > 60 && delta < 64) {
-                try {
-                  await webln.enable();
-                } catch {
-                  await alertUnsupported();
-                  streamEnabled = false;
-                  let modalChecker = document.getElementById("modal-streamsats");
-                  if (modalChecker) {
-                    modalChecker.checked = false;
-                  }
-                  let menuChecker = document.getElementById("streamsats");
-                  if (menuChecker) {
-                    menuChecker.checked = false;
-                  }
-                  return;
-                }
-                for (var wallet of splitData) {
-                  var amount = streamAmount * (wallet.split / 100);
-                  let result;
-                  if (wallet.keysend && keysendEnabled) {
-                    result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name,accountAddress);
-                  } else if (wallet.lnurl && lnurlEnabled) {
-                    result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
-                    //walletData = await refreshWalletInfo(walletData.address);
-                  }
-                  if (debugEnabled) {
-                    console.log("boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
-                  }
-                }
-                lastStream = currentTime;
-              }
-              if (delta > 63 || delta < 0) {
-                lastStream = currentTime;
-              }
-            }
-          }, 1000);
+      if (!document.querySelector('.lightning-buttons-block')) {
+        if (streamEnabled) {
+          streamButtonText = "⚡️" + streamAmount + "/min";
+        } else {
+          streamButtonText = "V4V";
         }
+        //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
+        v4vButtonHTML = ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
+        let delta = 0;
+        let lastStream = videoEl.currentTime;
+        streamTimer = setInterval(async function () {
+          currentTime = videoEl.currentTime;
+          if (streamEnabled) {
+            delta = (currentTime - lastStream).toFixed();
+            if (debugEnabled) {
+              console.log("counting for stream payments", delta);
+            }
+            if (delta > 60 && delta < 64) {
+              lastStream = currentTime;
+              delta=0;
+              let weblnSupported;
+              weblnSupported =checkWebLnSupport();
+              console.log("webln support for streaming",weblnSupported,delta,lastStream,currentTime,lastStream-currentTime);
+              if (weblnSupported<2){
+                await alertUnsupported();
+                streamEnabled = false;
+                let modalChecker = document.getElementById("modal-streamsats");
+                if (modalChecker) {
+                  modalChecker.checked = false;
+                }
+                let menuChecker = document.getElementById("streamsats");
+                if (menuChecker) {
+                  menuChecker.checked = false;
+                }
+                return;
+              }
+              for (var wallet of splitData) {
+                var amount = streamAmount * (wallet.split / 100);
+                let result;
+                if ((wallet.keysend && keysendEnabled)|| walletAuthorized) {
+                  result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name,accountAddress);
+                } else if (wallet.lnurl && lnurlEnabled) {
+                  result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
+                  //walletData = await refreshWalletInfo(walletData.address);
+                }
+                if (debugEnabled) {
+                  console.log("boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
+                }
+              }
+              lastStream = currentTime;
+            }
+            if (delta > 63 || delta < 0) {
+              lastStream = currentTime;
+            }
+          }
+        }, 1000);
       }
       if (chatEnabled) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▼" + `</button>`
@@ -768,14 +769,7 @@ async function register({ registerHook, peertubeHelpers }) {
     //fixing millisats for lnpay
     amount = amount * 1000
     //("parsint", parseInt(amount));
-    let supported = true;
-    try {
-      await webln.enable();
-    } catch {
-      //await alertUnsupported();
-      //makeQrDialog(invoice);
-      supported = false;
-    }
+    let supported = checkWebLnSupport();
     if (debugEnabled) {
       console.log("webln enabled:", supported);
     }
@@ -793,7 +787,7 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let invoice = result.data.pr;
     try {
-      if (supported) {
+      if (supported>0) {
         result = await window.webln.sendPayment(invoice);
         var tipfixed = amount / 1000
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
@@ -894,8 +888,8 @@ async function register({ registerHook, peertubeHelpers }) {
     } else {
       console.log("no current time value for boost");
     }
-    if (channel) {
-      boost.podcast = channel;
+    if (channelName) {
+      boost.podcast = channelName;
     }
     if (episode) {
       boost.episode = episode;
@@ -1049,7 +1043,7 @@ async function register({ registerHook, peertubeHelpers }) {
     if (from) {boost.sender_name = from}
     if (message) {boost.message = message}
     if (currentTime) {boost.ts = parseInt(currentTime.toFixed())}
-    if (channel) {boost.podcast = channel}
+    if (channelName) {boost.podcast = channelName}
     if (episode) {boost.episode = episode}
     if (window.location.href) {
       boost.episode_guid = window.location.href;
@@ -1509,10 +1503,10 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
-    Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
+    Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, <a href="http://signup.hive.io/" target="_blank" rel="noopener noreferrer">Hive</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
     <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>
-    <br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments in any browser<br>
+    <br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
     <button id = "modal-address-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
     <hr>
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
@@ -1638,7 +1632,7 @@ async function register({ registerHook, peertubeHelpers }) {
         if (streamEnabled) {
           streamButtonText = "⚡️" + streamAmount + "/min";
         } else {
-          streamButtonText = "⚡️⌚";
+          streamButtonText = "⚡️V4V";
         }
         butt.textContent = streamButtonText;
         if (menuChecker) {

@@ -1,3 +1,9 @@
+v 4.2.2
+- fixed issue with v4v button not appearing sometimes
+- fixed cross app comment zap on mobile not using authorized wallet
+- fixed streaming webln support check failure
+- fixed streaming double pay issue with multiple splits
+
 v 4.2.1
 - added Alby API integration to work better with browsers without WebLN
 - added ability to authorize or de-authoraize an alby address

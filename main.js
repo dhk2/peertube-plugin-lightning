@@ -1,10 +1,9 @@
 const axios = require('axios');
-const FormData = require('form-data');
 const crypto = require('crypto');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
-const { Console } = require('console');
 const fs = require('fs');
+
 //const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
 async function register({
   registerHook,
@@ -140,6 +139,7 @@ async function register({
       hostWalletData.name = hostName;
     }
   }
+  
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     if (enableDebug) {
@@ -1447,7 +1447,7 @@ async function register({
       } catch {
         console.log ("⚡️⚡️failed to GET lightning split",video);
       } 
-      console.log("⚡️⚡️retrieved split info for video ", video, "\n", storedSplitData.length);
+      console.log("⚡️⚡️retrieved split info for video ", video, "\n", storedSplitData);
       if (!storedSplitData) {
         console.log("⚡️⚡️stored split data for video not found");
         console.log("⚡️⚡️base", base);
@@ -2034,6 +2034,54 @@ async function register({
     } else {
       return res.status(420).send(false);
     }
+  })
+  router.use('/enablewebhook', async (req, res) => {
+    let albyHook="https://api.getalby.com/webhook_endpoints"
+    let body ={};
+    body.description = "super chat invoices";
+    body.url='https://p2ptube.us/plugins/matrixchat/router/v4vchat';
+    body.filter_types = ["invoice.incoming.settled"]
+    let albyData = await storageManager.getData("alby-don");
+    let response;
+    console.log("⚡️⚡️stored data", albyData);
+    if (albyData && albyData.access_token){
+        let albyToken = albyData.access_token
+        let albyWalletData
+        let headers = { headers: {"Authorization" : `Bearer `+albyToken} }
+        console.log("⚡️⚡️⚡️⚡️",body,headers,albyHook)
+        try {
+          response  = albyWalletData=await axios.post(albyHook,body,headers)
+        } catch (err) {
+          console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n",err);
+          albyWalletData = err.response.status;
+        }
+        console.log('⚡️⚡️⚡️⚡️ response',response,albyWalletData);
+        if (albyWalletData == 401){
+          console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          let albyUrl = 'https://api.getalby.com/oauth/token'
+          var form = new URLSearchParams();
+          form.append('refresh_token', albyData.refresh_token);
+          form.append('grant_type',"refresh_token");
+          let headers = { auth: { username: client_id, password: client_secret}};
+          let response;
+        try {
+            response  = albyWalletData=await axios.post(albyUrl,body,headers)
+          } catch (err) {
+            console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n",err);
+            albyWalletData = err;
+          }
+          if (response && response.data){
+            console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios",response.data);
+            storageManager.storeData("alby-" + userName.replace(/\./g, "-"),response.data);
+          }
+        }
+
+
+
+
+
+    }
+
   })
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
