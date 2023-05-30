@@ -1953,7 +1953,8 @@ async function register({
       }
       userName = user.dataValues.username;
     } else {
-      return res.status(420).send("not a logged in PeerTube user ("+req.query+") ["+user+")");
+      console.log("⚡️⚡️ not a valid user");
+      return res.status(200).send("not a logged in PeerTube user ("+req.query+") ["+user+")");
     }
     if (req.query.clear){
       storageManager.storeData("alby-" + userName.replace(/\./g, "-"),"cleared");

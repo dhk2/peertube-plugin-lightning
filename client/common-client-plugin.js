@@ -1505,10 +1505,12 @@ async function register({ registerHook, peertubeHelpers }) {
     let html = `<div id="modal-streamdialog">
     Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, <a href="http://signup.hive.io/" target="_blank" rel="noopener noreferrer">Hive</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
-    <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>
-    <br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
-    <button id = "modal-address-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
-    <hr>
+    <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>`;
+    if (peertubeHelpers.isLoggedIn() && client_id){
+      html = html + `<br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
+      <button id = "modal-address-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>`;
+    }
+    html=html +`<hr>
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
@@ -1563,14 +1565,15 @@ async function register({ registerHook, peertubeHelpers }) {
           }
           closeModal();
           return;
-        }        
+        }
+        let authorizeReturned;        
         try {
-          axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
+          authorizeReturned = await axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
         } catch {
           notifier.error("error trying to inform peertube of incoming authorization");
         }  
         let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=https://p2ptube.us/plugins/lightning/router/callback&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
-        console.log("alby url",albyUrl);
+        console.log("alby url",albyUrl,authorized);
         window.open(albyUrl, 'popup', 'width=600,height=800');  
         closeModal();
     }

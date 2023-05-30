@@ -1,3 +1,6 @@
+v 4.2.3
+- fixed authorize button showing up for unlogged in users or sites without api key
+
 v 4.2.2
 - fixed issue with v4v button not appearing sometimes
 - fixed cross app comment zap on mobile not using authorized wallet
