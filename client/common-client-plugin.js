@@ -844,6 +844,10 @@ async function register({ registerHook, peertubeHelpers }) {
         remoteHost = parts[1];
       }
     }
+    if (!walletData || !walletData.pubkey){
+      notifier.error("Target wallet doesn't have a keysend address, bug errhead to put in legacy support for luddites");
+      return;
+    }
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
     let customKeyHack, customValue

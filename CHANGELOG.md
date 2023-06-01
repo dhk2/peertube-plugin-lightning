@@ -1,3 +1,8 @@
+v 4.2.4
+- added value block support for podcasting 2.0 rss feed
+- moved plugin rss feed base from rss media to podcasting 2.0
+- fixed error handling for lnurl lightning addresses
+  
 v 4.2.3
 - fixed authorize button showing up for unlogged in users or sites without api key
 

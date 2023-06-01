@@ -110,7 +110,7 @@ async function register({
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
   let enableDebug = await settingsManager.getSetting("debug-enable");
-  //let enableRss = await settingsManager.getSetting("debug-enable");
+  let enableRss = await settingsManager.getSetting("debug-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
   let client_id=await settingsManager.getSetting("alby-client-id");
   let client_secret=await settingsManager.getSetting("alby-client-secret");
@@ -119,6 +119,7 @@ async function register({
     console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
   }
   let hostWalletData = {};
+  let dirtyHack;
   if (enableKeysend || enableLnurl) {
     if (lightningAddress) {
       hostWalletData.address = lightningAddress;
@@ -139,7 +140,182 @@ async function register({
       hostWalletData.name = hostName;
     }
   }
-  
+    registerHook({
+    target: 'filter:feed.podcast.channel.create-custom-tags.result',
+    handler: async (result, params) => {
+      // { video: VideoChannelModel }
+      const { videoChannel } = params
+      //dirtyHack = params;
+      //console.log("⚡️⚡️⚡️⚡️ initial channel values ⚡️⚡️⚡️⚡️",params.videoChannel.dataValues.Actor.dataValues.Banners,params.videoChannel.dataValues.Actor.dataValues.Avatars);
+      var storedSplitData;
+      var channel = params.videoChannel.dataValues.Actor.dataValues.preferredUsername;
+      try  {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
+      } catch {
+        console.log ("⚡️⚡️ hard failed to get lightning split",channel);
+      }
+      var blocks = []
+      if (storedSplitData){
+        for (var split of storedSplitData){
+          let newBlock = {};
+          newBlock.name =split.name;
+          newBlock.type ="node";
+          newBlock.split = split.split;
+          if (split.fee){
+            newBlock.fee = split.fee;
+          }
+          newBlock.address = split.keysend.pubkey;
+          if (split.keysend.customData[0] && split.keysend.customData[0].customKey){
+            newBlock.customKey = split.keysend.customData[0].customKey;
+            newBlock.customValue = split.keysend.customData[0].customValue;
+          }
+          blockWrap ={};
+          blockWrap.name="podcast:valueRecipient"
+          blockWrap.attributes=newBlock
+          blocks.push(blockWrap);
+        }
+      }
+      if (blocks.length<1){
+        return result;
+      }
+      return result.concat([
+        {
+          name: "podcast:value",
+          attributes: {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000"
+            },
+          value: blocks,
+        }
+      ])
+    }
+  })
+
+  // For item level value tags
+  registerHook({
+    target: 'filter:feed.podcast.video.create-custom-tags.result',
+    handler: async (result, params) => {
+      // { video: VideoModel, liveItem: boolean }
+      const { video, liveItem } = params
+      //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video);
+      dirtyHack = params;
+      var storedSplitData;
+      var videoUuid  = params.video.dataValues.uuid;
+      try  {
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + videoUuid);
+      } catch {
+        console.log ("⚡️⚡️failed to get lightning split [",videoUuid,"]");
+      }
+      var blocks = []
+      if (storedSplitData){
+        for (var split of storedSplitData){
+          let newBlock = {};
+          newBlock.name =split.name;
+          newBlock.type ="node";
+          newBlock.split = split.split;
+          if (split.fee){
+            newBlock.fee = split.fee;
+          }
+          newBlock.address = split.keysend.pubkey;
+          if (split.keysend.customData[0] && split.keysend.customData[0].customKey){
+            newBlock.customKey = split.keysend.customData[0].customKey;
+            newBlock.customValue = split.keysend.customData[0].customValue;
+          }
+          blockWrap ={};
+          blockWrap.name="podcast:valueRecipient"
+          blockWrap.attributes=newBlock
+          blocks.push(blockWrap);
+        }
+      }
+      let customObjects = [];
+      let valueBlock;
+      if (blocks.length>0){
+        valueBlock = {
+          name: "podcast:value",
+          attributes: {
+            "type": "lightning",
+            "method": "keysend",
+            "suggested": "0.00000005000"
+            },
+          value: blocks,
+        }
+        customObjects.push(valueBlock);
+      }
+      //console.log("⚡️⚡️\nCustom Blocks 1",customObjects);
+      let captionApi = base + "/api/v1/videos/" + videoUuid + "/captions";
+      let captionResult;
+      try {
+        captionResult = await axios.get(captionApi);
+      } catch (err) {
+        console.log("⚡️⚡️failed requesting transcript data", err);
+      }
+      let captionPath,captionLanguage,captionItem;
+      //if (captionResult && captionResult.data && captionResult.data.total > 0) {
+      console.log("⚡️⚡️\ncaption result", captionResult.data);
+      for (var captionEntry in captionResult.data.data){
+        captionPath = base + captionEntry.captionPath
+        captionLanguage = captionEntry.language.id;
+        if (captionPath.indexOf("vtt") > 1) {
+          type="text/vtt"
+        } else {
+          type = "text/plain"
+          //fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="` + captionLanguage + `" type="text/plain" rel="captions"/>`;
+        }
+        captionItem = {
+          name: "podcast:transcript",
+          attributes: {
+            "url": captionPath,
+            "language": captionLanguage,
+            "type": type,
+            "rel": "captions"
+          }
+        };
+        customObjects.push(captionItem);
+        
+      }
+      var apiCall = base + "/api/v1/videos/" + videoUuid;
+      let videoData;
+      try {
+        videoData = await axios.get(apiCall);
+      } catch {
+        console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
+      }
+      if (videoData) {
+        //dirtyHack=videoData.data;
+        let duration=videoData.data.duration;
+         console.log("\n⚡️⚡️\n\n\nvideodata??",videoData.data);
+        let videoFiles = videoData.data.streamingPlaylists[0].files;
+        // console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
+        let smallest = 999999999
+        let filename;
+        if (videoFiles){
+          for (var fileOption of videoFiles){
+            console.log(fileOption);
+            if (fileOption.size <smallest) {
+              smallest = fileOption.size;
+              filename = fileOption.fileUrl
+            }
+          }
+        }
+        console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
+        if (smallest){
+          let enclosure = {
+            name: "audioenclosure",
+            attributes: {
+              "url": filename,
+              type: "video/mp4",
+              length: duration
+            }
+          }
+          customObjects.push(enclosure);
+        }
+        
+      }
+       //console.log("⚡️⚡️\nCustom Blocks 2",customObjects);
+      return result.concat(customObjects);
+    }
+  })
   const router = getRouter();
   router.use('/walletinfo', async (req, res) => {
     if (enableDebug) {
@@ -265,7 +441,7 @@ async function register({
       }
       if (storedWallet) {
         if (enableDebug){
-          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
+          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account);
         }
         if (storedWallet.status === 404) {
           console.log("⚡️⚡️404 not found error, cache dates", storedWallet.cache, Date.now() - storedWallet.cache);
@@ -369,79 +545,34 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ podcast2 request ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", req.query);
     }
-    /*
     if (!enableRss) {
-      return res.status(503).send();
+      return res.status(403).send();
     }
-    */
     if (req.query.channel == undefined) {
       console.log("⚡️⚡️no channel requested", req.query);
-      return res.status(400).send();
+      return res.status(404).send();
     }
     let channel = req.query.channel
-    let instance, instanceUrl;
-    if (channel.indexOf("@") > 1) {
-      let channelParts = channel.split("@");
-      instance = channelParts[1];
-      instanceUrl = "https://" + instance;
-      channel = channelParts[0];
-    } else {
-      instanceUrl = base;
-    }
-    console.log("⚡️⚡️ channel", channel, "instance", instance, instanceUrl);
-    let apiUrl = instanceUrl + "/api/v1/video-channels/" + channel;
-   // let mirrorUrl = instanceUrl + `/api/v1/server/redundancy/videos?target=my-videos`;
+    let apiUrl = base + "/api/v1/video-channels/" + channel;
     let channelData;
     try {
       channelData = await axios.get(apiUrl);
-      //console.log("want some ",await axios.get(mirrorUrl).data);
     } catch {
       console.log("⚡️⚡️⚡️⚡️unable to load channel info", apiUrl);
       return res.status(400).send();
     }
-    console.log("⚡️⚡️loaded channel data from", apiUrl);
-    let rssUrl = instanceUrl + "/feeds/videos.xml?videoChannelId=" + channelData.data.id;
+    //console.log("⚡️⚡️⚡️⚡️channel info", channelData.data);
+    let rssUrl = base + "/feeds/podcast/videos.xml?videoChannelId=" + channelData.data.id;
     let rssData;
     try {
       rssData = await axios.get(rssUrl)
     } catch {
-      console.log("⚡️⚡️unable to load rss feed for channel", rssUrl);
+      console.log("⚡️⚡️unable to load rss feed for", channel, rssUrl);
       return res.status(400).send();
     }
     console.log("⚡️⚡️loaded rss feed from", rssUrl);
-    apiUrl = base + "/plugins/lightning/router/getsplit?channel=" + req.query.channel;
-    let lightningData
-    let splitData;
-    try {
-      splitData = await axios.get(apiUrl);
-    } catch {
-      console.log("⚡️⚡️unable to load lightning wallet info for channel", apiUrl);
-      splitData = { data: {} };
-    }
-    console.log("⚡️⚡️loaded wallet information for channel", apiUrl, splitData.data.length);
-    /*let pubKey, tag, customKey, customValue;
-    if (lightningData.data.keysend) {
-      pubKey = lightningData.data.keysend.pubkey;
-      tag = lightningData.data.keysend.tag;
-      if (lightningData.data.keysend.customData[0]) {
-        customKey = lightningData.data.keysend.customData[0].customKey;
-        customValue = lightningData.data.keysend.customData[0].customValue;
-      }
-    } else {
-      console.log("no keysend data available for wallet")
-    }
-    */
-    let splits = splitData.data;
-    let keysend = false;
-    for (let s in splits) {
-      console.log("checking splits", keysend, splits[s]);
-      if (splits[s].keysend) {
-        keysend = true;
-      }
-    }
-    console.log("⚡️⚡️keysend", keysend, split);
     let channelGuid;
-    apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + req.query.channel;
+    apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + channel;
     try {
       let guidData = await axios.get(apiUrl);
       if (guidData && guidData.data) {
@@ -452,17 +583,6 @@ async function register({
       console.log("⚡️⚡️unable to load channel guid", apiUrl);
     }
     //TODO figure out how to get info for livechat plugin as well
-    let chatInfo;
-    apiUrl = base + "/plugins/matrixchat/router/getchatjson?channel=" + req.query.channel;
-    try {
-      let chatData = await axios.get(apiUrl);
-      if (chatData && chatData.data) {
-        console.log("⚡️⚡️chat info", chatData.data);
-         chatInfo = chatData.data;
-      }
-    } catch {
-      console.log("⚡️⚡️unable to load chat info", apiUrl);
-    }
     let counter = 0;
     let fixed = "";
     let spacer = "";
@@ -474,177 +594,28 @@ async function register({
     let displayName = channelData.data.displayName;
     for (var line of lines) {
       counter++;
-      //console.log(counter,line);
-      if (counter == 2) {
-        line = `<rss version="2.0" xmlns:podcast="https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">`
-      }
-      if (line.indexOf("<enclosure") > 0) {
+      if (line.indexOf("<enclosure")>0){
         continue;
       }
-      if ((line.indexOf("media:content") > 0) && (line.indexOf('height="0"') < 1)) {
-        continue;
+      if (line.indexOf("audioenclosure")>0){
+        line = line.replace("audioenclosure","enclosure");
       }
-
-      if ((line.indexOf("media:content") > 0)) {
-        cut = line.substring(line.indexOf('fileSize') + 9, line.indexOf("framerate"));
-        //console.log(cut);
-        let hack = cut.split("/");
-        for (var piece in hack) {
-          console.log("part", piece, hack[piece]);
-        }
-        var apiCall = base + "/api/v1/videos/" + hack[4];
-        let video;
-        console.log("⚡️⚡️api call", apiCall);
-        try {
-          video = await axios.get(apiCall)
-        } catch {
-          console.log("⚡️⚡️error trying to get video data to build alternate enclosures");
-        }
-        if (video) {
-          let nodes = video.data.streamingPlaylists[0].redundancies;
-          if (nodes.length > 0) {
-            let hackLength = hack[0].split(' ');
-            altLine = '\n' + spacer + `<podcast:alternateEnclosure type="video/mp4" default="true" length=` + hackLength[0] + ">";
-            for (var node in nodes) {
-              altLine = altLine + '\n' + spacer + `\t<podcast:source uri="` + nodes[node].baseUrl + '/' + hack[5] + `/>"`
-            }
-            altLine = altLine + '\n' + spacer + `</podcast:alternateEnclosure>`
-            // fixed = fixed + altLine;
-          }
-
-        }
-        newLine = '<enclosure type="video/mp4" length=' + cut + "/>";
-        //console.log(newLine);
-        //peers = video
-      }
-      if (line.indexOf('atom:link') > 0) {
-        spacer = (line.substring(0, line.indexOf('<')));
-        //let atompart = line.split("");
-        line=spacer+`<atom:link href="`+base+req.originalUrl+`" rel="self" type="application/rss+xml"/>`;
-        fixed = fixed + "\n" + spacer + '<podcast:locked owner="' + req.query.channel + '">no</podcast:locked>';
-        fixed = fixed + '\n' + spacer + '<itunes:owner>\n'
-        //fixed = fixed + spacer + '\t<itunes:email>' + 'errhead@gmail.com' + '</itunes:email>\n'
-        fixed = fixed + spacer + '\t<itunes:name>' + channel + '</itunes:name>\n'
-        fixed = fixed + spacer + '</itunes:owner>\n';
-        fixed = fixed + spacer + '<itunes:author>' + displayName + '</itunes:author>\n'
-        if (keysend) {
-          fixed = fixed + spacer + '<podcast:value type="lightning" method="keysend" suggested="0.00000000069">\n';
-          for (var split of splits) {
-            if (split.keysend) {
-              fixed = fixed + spacer + '\t<podcast:valueRecipient name="' + split.name + '" type="node" address="' + split.keysend.pubkey + '"';
-              if (split.keysend.customData) {
-                let cv = split.keysend.customData[0].customValue
-                let ck = split.keysend.customData[0].customKey;
-                if (cv) {
-                  fixed = fixed + ' customValue="' + cv + '"'
-                }
-                if (ck) {
-                  fixed = fixed + ' customKey="' + ck + '"'
-                }
-              }
-              if (split.fee){
-                fixed = fixed + ` fee="true" `
-              }
-              fixed = fixed + ` split="` + split.split + `" />\n`;
-
-            }
-          }
-          fixed = fixed + spacer + '</podcast:value>\n';
-        } else {
-          console.log("⚡️⚡️no pubkey value");
-        }
-        if (channelGuid) {
-          fixed = fixed + spacer + '<podcast:guid>' + channelGuid + '</podcast:guid>\n'
-        } else {
-          console.log("⚡️⚡️no channel guid available");
-        }
-        if (chatInfo){
-          fixed = fixed+spacer+`<podcast:chat\n`;
-          if (chatInfo.protocol){
-            fixed = fixed+spacer+`\tprotocol="`+chatInfo.protocol+`"\n`;
-          }
-          if (chatInfo.accountId){
-            fixed = fixed+spacer+`\taccountId="`+chatInfo.accountId+`"\n`;
-          }
-          if (chatInfo.server){
-            fixed = fixed+spacer+`\tserver="`+chatInfo.server+`"\n`;
-          }
-          if (chatInfo.space){
-            fixed = fixed+spacer+`\tspace="`+chatInfo.space+`"\n`;
-          }
-          if (chatInfo.embedUrl){
-            fixed = fixed+spacer+`\tembedUrl="`+chatInfo.embedUrl+`"\n`;
-          }
-          fixed=fixed+spacer+`/>`
-        } 
-      }
-      if (line.indexOf("<url>") > 0) {
-        spacer = (line.substring(0, line.indexOf('<')));
-        let avatar = channelData.data.avatar
-        if (avatar != null) {
-          line = spacer + '<url>' + instanceUrl + avatar.path + '</url>';
-        }
-      }
-      if (line.indexOf("media:thumbnail") > 0) {
-        spacer = (line.substring(0, line.indexOf('<')));
-        let cut = line.substring(line.indexOf('url=') + 5);
-        cut = cut.substring(0, cut.indexOf('"'));
-
-        fixed = fixed + "\n" + spacer + '<itunes:image>' + cut + '</itunes:image>';
-      }
-      if (line.indexOf('media:title') > 0) {
-        spacer = (line.substring(0, line.indexOf('<')));
-        fixed = fixed + '\n' + spacer + newLine + altLine;
-      }
-      if (line.indexOf('guid>') > 0) {
-        spacer = (line.substring(0, line.indexOf('<')));
-
-        let cut = line.substring(line.indexOf('<guid>') + 6);
-        cut = cut.substring(0, cut.indexOf('</guid>'));
-        console.log("⚡️⚡️cut", cut);
-        urlPieces = cut.split("/");
-        let id = urlPieces[urlPieces.length - 1];
-        console.log("⚡️⚡️id", id);
-        apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + req.query.channel;
-        let captionApi = base + "/api/v1/videos/" + id + "/captions";
-        let captionResult;
-        try {
-          captionResult = await axios.get(captionApi);
-        } catch (err) {
-          console.log("⚡️⚡️failed requesting transcript data", err);
-        }
-
-        //TODO go through all captions available and add with language
-        if (captionResult && captionResult.data && captionResult.data.total > 0) {
-          //console.log("caption result", captionResult.data);
-          captionPath = instanceUrl + captionResult.data.data[0].captionPath
-          captionLanguage = captionResult.data.data[0].language.id;
-          if (captionPath.indexOf("vtt") > 1) {
-            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="` + captionLanguage + `" type="text/vtt" rel="captions"/>`;
-          } else {
-            fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="` + captionLanguage + `" type="text/plain" rel="captions"/>`;
-
-          }
-
-        }
-        //fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="' + cut + '"/>';
-        //console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ user account", channelData.data.ownerAccount);
-        //fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="https://lawsplaining.peertube.biz/videos/watch/9b31d490-7c3b-4fab-81e6-302cf48320b4" accountId="@' + channelData.data.ownerAccount.name + '" accountUrl="' + channelData.data.ownerAccount.url + '"/>';
-        fixed = fixed + "\n" + spacer + '<podcast:socialInteract protocol="activitypub" uri="' + cut + '" accountId="@' + channelData.data.ownerAccount.name + '" accountUrl="' + channelData.data.ownerAccount.url + '"/>';
-
-      }
-
       if (counter>1){
         fixed = fixed + '\n' + line;
       } else {
         fixed = line;
       }
     }
+    res.setHeader('content-type', 'application/rss+xml');
     res.status(200).send(fixed);
     //console.log(rssResult.data);
     return;
 
   })
+  router.use('/dirtyhack', async (req,res) =>{
+    console.log("dirty hack",dirtyHack)
+    return res.status(200).send(dirtyHack);
+  });
   router.use('/setWallet', async (req, res) => {
     if (enableDebug){
        console.log("⚡️⚡️wallet setting request",req.query);
@@ -883,7 +854,7 @@ async function register({
           try {
             await storageManager.storeData("podcast" + "-" + uuid, hostItemId);
           } catch {
-            console.log ("⚡️⚡️failed to get stored lighting address",uuid, hostItemId);
+            console.log ("⚡️⚡️failed to store item ID from host",uuid, hostItemId);
           }
             return res.status(200).send(hostItemId.data.toString());
           } else {
@@ -898,41 +869,7 @@ async function register({
           console.log("⚡️⚡️ error when tring to get feed id ", feedApi);
           return res.status(404).send();
         }
-        /*if (feedId) {
-          console.log("⚡️⚡️got feed id", feedId.data);
-          let podcastIndexId = await podcastIndexApi.episodesByFeedId(feedId.data);
-          let finalItemId;
-          //let easy = podcastIndexApi.custom("/episodes/byguid",)
-          if (podcastIndexId) {
 
-            for (var episode in podcastIndexId.items) {
-              //console.log("here it is boys:",podcastIndexId.items[episode].id,episode);
-              //console.log(podcastIndexId.items[episode].guid, videoData.data.shortUUID);
-              if (podcastIndexId.items[episode].guid.indexOf(videoData.data.shortUUID) > 1) {
-                console.log("⚡️⚡️matching video found", episode, podcastIndexId.items[episode].id, podcastIndexId.items[episode].name);
-                finalItemId = podcastIndexId.items[episode].id;
-                //return res.status(200).send(podcastIndexId.toString());
-              } else {
-                //console.log("no matching video,", episode, podcastIndexId.items[episode].title);
-              }
-            }
-            if (finalItemId) {
-              console.log("⚡️⚡️obtained id from podcast index", uuid, finalItemId);
-              try {
-                await storageManager.storeData("podcast" + "-" + uuid, podcastIndexId, finalItemId);
-              } catch {
-                console.log ("⚡️⚡️failed to get stored podcast ",uuid, podcastIndexId, finalItemId);
-              }
-              return res.status(200).send(finalItemId);
-            }
-          } else {
-            console.log("⚡️⚡️error getting item id from podcast index", feedId);
-          }
-        } else {
-          console.log("⚡️⚡️can't get video from host");
-          return res.status(400).send();
-        }
-        */
       }
       console.log("⚡️⚡️no videodata available", apiCall);
       return res.status(400).send();
@@ -1009,7 +946,7 @@ async function register({
     var storedSplitData;
     if (req.query.video) {
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
-      console.log("⚡️⚡️retrieved split info", req.query.video, storedSplitData);
+      console.log("⚡️⚡️retrieved split info for", req.query.video);
       if (storedSplitData) {
         for (var splitSlot in storedSplitData){
           if (storedSplitData[splitSlot].fee && storedSplitData[splitSlot].address != hostWalletData.address){
@@ -1061,7 +998,7 @@ async function register({
           } catch {
             console.log ("⚡️⚡️failed to get lightning split",videoChannel);
           } 
-          console.log("⚡️⚡️retrieved chaNNEL split info for video", videoChannel, storedSplitData.length);
+          console.log("⚡️⚡️retrieved chaNNEL split info for video", videoChannel, storedSplitData);
           if (storedSplitData) {
             console.log("⚡️⚡️returning stored channel split for request video", req.query.channel,videoChannel,req.query.video,storedSplitData);
             //TODO save video split info?
