@@ -194,7 +194,7 @@ async function register({
 
   // For item level value tags
   registerHook({
-    target: 'filter:feed.podcast.video.create-custom-tags.result',
+    target: 'filter:feed.podcast.video.create-custom-tags.result.',
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
@@ -561,6 +561,13 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️unable to load channel info", apiUrl);
       return res.status(400).send();
     }
+    let smallChannelAvatar,largeChannelAvatar,smallPersonAvatar,largePersonAvatar
+    if (channelData.data.avatars && channelData.data.avatars.length>1){
+      smallChannelAvatar=channelData.data.avatars[0].path;
+      largeChannelAvatar=channelData.data.avatars[1].path;
+      smallPersonAvatar=channelData.data.ownerAccount.avatars[0].path;
+      largePersonAvatar=channelData.data.ownerAccount.avatars[1].path;
+    }
     //console.log("⚡️⚡️⚡️⚡️channel info", channelData.data);
     let rssUrl = base + "/feeds/podcast/videos.xml?videoChannelId=" + channelData.data.id;
     let rssData;
@@ -599,6 +606,12 @@ async function register({
       }
       if (line.indexOf("audioenclosure")>0){
         line = line.replace("audioenclosure","enclosure");
+      }
+      if (largeChannelAvatar){
+        line = line.replace(smallChannelAvatar,largeChannelAvatar);
+      }
+      if (largePersonAvatar){
+        line = line.replace(smallPersonAvatar,largePersonAvatar);
       }
       if (counter>1){
         fixed = fixed + '\n' + line;
