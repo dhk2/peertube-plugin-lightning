@@ -1235,10 +1235,18 @@ async function register({ registerHook, peertubeHelpers }) {
 
       return;
     }
+    var splitTotal
     for (var split of splitData.data) {
+      if (!split.split){
+        split.split=1;
+      }
       if (split.split < 1) {
         split.split = 1;
       }
+      splitTotal=splitTotal+1;
+    }
+    if (splitTotal != 100){
+      console.log("Split math error!",splitTotal,splitData.data);
     }
     return splitData.data;
   }
@@ -1284,7 +1292,7 @@ async function register({ registerHook, peertubeHelpers }) {
     if (debugEnabled) {
       console.log("getting config panel", splitInfo, feedID, chatRoom, channel);
     }
-    let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Plugin Info</label>`
+    let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Splits</label><br>`
     if (splitInfo && (keysendEnabled || lnurlEnabled)) {
       if (splitInfo.length > 0) {
         html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
@@ -1318,13 +1326,14 @@ async function register({ registerHook, peertubeHelpers }) {
     }
     html = html + "<hr>"
     let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
-
-    html = html + `For full Boostagram functionality on sites like <a href="https://saturn.fly.dev" target="_blank" rel="noopener noreferrer"">SATurn</a> and <a href="https://conshax.app" target="_blank" rel="noopener noreferrer">Conshax</a> you will need to register your channels podcast 2.0 RSS feed on Podcast Index.  You can do that here <a target="_blank" rel="noopener noreferrer" href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `">here</a>. This will also make audio versions of your videos available as a Podcast on modern Podcast apps. Once registered you can get the ID from the Podcast Index url for the channel`;
-    html = html + "<br> Podcast Index Feed ID:";
-
-    html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
-    html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Save</button>`
-    html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
+    if (!feedID){
+      html = html + `<a target="_blank" rel="noopener noreferrer" href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel" ><button type="button" id="button-register-feed" class="peertube-button orange-button ng-star-inserted">register with Podcast Index</button>`
+    } else {
+      html = html + "<br> Podcast Index Feed ID:";
+      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
+      html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Save</button>`
+    }
+    //html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
     if (chatEnabled) {
       html = html + "<br> Channel Chatroom URL:";
       html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="chatroom" name="chatroom" value="` + chatRoom + `">`

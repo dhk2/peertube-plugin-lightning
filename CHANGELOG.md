@@ -1,8 +1,14 @@
+v 4.2.5
+- cleaned up channel management page
+- fixed node crashing bug in wallet securing
+
 v 4.2.4
 - added value block support for podcasting 2.0 rss feed
 - moved plugin rss feed base from rss media to podcasting 2.0
 - fixed error handling for lnurl lightning addresses
-  
+- changed RSS feed to user larger avatars for person and channel images
+- added more client and server side sanity checking on splits
+
 v 4.2.3
 - fixed authorize button showing up for unlogged in users or sites without api key
 

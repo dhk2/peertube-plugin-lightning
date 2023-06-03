@@ -103,7 +103,7 @@ async function register({
     hostSplit = parseInt(hostSplit);
     if (hostSplit < 0 || hostSplit > 100) {
       console.log("⚡️⚡️⚡️⚡️Invalid value for hostsplit", hostSplit);
-      hostSplit = 0;
+      hostSplit = 1;
     }
   }
   let enableLegacy = await settingsManager.getSetting("legacy-enable");
@@ -252,7 +252,7 @@ async function register({
       }
       let captionPath,captionLanguage,captionItem;
       //if (captionResult && captionResult.data && captionResult.data.total > 0) {
-      console.log("⚡️⚡️\ncaption result", captionResult.data);
+      //console.log("⚡️⚡️\ncaption result", captionResult.data);
       for (var captionEntry in captionResult.data.data){
         captionPath = base + captionEntry.captionPath
         captionLanguage = captionEntry.language.id;
@@ -284,21 +284,21 @@ async function register({
       if (videoData) {
         //dirtyHack=videoData.data;
         let duration=videoData.data.duration;
-         console.log("\n⚡️⚡️\n\n\nvideodata??",videoData.data);
+        // console.log("\n⚡️⚡️\n\n\nvideodata??",videoData.data);
         let videoFiles = videoData.data.streamingPlaylists[0].files;
         // console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
         let smallest = 999999999
         let filename;
         if (videoFiles){
           for (var fileOption of videoFiles){
-            console.log(fileOption);
+            //console.log(fileOption);
             if (fileOption.size <smallest) {
               smallest = fileOption.size;
               filename = fileOption.fileUrl
             }
           }
         }
-        console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
+        //console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
         if (smallest){
           let enclosure = {
             name: "audioenclosure",
@@ -577,13 +577,13 @@ async function register({
       console.log("⚡️⚡️unable to load rss feed for", channel, rssUrl);
       return res.status(400).send();
     }
-    console.log("⚡️⚡️loaded rss feed from", rssUrl);
+    //console.log("⚡️⚡️loaded rss feed from", rssUrl);
     let channelGuid;
     apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + channel;
     try {
       let guidData = await axios.get(apiUrl);
       if (guidData && guidData.data) {
-        console.log("⚡️⚡️channel guid", guidData.data);
+        //console.log("⚡️⚡️channel guid", guidData.data);
         channelGuid = guidData.data;
       }
     } catch {
@@ -706,7 +706,7 @@ async function register({
     }
     let message = encodeURIComponent(req.query.message);
     let invoiceRequest = req.query.callback + "?amount=" + req.query.amount + "&comment=" + message;
-    console.log("⚡️⚡️invoice request url", invoiceRequest);
+    //console.log("⚡️⚡️invoice request url", invoiceRequest);
     let result;
     try {
       result = await axios.get(invoiceRequest);
@@ -714,7 +714,7 @@ async function register({
       console.log("⚡️⚡️failed to get invoice", err);
       return res.status(400).send(err);
     }
-    console.log("⚡️⚡️ Invoice data",result.data);
+    //console.log("⚡️⚡️ Invoice data",result.data);
     return res.status(200).send(result.data);
   })
   router.use('/getfeedid', async (req, res) => {
@@ -735,7 +735,7 @@ async function register({
         console.log("⚡️⚡️hard error getting feed id for ", channel, "from", parts[1], feedApi);
       }
       if (feed && feed.data) {
-        console.log("⚡️⚡️ returning", feed.data, "for", channel,feed.data.toString());
+        //console.log("⚡️⚡️ returning", feed.data, "for", channel,feed.data.toString());
         return res.status(200).send(feed.data.toString());
       }
       return res.status(420).send("remote channel returned no feed id");
@@ -747,7 +747,7 @@ async function register({
         console.log("⚡️⚡️error getting feedid", channel);
       }
     }
-    console.log("⚡️⚡️ feed", feed);
+    //console.log("⚡️⚡️ feed", feed);
     if (feed) {
       return res.status(200).send(feed.toString());
     } else {
@@ -788,7 +788,7 @@ async function register({
         console.log("⚡️⚡️hard error getting custom chat room for ", channel, "from", parts[1], chatApi);
       }
       if (customChat) {
-        console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
+      //console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
         return res.status(200).send(customChat.data);
       }
     }
@@ -800,7 +800,7 @@ async function register({
         console.log("⚡️⚡️error getting chatroom for ", channel);
       }
     }
-    console.log("⚡️⚡️ Irc chat room", chatRoom);
+    //console.log("⚡️⚡️ Irc chat room", chatRoom);
     if (chatRoom) {
       return res.status(200).send(chatRoom);
     } else {
@@ -959,14 +959,14 @@ async function register({
     var storedSplitData;
     if (req.query.video) {
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
-      console.log("⚡️⚡️retrieved split info for", req.query.video);
+      //console.log("⚡️⚡️retrieved split info for", req.query.video);
       if (storedSplitData) {
         for (var splitSlot in storedSplitData){
-          if (storedSplitData[splitSlot].fee && storedSplitData[splitSlot].address != hostWalletData.address){
-            console.log("⚡️ old information on host split, updating",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+          if (storedSplitData[splitSlot].fee && (storedSplitData[splitSlot].address != hostWalletData.address) && (storedSplitData[splitSlot].split != hostWalletData.split)){
+            //console.log("⚡️ old information on host split, updating",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
             storedSplitData[splitSlot] = hostWalletData;
             await storageManager.storeData("lightningsplit" + "-" + req.query.video,storedSplitData,);
-            console.log("⚡️ updated host split",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
+            //console.log("⚡️ updated host split",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
           }
         }        
         console.log("⚡️⚡️returning video split info", req.query.video,storedSplitData.length);
@@ -991,9 +991,9 @@ async function register({
       }
       console.log("⚡️⚡️stored split data not found for video",req.query.video);
       if (!req.query.channel) {
-        console.log("⚡️⚡️base", base);
+        //console.log("⚡️⚡️base", base);
         var apiCall = base + "/api/v1/videos/" + req.query.video;
-        console.log("⚡️⚡️ getting video data for video", apiCall);
+        //console.log("⚡️⚡️ getting video data for video", apiCall);
         let videoData;
         try {
           videoData = await axios.get(apiCall);
@@ -1001,10 +1001,10 @@ async function register({
           console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
         }
         if (videoData) {
-          console.log("⚡️⚡️videodata for",req.query.video, videoData.data);
+          //console.log("⚡️⚡️videodata for",req.query.video, videoData.data);
           let videoChannel = videoData.data.channel.name;
           let videoHost = "https://" + videoData.data.channel.host;
-          console.log("⚡️⚡️ Video data ", videoChannel, videoHost,base);
+          //console.log("⚡️⚡️ Video data ", videoChannel, videoHost,base);
          
           try {
             storedSplitData = await storageManager.getData("lightningsplit" + "-" + videoChannel);
@@ -1300,6 +1300,9 @@ async function register({
     }
     if (newSplit) {
       walletData.split = parseInt(newSplit);
+      if (!walletData.split){
+        walletData.split=0;
+      }
     }
     if (customKeysend) {
       walletData.customKeysend = true;
@@ -1443,6 +1446,9 @@ async function register({
       }
       if (newSplit) {
         split[slot].split = parseInt(newSplit);
+        if (!split[slot].split){
+          split[slot].split=0;
+        }
       }
       if (customKeysend) {
         console.log("⚡️⚡️custom keysend enabled")
@@ -1478,7 +1484,7 @@ async function register({
       for (i = 1; i < split.length; i++) {
         console.log("⚡️⚡️split", i, split[i].split, split[i].address);
         if (parseInt(split[i].split) < 1) {
-          split[i].split = 11
+          split[i].split = 1
         }
         otherSplit = otherSplit + parseInt(split[i].split);
       }
