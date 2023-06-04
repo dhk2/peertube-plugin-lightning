@@ -51,6 +51,13 @@ async function register({
     descriptionHTML: 'The client secret',
     private: true
   })
+    registerSetting({
+    name: 'rss-enable',
+    label: 'Enable enhanced Podcasting 2.0 configuration',
+    type: 'input-checkbox',
+    descriptionHTML: 'This will enable enhances podcasting 2.0 namespace configuration via channel managemnt page',
+    private: false
+  })
   registerSetting({
     name: 'irc-enable',
     label: 'Enable IRC chat for channels',
@@ -108,9 +115,15 @@ async function register({
   }
   let enableLegacy = await settingsManager.getSetting("legacy-enable");
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
+  if (!enableKeysend){
+    await settingsManager.setsetting("keysend-enable",true);
+  }
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
+  if (!enableLnurl){
+    await settingsManager.setsetting("lnurl-enable",true);
+  }
   let enableDebug = await settingsManager.getSetting("debug-enable");
-  let enableRss = await settingsManager.getSetting("debug-enable");
+  let enableRss = await settingsManager.getSetting("rss-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
   let client_id=await settingsManager.getSetting("alby-client-id");
   let client_secret=await settingsManager.getSetting("alby-client-secret");
@@ -178,7 +191,7 @@ async function register({
       if (blocks.length<1){
         return result;
       }
-      return result.concat([
+      let podreturn = [
         {
           name: "podcast:value",
           attributes: {
@@ -188,18 +201,21 @@ async function register({
             },
           value: blocks,
         }
-      ])
+      ];
+      return result.concat(podreturn)
     }
   })
 
   // For item level value tags
   registerHook({
-    target: 'filter:feed.podcast.video.create-custom-tags.result.',
+    target: 'filter:feed.podcast.video.create-custom-tags.result',
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
       //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video);
-      dirtyHack = params;
+      if (liveItem){
+        dirtyHack = params;
+      }
       var storedSplitData;
       var videoUuid  = params.video.dataValues.uuid;
       try  {
@@ -279,28 +295,28 @@ async function register({
       try {
         videoData = await axios.get(apiCall);
       } catch {
-        console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
+        console.log("⚡️⚡️\n\n\n\n\n\nfailed to pull information for provided video id", apiCall);
       }
       if (videoData) {
-        //dirtyHack=videoData.data;
+        //=videoData.data;
         let duration=videoData.data.duration;
-        // console.log("\n⚡️⚡️\n\n\nvideodata??",videoData.data);
+         console.log("\n⚡️⚡️\n\n\\n\n\n\nnvideodata??",videoData.data);
         let videoFiles = videoData.data.streamingPlaylists[0].files;
-        // console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
+         console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
         let smallest = 999999999
         let filename;
         if (videoFiles){
           for (var fileOption of videoFiles){
-            //console.log(fileOption);
+            console.log(fileOption);
             if (fileOption.size <smallest) {
               smallest = fileOption.size;
               filename = fileOption.fileUrl
             }
           }
         }
-        //console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
+        console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
         if (smallest){
-          let enclosure = {
+          var enclosure = {
             name: "audioenclosure",
             attributes: {
               "url": filename,
@@ -308,9 +324,19 @@ async function register({
               length: duration
             }
           }
-          customObjects.push(enclosure);
+        } else {
+           var enclosure = {
+            name: "audioenclosure",
+            attributes: {
+              "url": filename,
+              type: "video/mp4",
+              length: duration
+            }
+          }         
         }
-        
+        console.log
+        customObjects.push(enclosure);
+        console.log("⚡️⚡️\n\n\n\n\n\n\n\n\Custom Blocks 2",customObjects);
       }
        //console.log("⚡️⚡️\nCustom Blocks 2",customObjects);
       return result.concat(customObjects);
@@ -590,6 +616,15 @@ async function register({
       console.log("⚡️⚡️unable to load channel guid", apiUrl);
     }
     //TODO figure out how to get info for livechat plugin as well
+    let podData
+    try {
+      podData = await axios.get(base + "/plugins/lightning/router/getpoddata?channel=" + channel);
+    } catch {
+      console.log("⚡️⚡️unable to load PODCAST data");
+    }
+    if (podData){
+      console.log("⚡️⚡️\n\n\n\n pod dta \n",podData.data);
+    }
     let counter = 0;
     let fixed = "";
     let spacer = "";
@@ -601,6 +636,15 @@ async function register({
     let displayName = channelData.data.displayName;
     for (var line of lines) {
       counter++;
+      if (line.indexOf("Toraifōsu")>0){
+        spacer = line.split("<")[0];
+        if (podData.data.text){
+          line =line+"\n"+spacer+"<podcast:txt>"+podData.data.text[0]+"</podcast:txt>";
+        }
+        if (podData.data.feedguid){
+          line =line+"\n"+spacer+"<podcast:guid>"+podData.data.feedguid+"</podcast:guid>";
+        }
+      }
       if (line.indexOf("<enclosure")>0){
         continue;
       }
@@ -612,6 +656,9 @@ async function register({
       }
       if (largePersonAvatar){
         line = line.replace(smallPersonAvatar,largePersonAvatar);
+      }
+      if (podData.data.medium){
+        line = line.replace(`<podcast:medium>video</podcast:medium>`,`<podcast:medium>`+podData.data.medium+`</podcast:medium>`);
       }
       if (counter>1){
         fixed = fixed + '\n' + line;
@@ -626,7 +673,7 @@ async function register({
 
   })
   router.use('/dirtyhack', async (req,res) =>{
-    console.log("dirty hack",dirtyHack)
+    //console.log("dirty hack",req.body)
     return res.status(200).send(dirtyHack);
   });
   router.use('/setWallet', async (req, res) => {
@@ -935,6 +982,8 @@ async function register({
     if (channelGuid) {
       return res.status(200).send(channelGuid);
     } else {
+      //TODO properly create guid
+      //let guidResolverUrl = "https://guid.peertube.support/"  
       channelGuid = crypto.randomUUID();
       if (channelGuid) {
       try {
@@ -1804,7 +1853,12 @@ async function register({
         console.log("\n⚡️⚡️⚡️⚡️wallet data:\n",albyWalletData);
       }
     }
-    return res.status(200).send("User authorized to boost");
+    return res.status(200).send(`<h2>User authorized to boost</h2>hr<div class="callout" data-closable>
+  <button class="close-button" aria-label="Close alert" type="button" data-close>
+    <span aria-hidden="true">&times;</span>
+  </button>
+  <p>Look at this close button!</p>
+</div>`);
     /*
     var chatID = req.query.id;
     console.log("\n\nchatID", chatID);
@@ -1996,7 +2050,7 @@ async function register({
     let albyHook="https://api.getalby.com/webhook_endpoints"
     let body ={};
     body.description = "super chat invoices";
-    body.url='https://p2ptube.us/plugins/matrixchat/router/v4vchat';
+    body.url='https://p2ptube.us/plugins/lightning/router/clearedinvoice';
     body.filter_types = ["invoice.incoming.settled"]
     let albyData = await storageManager.getData("alby-don");
     let response;
@@ -2039,6 +2093,138 @@ async function register({
 
     }
 
+  })
+  router.use('/clearedinvoice', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", req.query,req.body);
+    }
+    let simpleTip = {
+    "Source": "Jet3MytdyzbW4ybJJedosnJjR8pQB46gRjDslL8ZmC8=|Boostagram",
+    "SourceID": req.body.identifier,
+    "UserName": req.body.payer_name,
+    "TextContent": req.body.boostagram.message,
+    "PaymentAmount": req.body.fiat_in_cents
+    }
+    console.log("simple tip ",simpleTip)
+    let tipApi = base + "/plugins/lightning/router/dirtyhack"
+    //let simpleTipResult = await axios.post(tipApi,simpleTip);
+    //console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
+    return res.status(200).send();
+  })
+    router.use('/getchatToken', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting chat room", req.query);
+    }
+    if (!enableChat) {
+      return res.status(503).send();
+    }
+    let channel = req.query.channel;
+    let parts = channel.split('@');
+    let customChat;
+    if (parts.length > 1) {
+      let chatApi = "https://" + parts[1] + "/plugins/lightning/router/getchatroom?channel=" + parts[0];
+      try {
+        customChat = await axios.get(chatApi);
+      } catch {
+        console.log("⚡️⚡️hard error getting custom chat room for ", channel, "from", parts[1], chatApi);
+      }
+      if (customChat) {
+      //console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
+        return res.status(200).send(customChat.data);
+      }
+    }
+    let chatRoom;
+    if (channel) {
+      try {
+        chatRoom = await storageManager.getData("irc" + "-" + channel)
+      } catch (err) {
+        console.log("⚡️⚡️error getting chatroom for ", channel);
+      }
+    }
+    //console.log("⚡️⚡️ Irc chat room", chatRoom);
+    if (chatRoom) {
+      return res.status(200).send(chatRoom);
+    } else {
+      return res.status(400).send();
+    }
+  })
+  router.use('/setchattoken', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting chat token", req.query);
+    }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues && req.query.token) {
+      let userName = user.dataValues.username;
+      if (enableDebug){
+         console.log("███ got authorized peertube user",user.dataValues.username);
+      }
+      if (enableDebug){
+        console.log("⚡️⚡️⚡️⚡️ user",userName);
+      }
+      storageManager.storeData("tipToken-" + user.dataValues.username.replace(/\./g, "-"),req.query.token);
+      return res.status(200).send();
+    }
+    return res.status(420).send();
+  })
+  router.use('/getpoddata', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting pod data", req.query);
+    }
+    let channel = req.query.channel;
+    if (!channel){
+      console.log("⚡️⚡️ no channel in query", channel,req.query);
+      return res.status(400).send("⚡️⚡️ no channel value in request "+req.query);
+    }
+    let parts = channel.split('@');
+    let remotePodData;
+    if (parts.length > 1) {
+      let remotePodApi = "https://" + parts[1] + "/plugins/lightning/router/getpoddata?channel=" + parts[0];
+      try {
+        remotePodData = await axios.get(remotePodApi);
+      } catch (err) {
+        console.log("⚡️⚡️hard error getting custom remote pod data for ", channel, "from", parts[1], remotePodApi,err);
+        return res.status(400).send("⚡️⚡️hard error getting custom remote pod data for "+ channel + " from "+ parts[1] + " using " + remotePodApi + " error "+err);
+      }
+      if (remotePodData) {
+      //console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
+        return res.status(200).send(remotePodData.data);
+      }
+      console.log("⚡️⚡️ no remote pod data found for", channel);
+      return res.status(404).send("⚡️⚡️ no podcast data for "+channel+" on remote system");
+    }
+    let podData;
+      try {
+        podData = await storageManager.getData("pod-" + channel.replace(/\./g, "-"));
+      } catch (err) {
+        console.log("⚡️⚡️error getting pod data for ", channel);
+        return res.status(404).send("⚡️⚡️ no podcast data for "+req.query.channel+err);
+      }
+    if (podData) {
+      return res.status(200).send(podData);
+    } else {
+      console.log("⚡️⚡️ no pod data found for", channel);
+      return res.status(404).send("⚡️⚡️ no pod data found for "+ channel);
+    }
+  })
+  router.use('/setpoddata', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting podcast data", req.query,req.body);
+    }
+    //TODO verify authorized user is actual owner of room
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues && req.body) {
+      let userName = user.dataValues.username;
+      if (enableDebug){
+         console.log("███ got authorized peertube user",user.dataValues.username);
+      }
+      if (enableDebug){
+        console.log("⚡️⚡️⚡️⚡️ user",userName);
+      }
+      let channel = req.body.channel;
+      storageManager.storeData("pod-" + channel.replace(/\./g, "-"),req.body);
+      return res.status(200).send();
+    }
+    return res.status(420).send();
   })
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;

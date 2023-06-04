@@ -1,3 +1,6 @@
+v 4.2.6
+- fixed error when podcast id wasn't present
+
 v 4.2.5
 - cleaned up channel management page
 - fixed node crashing bug in wallet securing

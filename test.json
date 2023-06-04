@@ -1,84 +1,102 @@
 {
-  "url": "https://noagendatube.com/video-channels/davejones",
-  "name": "davejones",
-  "host": "noagendatube.com",
-  "avatars": [
-    {
-      "width": 48,
-      "path": "/lazy-static/avatars/16fef58c-205d-4120-a669-ef8f5b408146.jpg",
-      "createdAt": "2022-12-27T22:40:40.068Z",
-      "updatedAt": "2022-12-27T22:40:40.068Z"
-    },
-    {
-      "width": 120,
-      "path": "/lazy-static/avatars/021afb2a-aecf-4e31-85ea-15611ab972f6.jpg",
-      "createdAt": "2022-06-10T13:55:57.903Z",
-      "updatedAt": "2022-06-10T13:55:57.903Z"
-    }
-  ],
-  "avatar": {
-    "width": 48,
-    "path": "/lazy-static/avatars/16fef58c-205d-4120-a669-ef8f5b408146.jpg",
-    "createdAt": "2022-12-27T22:40:40.068Z",
-    "updatedAt": "2022-12-27T22:40:40.068Z"
-  },
-  "id": 2508,
-  "hostRedundancyAllowed": false,
-  "followingCount": 0,
-  "followersCount": 16,
-  "createdAt": "2022-06-09T16:58:16.553Z",
-  "banners": [
-    {
-      "width": 1920,
-      "path": "/lazy-static/banners/fbe34575-6c9c-4a3b-b547-4af66dcba60a.png",
-      "createdAt": "2022-06-10T05:00:01.338Z",
-      "updatedAt": "2022-06-10T05:00:01.338Z"
-    }
-  ],
-  "banner": {
-    "width": 1920,
-    "path": "/lazy-static/banners/fbe34575-6c9c-4a3b-b547-4af66dcba60a.png",
-    "createdAt": "2022-06-10T05:00:01.338Z",
-    "updatedAt": "2022-06-10T05:00:01.338Z"
-  },
-  "displayName": "Dave Jones - Love is LIT",
-  "description": "Podcast Index, Podcasting 2.0.",
-  "support": null,
-  "isLocal": true,
-  "updatedAt": "2023-05-29T12:40:42.844Z",
-  "ownerAccount": {
-    "url": "https://noagendatube.com/accounts/dave",
-    "name": "dave",
-    "host": "noagendatube.com",
-    "avatars": [
-      {
-        "width": 48,
-        "path": "/lazy-static/avatars/4dd9d5ee-2811-41ee-9c85-ea9775c2841c.jpg",
-        "createdAt": "2022-12-27T22:40:40.018Z",
-        "updatedAt": "2022-12-27T22:40:40.018Z"
-      },
-      {
-        "width": 120,
-        "path": "/lazy-static/avatars/7b75ad56-f330-45e3-a011-b227224f2828.jpg",
-        "createdAt": "2022-06-09T17:00:50.175Z",
-        "updatedAt": "2022-06-09T17:00:50.175Z"
-      }
-    ],
-    "avatar": {
-      "width": 48,
-      "path": "/lazy-static/avatars/4dd9d5ee-2811-41ee-9c85-ea9775c2841c.jpg",
-      "createdAt": "2022-12-27T22:40:40.018Z",
-      "updatedAt": "2022-12-27T22:40:40.018Z"
-    },
-    "id": 101396,
-    "hostRedundancyAllowed": false,
-    "followingCount": 1,
-    "followersCount": 0,
-    "createdAt": "2022-06-09T16:58:16.543Z",
-    "banners": [],
-    "displayName": "Dave Jones",
-    "description": null,
-    "updatedAt": "2022-06-09T16:58:16.550Z",
-    "userId": 791
-  }
+amount: 3,
+
+boostagram: {
+
+    action: 'boost',
+
+    app_name: 'PeerTube',
+
+    app_version: '4.2.6',
+
+    boost_link: 'https: //p2ptube.us/w/hXoprghGAigHHz7u2EaRTP?start=10',
+
+    episode: 'How PeerTube administrators can install the Lightning Plugin',
+
+    episode_guid: 'https: //p2ptube.us/w/hXoprghGAigHHz7u2EaRTP',
+
+    feedID: 6073996,
+
+    guid: 'ca1666fc-4160-4b64-83f7-8a9d1a7e073b',
+
+    itemID: 13820660493,
+
+    message: 'durka\n',
+
+
+    podcast: 'lighning_plugin',
+
+    reply_address: 'donkimberlin@getalby.com',
+
+    sender_name: 'goku',
+
+    ts: 10,
+
+    url: 'https: //p2ptube.us/plugins/lightning/router/podcast2?channel=lighning_plugin',
+
+    value_msat: 3000,
+
+    value_msat_total: 69000
+
+  ]:
+},
+
+comment: 'durka\n',
+
+created_at: '2023-06-03T11: 51: 28.785Z',
+
+creation_date: 1685793088,
+
+currency: 'btc',
+
+custom_records: {
+
+    '696969': 'TGlQUTNXVnZkZUVGbnVoY1dOTHk=',
+
+    '7629169': 'eyJhY3Rpb24iOiJib29zdCIsInZhbHVlX21zYXQiOjMwMDAsInZhbHVlX21zYXRfdG90YWwiOjY5MDAwLCJhcHBfbmFtZSI6IlBlZXJUdWJlIiwiYXBwX3ZlcnNpb24iOiI0LjIuNiIsIm5hbWUiOiJQMlBUdWJlICIsInNlbmRlcl9uYW1lIjoiZ29rdSIsIm1lc3NhZ2UiOiJkdXJrYVxuIiwidHMiOjEwLCJwb2RjYXN0IjoibGlnaG5pbmdfcGx1Z2luIiwiZXBpc29kZSI6IkhvdyBQZWVyVHViZSBhZG1pbmlzdHJhdG9ycyBjYW4gaW5zdGFsbCB0aGUgTGlnaHRuaW5nIFBsdWdpbiIsImVwaXNvZGVfZ3VpZCI6Imh0dHBzOi8vcDJwdHViZS51cy93L2hYb3ByZ2hHQWlnSEh6N3UyRWFSVFAiLCJib29zdF9saW5rIjoiaHR0cHM6Ly9wMnB0dWJlLnVzL3cvaFhvcHJnaEdBaWdISHo3dTJFYVJUUD9zdGFydD0xMCIsInVybCI6Imh0dHBzOi8vcDJwdHViZS51cy9wbHVnaW5zL2xpZ2h0bmluZy9yb3V0ZXIvcG9kY2FzdDI/Y2hhbm5lbD1saWdobmluZ19wbHVnaW4iLCJpdGVtSUQiOjEzODIwNjYwNDkzLCJmZWVkSUQiOjYwNzM5OTYsImd1aWQiOiJjYTE2NjZmYy00MTYwLTRiNjQtODNmNy04YTlkMWE3ZTA3M2IiLCJyZXBseV9hZGRyZXNzIjoiZG9ua2ltYmVybGluQGdldGFsYnkuY29tIn0='
+
+  ]:
+},
+
+description_hash: null,
+
+expires_at: '2023-06-03T12: 06: 28.000Z',
+
+expiry: 900,
+
+fiat_currency: 'USD',
+
+fiat_in_cents: 1,
+
+identifier: 'kCyMVun2M8T5PqsjC9VCqz9Y',
+
+keysend_message: null,
+
+memo: '',
+
+metadata: null,
+
+payer_email: null,
+
+payer_name: 'goku',
+
+payer_pubkey: null,
+
+payment_hash: '8b6111ed69d21ae4910ccc88b48f15849b7ba2015eff3e61cf00cb362830aef5',
+
+payment_request: '',
+
+r_hash_str: '8b6111ed69d21ae4910ccc88b48f15849b7ba2015eff3e61cf00cb362830aef5',
+
+settled: true,
+
+settled_at: '2023-06-03T11: 51: 28.000Z',
+
+state: 'SETTLED',
+
+type: 'incoming',
+
+value: 3
+
+]:
 }

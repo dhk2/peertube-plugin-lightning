@@ -6,7 +6,7 @@ async function register({ registerHook, peertubeHelpers }) {
   const { notifier } = peertubeHelpers
   const basePath = await peertubeHelpers.getBaseRouterRoute();
   let tipVerb = "tip";
-  let chatEnabled, keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled;
+  let chatEnabled, keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
   let streamAmount = 69;
   let lastTip = 69;
   let convertRate = .0002;
@@ -16,6 +16,7 @@ async function register({ registerHook, peertubeHelpers }) {
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
+  let podData;
   await peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
@@ -24,6 +25,7 @@ async function register({ registerHook, peertubeHelpers }) {
       legacyEnabled = s['legacy-enable'];
       lnurlEnabled = s['lnurl-enable'];
       debugEnabled = s['debug-enable'];
+      rssEnabled = s['rss-enable'];
       client_id = s['alby-client-id'];
       if (debugEnabled) {
         console.log("settings", s);
@@ -649,10 +651,11 @@ async function register({ registerHook, peertubeHelpers }) {
 
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
-    handler: async () => {
+    handler: async (params) => {
       if (debugEnabled) {
-        console.log("channel update loaded");
+        console.log("channel update loaded",params);
       }
+      // why?
       videoName=undefined;
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
@@ -660,16 +663,35 @@ async function register({ registerHook, peertubeHelpers }) {
       let splitData = await getSplit();
       //let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
+      let feedGuid = await getChannelGuid(channel);
+      let feedTxt = ["txt"];
+      podData = await getPodData(channel);
+      console.log("pod data",podData);
+      if (!podData){ 
+        podData={
+          "feedid": feedID,
+          "feedguid": feedGuid,
+          "medium": "podcast",
+          "channel": channel 
+        }
+        podData.text = feedTxt;
+      }
+      if (!podData.text){
+        podData.text = feedTxt;
+      }
+      let newPodData=podData
       let panel = await getConfigPanel(splitData, channel);
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
       let id = document.getElementById("id");
-      id.value = feedID;
-      let updateButton = document.getElementById("update-feed");
-      if (updateButton){
-      updateButton.onclick = async function () {
-          setFeedID(channel, id.value);
-          updateButton.innerText = "Saved!";
+      if (id){
+        id.value = feedID;
+        let updateButton = document.getElementById("update-feed");
+        if (updateButton){
+        updateButton.onclick = async function () {
+            setFeedID(channel, id.value);
+            updateButton.innerText = "Saved!";
+          }
         }
       }
       let chatRoom = document.getElementById("chatroom");
@@ -680,6 +702,90 @@ async function register({ registerHook, peertubeHelpers }) {
           chatButton.innerText = "Saved!";
         }
       }
+      console.log("checking for rss settings button");
+      let rssSettingsButton = document.getElementById("rss-settings");
+      let changeMonitor;
+      if (rssSettingsButton){
+        rssSettingsButton.onclick = async function () {
+          console.log("rss settings button clicked");
+          //let podData= {medium:podcast}
+          let html;
+          if (!feedID){
+            html = `<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button>`
+          } else {
+            html = "Podcast Index Feed ID: "+feedID;
+            //html = html + `<br><button type="button" id="register-feed" name="register-feed" class="peertube-button orange-button ng-star-inserted">Register Feed to Podcast Index</button>`
+          }
+          html = html + `<br>Podcast Guid: `;
+          html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="channel-guid" width="40" value="` + feedGuid + `">`
+         // html = html + `<button id="update-guid" class="peertube-button orange-button ng-star-inserted">Save</button>`
+          html = html + `<br>Podcast Medium <select id="feed-medium"><option value="podcast">podcast </option><option value="music">music </option><option value="video">video </option><option value="film">film </option><option value="audiobook">audiobook </option></select>`
+
+          for (var i = 0; i < podData.text.length; i++) {
+            html = html + `<br>Podcast txt value `+ i +`: `;
+            html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="feed-txt-`+i+`" width="40" value="` + podData.text[i] + `">`
+          }
+          html = html + `<br><button id="rss-link" class="peertube-button orange-button ng-star-inserted">RSS Feed</button>`
+          let rssEditSettings = await peertubeHelpers.showModal({
+            title: 'RSS settings ' + channel,
+            content: "",
+            close: true,
+            confirm: { value: 'save', action: async () => {
+              clearInterval(changeMonitor);
+              console.log("need to update rss settings",podData,newPodData);
+              try {
+                await axios.post(basePath+"/setpoddata",newPodData,{ headers: await peertubeHelpers.getAuthHeader() });
+              } catch (err) {
+                console.log(" hard error attempting to update pod data",newPodData,)
+              }
+            } },
+          
+          });
+          let modal = (document.getElementsByClassName('modal-body'))
+          if (modal){
+            modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+            modal[0].innerHTML =html;
+            switch(podData.medium){
+              case "podcast" : document.getElementById("feed-medium").selectedIndex = 0;break;
+              case "music" : document.getElementById("feed-medium").selectedIndex = 1;break;
+              case "film" : document.getElementById("feed-medium").selectedIndex = 2;break;
+              case "video" : document.getElementById("feed-medium").selectedIndex = 3;break;
+              case "audiobook" : document.getElementById("feed-medium").selectedIndex = 4;break;
+              default : console.log("unable to find a match for podData.medium");
+            }
+          }
+
+          let rssLinkButton = document.getElementById('rss-link');
+          console.log(rssLinkButton);
+          if (rssLinkButton){
+            rssLinkButton.onclick = async function () {
+              let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
+              window.open(rssFeedUrl);
+            }
+          }
+          
+          changeMonitor= setInterval(async function () {
+              try {  
+              newPodData.feedguid = document.getElementById("channel-guid").value;
+              newPodData.medium = document.getElementById("feed-medium").value;
+              for (var i = 0; i < feedTxt.length; i++) {
+                podData.text[i]= document.getElementById("feed-txt-"+i).value;                
+              }
+            } catch {
+              clearInterval(changeMonitor);
+            }
+          },500);
+          let registerFeedButton = document.getElementById('register-feed');
+          console.log(registerFeedButton);
+          if (registerFeedButton){
+            registerFeedButton.onclick = async function () {
+              let registerFeedUrl = "https://podcastindex.org/add?feed="+feedID;
+              window.open(registerFeedUrl);
+            }
+          }
+        }
+      }
+
       let createButton = document.getElementById('create-split');
       if (createButton) {
         createButton.onclick = async function () {
@@ -948,16 +1054,7 @@ async function register({ registerHook, peertubeHelpers }) {
       } catch (err) {
         console.log("error getting feed id error",feedApi,err);
       }
-      let guid;
-      let guidApi = basePath + "/getchannelguid?channel=" + channelName;
-      try {
-        guid = await axios.get(guidApi);
-        if (guid) {
-          boost.guid = guid.data;
-        }
-      } catch (err) {
-        console.log("error getting channel guid",guidApi,err)
-      }
+      boost.guid = getChannelGuid(channel);
     }
     if (replyAddress){
       boost.reply_address=replyAddress;
@@ -1089,16 +1186,7 @@ async function register({ registerHook, peertubeHelpers }) {
       } catch (err) {
         console.log("error getting feed id error",feedApi,err);
       }
-      let guid;
-      let guidApi = basePath + "/getchannelguid?channel=" + channelName;
-      try {
-        guid = await axios.get(guidApi);
-        if (guid) {
-          boost.guid = guid.data;
-        }
-      } catch (err) {
-        console.log("error getting channel guid",guidApi,err)
-      }
+      boost.guid = getChannelGuid(channelName);
     }
     if (replyAddress){boost.reply_address=replyAddress}
     let paymentInfo;
@@ -1324,15 +1412,14 @@ async function register({ registerHook, peertubeHelpers }) {
       html = html + `<button type="button" id="create-split" class="peertube-button orange-button ng-star-inserted">Add Lightning Address</button>`
 
     }
-    html = html + "<hr>"
-    let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
-    if (!feedID){
-      html = html + `<a target="_blank" rel="noopener noreferrer" href ="https://podcastindex.org/add?feed=` + rssFeedUrl + `" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel" ><button type="button" id="button-register-feed" class="peertube-button orange-button ng-star-inserted">register with Podcast Index</button>`
-    } else {
-      html = html + "<br> Podcast Index Feed ID:";
-      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="id" name="id" value="` + feedID + `">`
-      html = html + `<button type="button" id="update-feed" name="update-feed" class="peertube-button orange-button ng-star-inserted">Save</button>`
+    if (rssEnabled){
+      html = html + "<hr>"
+      html = html + `<button type="button" id="rss-settings" name="ress-settings" class="peertube-button orange-button ng-star-inserted">Podcasting 2.0 RSS settings</button>`;
     }
+
+
+    html = html + "<hr>"
+
     //html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
     if (chatEnabled) {
       html = html + "<br> Channel Chatroom URL:";
@@ -1390,11 +1477,13 @@ async function register({ registerHook, peertubeHelpers }) {
     if (debugEnabled) {
       console.log("making qr dialog", invoice);
     }
+    /* Mobile wallet usability is too broken to automate
     if (navigator.userAgentData.mobile) {
       navigator.clipboard.writeText(invoice);
       window.open("lightning:" + invoice);
       return;
     }
+    */
     //console.log(navigator.userAgent);
     let html = "<h1>No WebLN Found</h1>" + navigator.userAgentData.mobile + "<br>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
@@ -1969,6 +2058,33 @@ async function register({ registerHook, peertubeHelpers }) {
       html = html + ` - <button class="peertube-button orange-button ng-star-inserted" slot= "` + slot + `" id="remove-split">remove this Split</button>`;
     }
     return html;
+  }
+  async function getChannelGuid(channel){
+      let guid;
+      let guidApi = basePath + "/getchannelguid?channel=" + channel;
+      try {
+        guid = await axios.get(guidApi);
+        if (guid) {
+          return guid.data;
+        }
+      } catch (err) {
+        console.log("error getting channel guid",guidApi,err)
+      }
+      return;
+  }
+  async function getPodData(channel){
+    let freshPodData;
+    let podApi = basePath + "/getpoddata?channel=" + channel;
+      try {
+        freshPodData = await axios.get(podApi);
+        if (freshPodData) {
+          return freshPodData.data;
+        }
+      } catch (err) {
+        console.log("error getting pod Data",podApi,err)
+      }
+
+      return;
   }
 }
 export {
