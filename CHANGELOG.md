@@ -1,3 +1,21 @@
+v 4.3.0
+- bugfix for node crashing bug with new users attempting to boost
+
+v 4.2.9
+- resolved issue with reply to
+- may have resolved issue with fee percentages
+- improved error logging in client console
+
+v 4.2.8
+- bugfix
+
+v 4.2.7
+- Cleaned up channel configuration interface
+- created modal for RSS configuration 
+- refactored client-server communication for metadata
+- added option to disable enhanced rss configuration
+- added txt, medium, and guid to rss feed
+
 v 4.2.6
 - fixed error when podcast id wasn't present
 

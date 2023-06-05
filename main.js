@@ -1010,18 +1010,10 @@ async function register({
       var storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       //console.log("⚡️⚡️retrieved split info for", req.query.video);
       if (storedSplitData) {
-        for (var splitSlot in storedSplitData){
-          if (storedSplitData[splitSlot].fee && (storedSplitData[splitSlot].address != hostWalletData.address) && (storedSplitData[splitSlot].split != hostWalletData.split)){
-            //console.log("⚡️ old information on host split, updating",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
-            storedSplitData[splitSlot] = hostWalletData;
-            await storageManager.storeData("lightningsplit" + "-" + req.query.video,storedSplitData,);
-            //console.log("⚡️ updated host split",storedSplitData[splitSlot].address,storedSplitData[splitSlot].split);
-          }
-        }        
         console.log("⚡️⚡️returning video split info", req.query.video,storedSplitData.length);
         return res.status(200).send(storedSplitData);
       }
-      let parts
+      let parts;
       if (req.query.channel && req.query.channel.indexOf("@")>0 ) {
         parts = req.query.channel.split("@");
         var apiCall = "https://" + parts[1] + "/plugins/lightning/router/getsplit?video=" + req.query.video;
@@ -2010,7 +2002,7 @@ async function register({
     }
     let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
     console.log("⚡️⚡️stored data", albyData);
-    if (albyData.access_token){
+    if (albyData && albyData.access_token){
         let albyToken = albyData.access_token
         let albyWalletData
         let headers = { headers: {"Authorization" : `Bearer `+albyToken} }
@@ -2106,9 +2098,15 @@ async function register({
     "PaymentAmount": req.body.fiat_in_cents
     }
     console.log("simple tip ",simpleTip)
+    //let tipApi= "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
     let tipApi = base + "/plugins/lightning/router/dirtyhack"
-    //let simpleTipResult = await axios.post(tipApi,simpleTip);
-    //console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
+    let simpleTipResult
+    try {
+      simpleTipResult = await axios.post(tipApi,simpleTip);
+    } catch (err) {
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed",err,tipApi);
+    }
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
     return res.status(200).send();
   })
     router.use('/getchatToken', async (req, res) => {

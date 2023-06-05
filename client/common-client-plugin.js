@@ -28,7 +28,7 @@ async function register({ registerHook, peertubeHelpers }) {
       rssEnabled = s['rss-enable'];
       client_id = s['alby-client-id'];
       if (debugEnabled) {
-        console.log("settings", s);
+        console.log("⚡️settings", s);
       }
     })
   try {
@@ -37,11 +37,13 @@ async function register({ registerHook, peertubeHelpers }) {
       convertRate = conversionData.data.data.rateUsd / 100000000
     }
   } catch {
-    console.log("error getting conversion rate. Falling back to", convertRate);
+    console.log("⚡️error getting conversion rate. Falling back to", convertRate);
   }
   peertubeHelpers.getServerConfig()
     .then(config => {
-      console.log('Fetched server config.', config);
+      if (debugEnabled){
+         console.log('⚡️Fetched server config.', config);
+      }
       instanceName = config.instance.name;
     })
   try {
@@ -50,36 +52,40 @@ async function register({ registerHook, peertubeHelpers }) {
       softwareVersion = versionResult.data;
     }
   } catch (err) {
-    console.log("error getting software version", basePath, err);
+    console.log("⚡️error getting software version", basePath, err);
   }
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
       if (user ) {
-        console.log("user",user);
+        if (debugEnabled){
+          console.log("⚡️user",user);
+        }
         userName=user.username
         let accountWalletApi = basePath + "/walletinfo?account="+user.username;
-        console.log("wallet api call",accountWalletApi,user.username);
+        if (debugEnabled){
+          console.log("⚡️wallet api call",accountWalletApi,user.username);
+        }
         try {
           let accountWallet = await axios.get(accountWalletApi);
           if (accountWallet){
             accountAddress=accountWallet.data;
-            console.log("account wallet info",accountAddress);
+            //console.log("⚡️account wallet info",accountAddress);
             let authorizedWalletApi = basePath +"/checkauthorizedwallet";
-            console.log("authorized wallet api:",authorizedWalletApi);
+            //console.log("⚡️authorized wallet api:",authorizedWalletApi);
             let headers = { headers: await peertubeHelpers.getAuthHeader() }
-            console.log("headers",headers)
+            //console.log("⚡️headers",headers)
             let authorized = await axios.get(authorizedWalletApi, headers);
-            console.log("authorized result",authorized);
+            //console.log("⚡️authorized result",authorized);
             if (authorized.data){
               
               walletAuthorized=true;
             }
           } else {
-            console.log("no wallet data found for",user.username);
+            console.log("⚡️no wallet data found for",user.username);
           }
         } catch (err) {
-          console.log("hard error getting wallet data",err);
+          console.log("⚡️hard error getting wallet data",err);
         }
       }
 
@@ -100,7 +106,7 @@ async function register({ registerHook, peertubeHelpers }) {
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-          console.log("no thread id", date);
+          console.log("⚡️no thread id", date);
           continue;
         }
         let walletApi, walletData, wallet;
@@ -113,17 +119,17 @@ async function register({ registerHook, peertubeHelpers }) {
             walletData = await axios.get(walletApi);
             comment.wallet = walletData.data
           } catch {
-            console.log("error trying to get wallet info", walletApi);
+            console.log("⚡️error trying to get wallet info", walletApi);
           }
         }
         if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
             if (debugEnabled) {
-              console.log("wallet found", walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+              console.log("⚡️wallet found", walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
             }
             let precheck = document.getElementById(thread);
             if (precheck) {
-              console.log("found zap");
+              //console.log("⚡️found zap");
               continue;
             }
 
@@ -140,10 +146,12 @@ async function register({ registerHook, peertubeHelpers }) {
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
-            console.log(zap);
+            if (debugEnabled){
+              console.log(zap);
+            }
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(thread);
-            console.log(zapButton);
+            //console.log(zapButton);
             if (zapButton){
               zapButton.onclick = async function () {
               walletData = null;
@@ -153,7 +161,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   walletApi = basePath + "/walletinfo?account=" + comment.innerText
                   walletData = await axios.get(walletApi);
                 } catch {
-                  console.log("error trying to get wallet info", walletApi);
+                  console.log("⚡️error trying to get wallet info", walletApi);
                 }
               }
               if (walletData) {
@@ -170,12 +178,12 @@ async function register({ registerHook, peertubeHelpers }) {
           }
           } else {
             if (debugEnabled) {
-              console.log("wallet doesn't support required address type", walletData.data.address);
+              console.log("⚡️wallet doesn't support required address type", walletData.data.address);
             }
           }
         } else {
           if (debugEnabled) {
-            console.log("didn't find wallet data", walletApi)
+            console.log("⚡️didn't find wallet data", walletApi)
           }
         }
       }
@@ -185,7 +193,9 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
     handler: async () => {
-      console.log("thread action popped wtfbbq");
+      if (debugEnabled){
+        console.log("⚡️thread action popped wtfbbq");
+      }
       let comments = document.getElementsByClassName("comment-account-fid");
       let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
@@ -195,16 +205,19 @@ async function register({ registerHook, peertubeHelpers }) {
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-          console.log("no thread id", date);
+          console.log("⚡️no thread id", date);
           continue;
         }
-        console.log("whatup gee", com, comment.innerText, date.href);
+        if (debugEnabled){
+          console.log("⚡️whatup gee", com, comment.innerText, date.href);
+        }
         let walletApi, walletData, wallet;
         if (comment.wallet) {
           if (debugEnabled)
           {
-            console.log("wallet already set for comment",comment.wallet);
-          }          continue;
+            console.log("⚡️wallet already set for comment",comment.wallet);
+          }
+          continue;
         }
         if (comment.innerText) {
           try {
@@ -212,7 +225,7 @@ async function register({ registerHook, peertubeHelpers }) {
             walletData = await axios.get(walletApi);
             comment.wallet = walletData.data
           } catch {
-            console.log("error trying to get wallet info", walletApi);
+            console.log("⚡️error trying to get wallet info", walletApi);
           }
         }
         if (walletData && walletData.data) {
@@ -234,10 +247,12 @@ async function register({ registerHook, peertubeHelpers }) {
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
-            console.log(zap);
+            if (debugEnabled){
+              console.log(zap);
+            }
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(zap.id);
-            console.log("zapButton",zapButton);
+            //console.log("⚡️zapButton",zapButton);
             if (zapButton){
             zapButton.onclick = async function () {
               walletData = null;
@@ -247,7 +262,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   walletApi = basePath + "/walletinfo?account=" + comment.innerText
                   walletData = await axios.get(walletApi);
                 } catch {
-                  console.log("error trying to get wallet info", walletApi);
+                  console.log("⚡️error trying to get wallet info", walletApi);
                 }
               }
               if (walletData) {
@@ -256,7 +271,7 @@ async function register({ registerHook, peertubeHelpers }) {
                 let threadId = this.id.split("-")[0];
                 let link = window.location.href + ";threadId=" + threadId;
                 if (debugEnabled){
-                console.log("thread link",link, this.id);
+                console.log("⚡️thread link",link, this.id);
                 }
                 if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
                   await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
@@ -269,12 +284,12 @@ async function register({ registerHook, peertubeHelpers }) {
           }
           } else {
             if (debugEnabled) {
-              console.log("wallet doesn't support required address type", walletData.data.address);
+              console.log("⚡️wallet doesn't support required address type", walletData.data.address);
             }
           }
         } else {
           if (debugEnabled) {
-            console.log("didn't find wallet data", walletApi)
+            console.log("⚡️didn't find wallet data", walletApi)
           }
         }
       }
@@ -283,7 +298,9 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'filter:api.video-watch.video-threads.list.result',
     handler: async (result, params) => {
-      console.log("thread filter hook", result, params)
+      if (debugEnabled){
+        console.log("⚡️thread filter hook", result, params)
+      }
       //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`
       return result;
     }
@@ -318,7 +335,7 @@ async function register({ registerHook, peertubeHelpers }) {
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
       let addSpot4 = document.getElementsByClassName('root-header-right')[0];
-      console.log("addspit section",addSpot4)
+      //console.log("⚡️addspit section",addSpot4)
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
@@ -374,14 +391,16 @@ async function register({ registerHook, peertubeHelpers }) {
           if (streamEnabled) {
             delta = (currentTime - lastStream).toFixed();
             if (debugEnabled) {
-              console.log("counting for stream payments", delta);
+              console.log("⚡️counting for stream payments", delta);
             }
             if (delta > 60 && delta < 64) {
               lastStream = currentTime;
               delta=0;
               let weblnSupported;
               weblnSupported =checkWebLnSupport();
-              console.log("webln support for streaming",weblnSupported,delta,lastStream,currentTime,lastStream-currentTime);
+              if (debugEnabled){
+                console.log("⚡️webln support for streaming",weblnSupported,delta,lastStream,currentTime,lastStream-currentTime);
+              }
               if (weblnSupported<2){
                 await alertUnsupported();
                 streamEnabled = false;
@@ -405,7 +424,7 @@ async function register({ registerHook, peertubeHelpers }) {
                   //walletData = await refreshWalletInfo(walletData.address);
                 }
                 if (debugEnabled) {
-                  console.log("boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
+                  console.log("⚡️boosting " + wallet.address + " tried to send " + amount + " ended up with " + result);
                 }
               }
               lastStream = currentTime;
@@ -422,7 +441,7 @@ async function register({ registerHook, peertubeHelpers }) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
       }
       if (v4vButtonHTML) {
-        console.log("--------------button hmtl",v4vButtonHTML)
+      //  console.log("⚡️--------------button hmtl",v4vButtonHTML)
         elem.innerHTML = v4vButtonHTML;
         addSpot4.appendChild(elem);
 
@@ -441,7 +460,7 @@ async function register({ registerHook, peertubeHelpers }) {
         }
         let chatRoom = await getChatRoom(channelName);
         if (debugEnabled) {
-          console.log("found chat room", chatRoom);
+          console.log("⚡️found chat room", chatRoom);
         }
         if (!chatRoom) {
           let shortInstance = instanceName.split(".")[0];
@@ -471,14 +490,14 @@ async function register({ registerHook, peertubeHelpers }) {
         docIframe.style.flexDirection = "column";
         docIframe.style.resize = "both";
         docIframe.style.overflow = "auto";
-        docIframe.contentWindow.kiwiconfig =  () => {console.log("███kiwi config called ")}
+        docIframe.contentWindow.kiwiconfig =  () => {console.log("⚡️███kiwi config called ")}
         let idoc=docIframe.contentWindow.document;
         let ibody = idoc.getElementsByTagName('body');
         let configScript = document.createElement(`div`);
         configScript.innerHTML=`<script name="kiwiconfig">{"startupScreen": "welcome", "startupOptions": { "server": "irc.freenode.net", "port": 6697, "tls": true, "direct": false, "nick": "specialk" "autoConnect": true }}</script>`;
-        console.log("before",ibody,configScript);
+        //console.log("⚡️before",ibody,configScript);
         ibody[0].appendChild(configScript)
-        console.log("after",ibody,configScript);
+        //console.log("⚡️after",ibody,configScript);
       }
       if (splitData) {
         let addSpot2Find = document.getElementsByClassName("video-actions");
@@ -583,9 +602,9 @@ async function register({ registerHook, peertubeHelpers }) {
 
         closeChat.onclick = async function () {
           if (debugEnabled) {
-            console.log("clicked", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
-            console.log("width", container.clientWidth, videoDisplay.clientWidth, fullVideo.clientWidth);
-            console.log("height", container.clientheight, videoDisplay.clientHeight);
+            console.log("⚡️clicked", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
+            console.log("⚡️width", container.clientWidth, videoDisplay.clientWidth, fullVideo.clientWidth);
+            console.log("⚡️height", container.clientheight, videoDisplay.clientHeight);
           }
           if (closeChat.innerHTML === "Full Chat") {
             closeChat.title = "Close chat window";
@@ -622,7 +641,7 @@ async function register({ registerHook, peertubeHelpers }) {
             closeChat.title = "open chat panel";
           }
           if (debugEnabled) {
-            console.log("after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
+            console.log("⚡️after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
             console.log(container, videoDisplay);
           }
         }
@@ -653,7 +672,7 @@ async function register({ registerHook, peertubeHelpers }) {
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
       if (debugEnabled) {
-        console.log("channel update loaded",params);
+        console.log("⚡️channel update loaded",params);
       }
       // why?
       videoName=undefined;
@@ -666,7 +685,9 @@ async function register({ registerHook, peertubeHelpers }) {
       let feedGuid = await getChannelGuid(channel);
       let feedTxt = ["txt"];
       podData = await getPodData(channel);
-      console.log("pod data",podData);
+      if (debugEnabled){
+        console.log("⚡️pod data",podData);
+      }
       if (!podData){ 
         podData={
           "feedid": feedID,
@@ -702,12 +723,12 @@ async function register({ registerHook, peertubeHelpers }) {
           chatButton.innerText = "Saved!";
         }
       }
-      console.log("checking for rss settings button");
+      //console.log("⚡️checking for rss settings button");
       let rssSettingsButton = document.getElementById("rss-settings");
       let changeMonitor;
       if (rssSettingsButton){
         rssSettingsButton.onclick = async function () {
-          console.log("rss settings button clicked");
+          //console.log("⚡️rss settings button clicked");
           //let podData= {medium:podcast}
           let html;
           if (!feedID){
@@ -732,11 +753,10 @@ async function register({ registerHook, peertubeHelpers }) {
             close: true,
             confirm: { value: 'save', action: async () => {
               clearInterval(changeMonitor);
-              console.log("need to update rss settings",podData,newPodData);
               try {
                 await axios.post(basePath+"/setpoddata",newPodData,{ headers: await peertubeHelpers.getAuthHeader() });
               } catch (err) {
-                console.log(" hard error attempting to update pod data",newPodData,)
+                console.log("⚡️ hard error attempting to update pod data",newPodData,)
               }
             } },
           
@@ -751,12 +771,11 @@ async function register({ registerHook, peertubeHelpers }) {
               case "film" : document.getElementById("feed-medium").selectedIndex = 2;break;
               case "video" : document.getElementById("feed-medium").selectedIndex = 3;break;
               case "audiobook" : document.getElementById("feed-medium").selectedIndex = 4;break;
-              default : console.log("unable to find a match for podData.medium");
+              default : console.log("⚡️unable to find a match for podData.medium");
             }
           }
 
           let rssLinkButton = document.getElementById('rss-link');
-          console.log(rssLinkButton);
           if (rssLinkButton){
             rssLinkButton.onclick = async function () {
               let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
@@ -776,7 +795,6 @@ async function register({ registerHook, peertubeHelpers }) {
             }
           },500);
           let registerFeedButton = document.getElementById('register-feed');
-          console.log(registerFeedButton);
           if (registerFeedButton){
             registerFeedButton.onclick = async function () {
               let registerFeedUrl = "https://podcastindex.org/add?feed="+feedID;
@@ -810,7 +828,7 @@ async function register({ registerHook, peertubeHelpers }) {
             try {
               createResult = await axios.get(createApi);
             } catch (e) {
-              console.log("unable to create split\n", createApi, createResult);
+              console.log("⚡️unable to create split\n", createApi, createResult);
               notifier.error(e, createResult, newAddress, newAddress.length);
               return;
             }
@@ -843,16 +861,16 @@ async function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: 'action:embed.player.loaded',
     handler: async ({ player, videojs, video }) => {
-      console.log("embedded within the wall",player,videojs,video);
+      console.log("⚡️embedded within the wall",player,videojs,video);
       let x = document.getElementsByClassName("vjs-control-bar");
-      console.log("menu",x.length);
+      console.log("⚡️menu",x.length);
     }
   })
 
 
   async function sendSats(walletData, amount, message, from) {
     if (debugEnabled) {
-      console.log("sending lnurl boost", walletData, amount, message, from);
+      console.log("⚡️sending lnurl boost", walletData, amount, message, from);
     }
     if (!lnurlEnabled) {
       return;
@@ -877,7 +895,7 @@ async function register({ registerHook, peertubeHelpers }) {
     //("parsint", parseInt(amount));
     let supported = checkWebLnSupport();
     if (debugEnabled) {
-      console.log("webln enabled:", supported);
+      console.log("⚡️webln enabled:", supported);
     }
     let urlCallback = encodeURI(walletData.callback);
     let urlComment = encodeURIComponent(comment);
@@ -888,7 +906,7 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       result = await axios.get(invoiceApi);
     } catch (err) {
-      console.log("error getting lnurl invoice"), invoiceApi;
+      console.log("⚡️error getting lnurl invoice"), invoiceApi;
       return;
     }
     let invoice = result.data.pr;
@@ -909,7 +927,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
     if (debugEnabled) {
-      console.log("boost called", walletAuthorized, walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
+      console.log("⚡️boost called", walletAuthorized, walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
     if (!keysendEnabled) {
       return;
@@ -918,7 +936,7 @@ async function register({ registerHook, peertubeHelpers }) {
       try {
         let supported = await checkWebLnSupport();
         if (debugEnabled) {
-          console.log("supported value for webln in boost ", supported);
+          console.log("⚡️supported value for webln in boost ", supported);
         }
         if (supported < 2) {
           await sendSats(walletData, amount, message);
@@ -974,7 +992,7 @@ async function register({ registerHook, peertubeHelpers }) {
         version = versionResult.data;
       }
     } catch (err) {
-      console.log("error getting software version", basePath, err);
+      console.log("⚡️error getting software version", basePath, err);
     }
     var boost = {
       action: type,
@@ -996,7 +1014,7 @@ async function register({ registerHook, peertubeHelpers }) {
     if (currentTime) {
       boost.ts = parseInt(currentTime.toFixed());
     } else {
-      console.log("no current time value for boost");
+      console.log("⚡️no current time value for boost",boost);
     }
     if (channelName) {
       boost.podcast = channelName;
@@ -1041,7 +1059,7 @@ async function register({ registerHook, peertubeHelpers }) {
           boost.itemID = itemId.data;
         }
       } catch (err) {
-        console.log("error getting itemid",itemApi,err);
+        console.log("⚡️error getting itemid",itemApi,err);
       }
     }
     if (channelName){
@@ -1052,12 +1070,19 @@ async function register({ registerHook, peertubeHelpers }) {
           boost.feedID = feedId.data;
         }
       } catch (err) {
-        console.log("error getting feed id error",feedApi,err);
+        console.log("⚡️error getting feed id error",feedApi,err);
       }
-      boost.guid = getChannelGuid(channel);
+      boost.guid = await getChannelGuid(channelName);
+      console.log("⚡️boost guid", boost.guid,typeof(boost.guid));
     }
     if (replyAddress){
+      if (replyAddress.address){
+        replyAddress=replyAddress.address
+      }
       boost.reply_address=replyAddress;
+    }
+    if (debugEnabled){
+      console.log("⚡️**boost**",boost)
     }
     let paymentInfo;
     if (customValue) {
@@ -1079,21 +1104,21 @@ async function register({ registerHook, peertubeHelpers }) {
       };
     }
     if (debugEnabled) {
-      console.log("payment info", paymentInfo);
+      console.log("⚡️payment info", paymentInfo);
     }
     let result;
     let albyBoostResult;
     if (walletAuthorized){
       try {
         let sendBoostApi=basePath+"/sendalbypayment"
-        console.log("send boost api",sendBoostApi)
+        //console.log("⚡️send boost api",sendBoostApi)
         albyBoostResult = await axios.post(sendBoostApi,paymentInfo,{ headers: await peertubeHelpers.getAuthHeader() });
-        console.log("alby boost result",albyBoostResult);
+        //console.log("⚡️alby boost result",albyBoostResult);
         var tipfixed = amount
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
         return albyBoostResult;
       } catch (err) {
-        console.log("error attempting to send sats using integrated wallet", err);
+        console.log("⚡️error attempting to send sats using integrated wallet", err);
         notifier.error("⚡ not sent via integrated wallet");
         return albyBoostResult;
       }
@@ -1110,7 +1135,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function buildBoostObject(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
     if (debugEnabled) {
-      console.log("boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
+      console.log("⚡️boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
     let remoteHost, remoteUser, localHost;
     if (parseInt(amount) < 5) {return}
@@ -1173,7 +1198,7 @@ async function register({ registerHook, peertubeHelpers }) {
           boost.itemID = itemId.data;
         }
       } catch (err) {
-        console.log("error getting itemid",itemApi,err);
+        console.log("⚡️error getting itemid",itemApi,err);
       }
     }
     if (channelName){
@@ -1184,11 +1209,11 @@ async function register({ registerHook, peertubeHelpers }) {
           boost.feedID = feedId.data;
         }
       } catch (err) {
-        console.log("error getting feed id error",feedApi,err);
+        console.log("⚡️error getting feed id error",feedApi,err);
       }
-      boost.guid = getChannelGuid(channelName);
+      let tempfix = getChannelGuid(channelName);
     }
-    if (replyAddress){boost.reply_address=replyAddress}
+    if (replyAddress){boost.reply_address=replyAddress.address}
     let paymentInfo;
     if (customValue) {
       paymentInfo = {
@@ -1209,20 +1234,20 @@ async function register({ registerHook, peertubeHelpers }) {
       };
     }
     if (debugEnabled) {
-      console.log("payment info", paymentInfo);
+      console.log("⚡️payment info", paymentInfo);
     }
     return paymentInfo;
   }
 
   async function getChatRoom(channel) {
     if (debugEnabled) {
-      console.log("getting chat room", channel, basePath)
+      console.log("⚡️getting chat room", channel, basePath)
     }
     let chatApi = basePath + "/getchatroom?channel=" + channel;
     try {
       let chatRoom = await axios.get(chatApi);
       if (chatRoom) {
-        console.log("chatroom returned", chatRoom, "data", chatRoom.data);
+        //console.log("⚡️chatroom returned", chatRoom, "data", chatRoom.data);
         return chatRoom.data;
       }
     } catch (err) {
@@ -1234,7 +1259,7 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       await axios.get(chatApi);
     } catch (err) {
-      console.log("error attempting to set chatroom", err, channel, chatRoom);
+      console.log("⚡️error attempting to set chatroom", err, channel, chatRoom);
     }
   }
   async function getFeedID(channel) {
@@ -1253,12 +1278,12 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       await axios.get(feedApi);
     } catch (err) {
-      console.log("error attempting to fetch feed id", err);
+      console.log("⚡️error attempting to fetch feed id", err);
     }
   }
   async function getWalletInfo() {
     if (debugEnabled) {
-      console.log("get wallet info", videoName, accountName, channelName, instanceName);
+      console.log("⚡️get wallet info", videoName, accountName, channelName, instanceName);
     }
     let walletApi = basePath + "/walletinfo";
     if (videoName) {
@@ -1279,20 +1304,20 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
     if (debugEnabled) {
-      console.log("api call for video wallet info", walletApi);
+      console.log("⚡️api call for video wallet info", walletApi);
     }
     let walletData;
     try {
       walletData = await axios.get(walletApi);
     } catch {
-      console.log("client unable to fetch wallet data\n", walletApi);
+      console.log("⚡️client unable to fetch wallet data\n", walletApi);
       return;
     }
     return walletData.data;
   }
   async function getSplit() {
     if (debugEnabled) {
-      console.log("generating split request", videoName, accountName, channelName, instanceName)
+      console.log("⚡️generating split request", videoName, accountName, channelName, instanceName)
     }
     let splitApi = basePath + "/getsplit";
     if (videoName) {
@@ -1313,46 +1338,51 @@ async function register({ registerHook, peertubeHelpers }) {
       }
     }
     if (debugEnabled) {
-      console.log("api call for split info", splitApi);
+      console.log("⚡️api call for split info", splitApi);
     }
     let splitData;
     try {
       splitData = await axios.get(splitApi);
     } catch {
-      console.log("client unable to fetch split data\n", splitApi);
+      console.log("⚡️client unable to fetch split data\n", splitApi);
 
       return;
     }
-    var splitTotal
+    var splitTotal = 0;
     for (var split of splitData.data) {
+      if (debugEnabled) {
+        console.log("⚡️ split math ",splitTotal, split.split,split);
+      }
       if (!split.split){
+        console.log("⚡️ no split value found ",split);
         split.split=1;
       }
       if (split.split < 1) {
+        console.log("⚡️ split value less than 1 ",split);
         split.split = 1;
       }
-      splitTotal=splitTotal+1;
+      splitTotal=splitTotal+split.split;
     }
     if (splitTotal != 100){
-      console.log("Split math error!",splitTotal,splitData.data);
+      console.log("⚡️Split math error!",splitTotal,splitData.data);
     }
     return splitData.data;
   }
   async function refreshWalletInfo(address) {
     if (address) {
       if (address.indexOf("@") < 1) {
-        console.log("not a valid address")
+        console.log("⚡️not a valid address")
         return;
       }
       let walletApi = basePath + "/walletinfo?address=" + address;
       if (debugEnabled) {
-        console.log("api call for video wallet refresh", walletApi);
+        console.log("⚡️api call for video wallet refresh", walletApi);
       }
       let walletData;
       try {
         walletData = await axios.get(walletApi);
       } catch {
-        console.log("client unable to fetch wallet data\n", walletApi);
+        console.log("⚡️client unable to fetch wallet data\n", walletApi);
         return;
       }
       return walletData.data;
@@ -1378,7 +1408,7 @@ async function register({ registerHook, peertubeHelpers }) {
       await setChatRoom(channelName, chatRoom);
     }
     if (debugEnabled) {
-      console.log("getting config panel", splitInfo, feedID, chatRoom, channel);
+      console.log("⚡️getting config panel", splitInfo, feedID, chatRoom, channel);
     }
     let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Splits</label><br>`
     if (splitInfo && (keysendEnabled || lnurlEnabled)) {
@@ -1434,7 +1464,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function buildTip(splitData, displayName, episodeName, episodeGuid, itemID) {
     if (debugEnabled) {
-      console.log("clicked on tip button", splitData, channelName, displayName, episodeName, episodeGuid, itemID);
+      console.log("⚡️clicked on tip button", splitData, channelName, displayName, episodeName, episodeGuid, itemID);
     }
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
@@ -1452,16 +1482,16 @@ async function register({ registerHook, peertubeHelpers }) {
       var splitAmount = amount * (wallet.split / 100);
       if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
         if (debugEnabled) {
-          console.log("sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
+          console.log("⚡️sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
         result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress);
       } else if (wallet.lnurl && lnurlEnabled) {
         if (debugEnabled) {
-          console.log("sending lnurl boost", wallet.lnurl, splitAmount, message, from);
+          console.log("⚡️sending lnurl boost", wallet.lnurl, splitAmount, message, from);
         }
         result = await sendSats(wallet.lnurl, splitAmount, message, from);
         if (!result) {
-          console.log("error sending lnurl boost", wallet.lnurl, splitAmount, message, from);
+          console.log("⚡️error sending lnurl boost", wallet.lnurl, splitAmount, message, from);
         }
       }
     }
@@ -1475,7 +1505,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function makeQrDialog(invoice) {
     if (debugEnabled) {
-      console.log("making qr dialog", invoice);
+      console.log("⚡️making qr dialog", invoice);
     }
     /* Mobile wallet usability is too broken to automate
     if (navigator.userAgentData.mobile) {
@@ -1509,7 +1539,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (modal[0]) {
         modal[0].innerHTML = html;
       } else {
-        console.log("unable to find new modal window");
+        console.log("⚡️unable to find new modal window");
         return;
       }
     }
@@ -1534,13 +1564,13 @@ async function register({ registerHook, peertubeHelpers }) {
     if (localWallet) {
       localWallet.onclick = async function () {
         navigator.clipboard.writeText(invoice);
-        console.log("copied invoice to clipboard");
+        //console.log("⚡️copied invoice to clipboard");
       }
     }
   }
   async function makeTipDialog() {
     if (debugEnabled) {
-      console.log("making tip dialog", channelName);
+      console.log("⚡️making tip dialog", channelName);
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     let html = ` <center><table><tr><td>From:</td>
@@ -1562,7 +1592,7 @@ async function register({ registerHook, peertubeHelpers }) {
     let modalHack = document.getElementsByClassName("modal-dialog");
     if (modalHack) {
       if (debugEnabled) {
-        console.log("modal", modalHack, modalHack[0], modalHack[0].class);
+        console.log("⚡️modal", modalHack, modalHack[0], modalHack[0].class);
       }
       modalHack[0].setAttribute('class', 'modal-dialog modal-dialog-centered modal-sm');
       document.getElementsByClassName("modal-content")[0].setAttribute('style', 'width:auto;');
@@ -1588,20 +1618,26 @@ async function register({ registerHook, peertubeHelpers }) {
     try {
       await webln.enable()
       if (typeof webln.keysend === 'function') {
-        console.log('✅ webln keysend support');
+        if (debugEnabled){
+          console.log('⚡️✅ webln keysend support');
+        }
         return 2;
       } else {
-        console.log("✅ webln supported ⛔️ keysend not supported");
+        if (debugEnabled){
+          console.log("⚡️✅ webln supported ⛔️ keysend not supported");
+        }
         return 1;
       }
     } catch {
-      console.log("⛔️ webln not supported");
+      if (debugEnabled){
+        console.log("⚡️⛔️ webln not supported");
+      }
       return 0;
     }
   }
   async function makeStreamDialog() {
     if (debugEnabled) {
-      console.log("making stream dialog", channelName);
+      console.log("⚡️making stream dialog", channelName);
     }
     let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
@@ -1631,32 +1667,32 @@ async function register({ registerHook, peertubeHelpers }) {
     let modalAddressAuthorize = document.getElementById("modal-address-authorize");
     if (modalAddressAuthorize) {
       let authorizedWalletApi = basePath +"/checkauthorizedwallet";
-      console.log("authorized wallet api:",authorizedWalletApi);
+      //console.log("⚡️authorized wallet api:",authorizedWalletApi);
       let headers = { headers: await peertubeHelpers.getAuthHeader() }
-      console.log("headers",headers)
+      //console.log("⚡️headers",headers)
       let authorized;
       try {
         authorized = await axios.get(authorizedWalletApi, headers);
         walletAuthorized = true;
       } catch {
-        console.log("unable to confirm authorized");
+        console.log("⚡️unable to confirm authorized");
         walletAuthorized = false;
       }
-      console.log("authorized result",authorized);
+      //console.log("⚡️authorized result",authorized);
       let newUserAddress =userAddress.value;
-      console.log("wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
+      //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
       
       modalAddressAuthorize.style.visible=true;
       if (!walletAuthorized && newUserAddress.indexOf('@')>1 && newUserAddress.indexOf('getalby.com')>1){
         modalAddressAuthorize.textContent="Authorize "+newUserAddress+""
-        console.log("making button for authorize");
+        //console.log("⚡️making button for authorize");
       } else if (walletAuthorized){
         modalAddressAuthorize.textContent = "De-Authorize";
       } else {
         modalAddressAuthorize.style.visible=false;
       }
       modalAddressAuthorize.onclick = async function (){
-        console.log("authorize button clicked",walletAuthorized);
+        //console.log("⚡️authorize button clicked",walletAuthorized);
         if (walletAuthorized){
           try {
             await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
@@ -1675,32 +1711,31 @@ async function register({ registerHook, peertubeHelpers }) {
           notifier.error("error trying to inform peertube of incoming authorization");
         }  
         let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=https://p2ptube.us/plugins/lightning/router/callback&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
-        console.log("alby url",albyUrl,authorized);
+        //console.log("⚡️alby url",albyUrl,authorized);
         window.open(albyUrl, 'popup', 'width=600,height=800');  
         closeModal();
     }
     } else {
-      console.log("no authorize button dinglebut");
+      console.log("⚡️no authorize button");
     }
     if (modalAddressUpdate){
       modalAddressUpdate.onclick = async function () {
-        console.log("")
         let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
-        console.log("api call to update user lightningAddress",setWalletApi);
+        //console.log("⚡️api call to update user lightningAddress",setWalletApi);
         modalAddressUpdate.value="updating";
         try {
           let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
           if (userData && userData.data){
-            console.log("user lightning address",userData.data);
+            //console.log("⚡️user lightning address",userData.data);
             userAddress.value=userData.data;
             accountAddress=userData.data;
             notifier.success("updated "+userName+"'s lighting address to "+accountAddress);
           } else {
-            console.log("didn't get good user address");
+            console.log("⚡️didn't get good user address");
             notifier.error("failed to udate "+userName+"'s lighting address to "+userAddress.value);
           }
         } catch (err){
-          console.log("error attempting to update user wallet",setWalletApi,err);
+          console.log("⚡️error attempting to update user wallet",setWalletApi,err);
         }
         closeModal();
       }
@@ -1759,7 +1794,7 @@ async function register({ registerHook, peertubeHelpers }) {
             }
           }
         } else {
-          console.log("really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
+          console.log("⚡️really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
         }
       }
     }
@@ -1777,13 +1812,13 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function assignSplitEditButtons(splitData, slot, channel, ks) {
     if (debugEnabled) {
-      console.log("assigning split edits", slot, channel, ks);
+      console.log("⚡️assigning split edits", slot, channel, ks);
     }
     let updateSplit = document.getElementById("update-split")
     if (updateSplit) {
       updateSplit.onclick = async function () {
         if (debugEnabled) {
-          console.log("update split clicked", channel, slot, ks)
+          console.log("⚡️update split clicked", channel, slot, ks)
         }
         let updateResult = await doUpdateSplit(channel, slot, ks);
         let newPanel = await getConfigPanel(updateResult, channel);
@@ -1811,7 +1846,7 @@ async function register({ registerHook, peertubeHelpers }) {
       manualKeysend.checked = ks;
       manualKeysend.onclick = async function () {
         if (debugEnabled) {
-          console.log("custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+          console.log("⚡️custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
         }
         if (splitData[slot].customKeysend == true) {
           splitData[slot].customKeysend = false;
@@ -1823,7 +1858,7 @@ async function register({ registerHook, peertubeHelpers }) {
           manualKeysend.checked = true;
         }
         if (debugEnabled) {
-          console.log("post toggle custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
+          console.log("⚡️post toggle custom keysend data", manualKeysend, slot, ks, splitData[slot].customKeysend);
         }
         //splitData[slot].customKeysend = manualKeysend.checked;
         let html = await makeKeysendHtml(splitData, slot, ks);
@@ -1840,7 +1875,7 @@ async function register({ registerHook, peertubeHelpers }) {
       if (addButton) {
         addButton.onclick = async function () {
           if (debugEnabled) {
-            console.log("assigning edit butts!", splitData.length, channel);
+            console.log("⚡️assigning edit butts!", splitData.length, channel);
           }
           await peertubeHelpers.showModal({
             title: 'Add Split for' + channel,
@@ -1864,9 +1899,9 @@ async function register({ registerHook, peertubeHelpers }) {
           }
         }
       }
-      console.log("split data for making buttons",splitData);
+      //console.log("⚡️split data for making buttons",splitData);
       for (var slot in splitData) {
-        console.log("iterating slot",slot)
+        //console.log("⚡️iterating slot",slot)
         var editButton = document.getElementById("edit-" + slot);
         if (editButton) {
           editButton.onclick = async function () {
@@ -1895,14 +1930,14 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function doUpdateSplit(channel, slot, ks) {
     if (debugEnabled) {
-      console.log("Do update split", channel, slot, ks);
+      console.log("⚡️Do update split", channel, slot, ks);
     }
     let newSplit = document.getElementById("modal-split-value").value;
     let newAddress = document.getElementById("modal-split-address").value;
     let newName = encodeURI(document.getElementById("modal-split-name").value);
     let customKeysend = document.getElementById("manualkeysend").checked
     if (debugEnabled) {
-      console.log("New values from split dialog", customKeysend, newName, newAddress, newSplit, slot, ks);
+      console.log("⚡️New values from split dialog", customKeysend, newName, newAddress, newSplit, slot, ks);
     }
     if (ks) {
       var pubKey = document.getElementById("modal-split-pubkey").value
@@ -1934,7 +1969,7 @@ async function register({ registerHook, peertubeHelpers }) {
       notifier.success("updated " + channel + " splits");
       return updateResult.data;
     } catch {
-      console.log("unable to update split\n", updateApi);
+      console.log("⚡️unable to update split\n", updateApi);
       notifier.error("unable to update splits for " + channel);
       return;
     }
@@ -1953,14 +1988,14 @@ async function register({ registerHook, peertubeHelpers }) {
       notifier.success("Removed split");
       return removeResult.data;
     } catch {
-      console.log("unable to remove split\n", removeApi);
+      console.log("⚡️unable to remove split\n", removeApi);
       notifier.error("unable to remove split");
       return;
     }
   }
   async function doAddSplit(channel) {
     if (debugEnabled) {
-      console.log("do add split called with ", channel);
+      console.log("⚡️do add split called with ", channel);
     }
     let addApi;
     let newSplit = document.getElementById("modal-split-value").value;
@@ -1974,18 +2009,18 @@ async function register({ registerHook, peertubeHelpers }) {
     } else if (newAddress.indexOf("@") > 1) {
       addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;;
     } else {
-      console.log("unable to add malformed split address", newAddress);
+      console.log("⚡️unable to add malformed split address", newAddress);
       notifier.error("Lightning address is neither an address or a valid server pubkey");
       return;
     }
     let addResult;
     if (debugEnabled) {
-      console.log("attempting add split to channel", addApi);
+      console.log("⚡️attempting add split to channel", addApi);
     }
     try {
       addResult = await axios.get(basePath + addApi);
     } catch (e) {
-      console.log("unable to add split\n", addApi, addResult);
+      console.log("⚡️unable to add split\n", addApi, addResult);
       notifier.error(e);
       return;
     }
@@ -2007,7 +2042,7 @@ async function register({ registerHook, peertubeHelpers }) {
   }
   async function makeKeysendHtml(splitData, slot, ks) {
     if (debugEnabled) {
-      console.log("making keysend edit panel", slot, ks);
+      console.log("⚡️making keysend edit panel", slot, ks);
     }
     let html;
     html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
@@ -2065,10 +2100,13 @@ async function register({ registerHook, peertubeHelpers }) {
       try {
         guid = await axios.get(guidApi);
         if (guid) {
+          if (debugEnabled) {
+            console.log("⚡️guid from guid api",guid)
+          }
           return guid.data;
         }
       } catch (err) {
-        console.log("error getting channel guid",guidApi,err)
+        console.log("⚡️error getting channel guid",guidApi,err)
       }
       return;
   }
@@ -2081,7 +2119,7 @@ async function register({ registerHook, peertubeHelpers }) {
           return freshPodData.data;
         }
       } catch (err) {
-        console.log("error getting pod Data",podApi,err)
+        console.log("⚡️error getting pod Data",podApi,err)
       }
 
       return;
