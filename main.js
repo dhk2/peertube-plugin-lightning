@@ -51,6 +51,28 @@ async function register({
     descriptionHTML: 'The client secret',
     private: true
   })
+  registerSetting({
+    name: 'boost-bot-account',
+    label: 'Boost bot account user name for posting cross app comments',
+    type: 'input',
+    descriptionHTML: '',
+    private: false
+  })
+  registerSetting({
+    name: 'boost-bot-password',
+    label: 'Password for boost bot',
+    type: 'input-password',
+    descriptionHTML: 'Needed to allow boost bot to post cross app comments',
+    private: true
+  })
+  registerSetting({
+    name: 'simpletip-token',
+    label: 'Simpletip token',
+    type: 'input-password',
+    descriptionHTML: 'used to authorize connections to the simpletip boost aggregator',
+    private: true
+  })
+
     registerSetting({
     name: 'rss-enable',
     label: 'Enable enhanced Podcasting 2.0 configuration',
@@ -115,18 +137,15 @@ async function register({
   }
   let enableLegacy = await settingsManager.getSetting("legacy-enable");
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
-  if (!enableKeysend){
-    await settingsManager.setsetting("keysend-enable",true);
-  }
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
-  if (!enableLnurl){
-    await settingsManager.setsetting("lnurl-enable",true);
-  }
   let enableDebug = await settingsManager.getSetting("debug-enable");
   let enableRss = await settingsManager.getSetting("rss-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
   let client_id=await settingsManager.getSetting("alby-client-id");
   let client_secret=await settingsManager.getSetting("alby-client-secret");
+  let botAccount=await settingsManager.getSetting("boost-bot-account");
+  let botPassword=await settingsManager.getSetting("boost-bot-password");
+  let simpletipToken=await settingsManager.getSetting("simpletip-token");
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
   if (enableDebug) {
     console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
@@ -588,9 +607,11 @@ async function register({
       return res.status(400).send();
     }
     let smallChannelAvatar,largeChannelAvatar,smallPersonAvatar,largePersonAvatar
-    if (channelData.data.avatars && channelData.data.avatars.length>1){
+    if (channelData && channelData.data && channelData.data.avatars && channelData.data.avatars[1]){
       smallChannelAvatar=channelData.data.avatars[0].path;
       largeChannelAvatar=channelData.data.avatars[1].path;
+    }
+    if (channelData && channelData.data && channelData.data.ownerAccount && channelData.data.ownerAccount.avatars && channelData.data.ownerAccount.avatars[1]){
       smallPersonAvatar=channelData.data.ownerAccount.avatars[0].path;
       largePersonAvatar=channelData.data.ownerAccount.avatars[1].path;
     }
@@ -636,7 +657,7 @@ async function register({
     let displayName = channelData.data.displayName;
     for (var line of lines) {
       counter++;
-      if (line.indexOf("Toraifōsu")>0){
+      if (line.indexOf("Toraifōsu" && podData && podData.data)>0){
         spacer = line.split("<")[0];
         if (podData.data.text){
           line =line+"\n"+spacer+"<podcast:txt>"+podData.data.text[0]+"</podcast:txt>";
@@ -657,7 +678,7 @@ async function register({
       if (largePersonAvatar){
         line = line.replace(smallPersonAvatar,largePersonAvatar);
       }
-      if (podData.data.medium){
+      if (podData && podData.data && podData.data.medium){
         line = line.replace(`<podcast:medium>video</podcast:medium>`,`<podcast:medium>`+podData.data.medium+`</podcast:medium>`);
       }
       if (counter>1){
@@ -2026,7 +2047,7 @@ async function register({
           try {
             response = await axios.post(albyUrl,form,headers);
           } catch (err){
-            console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token",err,url,formFull)
+            console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token",err,albyUrl,form);
           }
           if (response && response.data){
             console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios",response.data);
@@ -2044,7 +2065,7 @@ async function register({
     body.description = "super chat invoices";
     body.url='https://p2ptube.us/plugins/lightning/router/clearedinvoice';
     body.filter_types = ["invoice.incoming.settled"]
-    let albyData = await storageManager.getData("alby-don");
+    let albyData = await storageManager.getData("alby-"+botAccount);
     let response;
     console.log("⚡️⚡️stored data", albyData);
     if (albyData && albyData.access_token){
@@ -2090,21 +2111,22 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", req.query,req.body);
     }
+    let tip = req.body.fiat_in_cents.toString();
     let simpleTip = {
-    "Source": "Jet3MytdyzbW4ybJJedosnJjR8pQB46gRjDslL8ZmC8=|Boostagram",
+    "Source": simpletipToken,
     "SourceID": req.body.identifier,
     "UserName": req.body.payer_name,
     "TextContent": req.body.boostagram.message,
-    "PaymentAmount": req.body.fiat_in_cents
+    "PaymentAmount": tip
     }
     console.log("simple tip ",simpleTip)
-    //let tipApi= "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
+    // let tipApi= "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
     let tipApi = base + "/plugins/lightning/router/dirtyhack"
     let simpleTipResult
     try {
       simpleTipResult = await axios.post(tipApi,simpleTip);
     } catch (err) {
-      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed",err,tipApi);
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed",tipApi,err.response.data);
     }
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
     return res.status(200).send();

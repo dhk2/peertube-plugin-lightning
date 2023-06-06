@@ -1,9 +1,9 @@
 {
   "name": "peertube-plugin-lightning",
   "description": "PeerTube plugin to integrate lighting transactions",
-  "version": "4.3.0",
+  "version": "4.3.1",
   "author": "DHK2",
-  "license": "ISC",
+  "license": "AGPL-3.0",
   "bugs": "https://github.com/dhk2/peertube-plugin-lightning/issues",
   "clientScripts": [
     {

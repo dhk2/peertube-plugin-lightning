@@ -1,5 +1,11 @@
+v 4.3.1
+- fixed bug with disabled lnurl
+- fixed bug with missing account thumbnails
+
 v 4.3.0
 - bugfix for node crashing bug with new users attempting to boost
+- alby webhook and simpletip integration for boost message aggregation
+- put in settings for boost bot comment posting
 
 v 4.2.9
 - resolved issue with reply to
