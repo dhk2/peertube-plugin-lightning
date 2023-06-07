@@ -17,6 +17,7 @@ async function register({ registerHook, peertubeHelpers }) {
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
   let podData;
+  let hostPath;
   await peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
@@ -45,6 +46,7 @@ async function register({ registerHook, peertubeHelpers }) {
          console.log('⚡️Fetched server config.', config);
       }
       instanceName = config.instance.name;
+      
     })
   try {
     let versionResult = await axios.get(basePath + "/getversion");
@@ -62,6 +64,7 @@ async function register({ registerHook, peertubeHelpers }) {
           console.log("⚡️user",user);
         }
         userName=user.username
+        hostPath = user.account.host;
         let accountWalletApi = basePath + "/walletinfo?account="+user.username;
         if (debugEnabled){
           console.log("⚡️wallet api call",accountWalletApi,user.username);
@@ -732,7 +735,7 @@ async function register({ registerHook, peertubeHelpers }) {
           //let podData= {medium:podcast}
           let html;
           if (!feedID){
-            html = `<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button>`
+            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent(window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) +`<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
           } else {
             html = "Podcast Index Feed ID: "+feedID;
             //html = html + `<br><button type="button" id="register-feed" name="register-feed" class="peertube-button orange-button ng-star-inserted">Register Feed to Podcast Index</button>`
@@ -975,7 +978,7 @@ async function register({ registerHook, peertubeHelpers }) {
     let pubKey = walletData.pubkey;
     let tag = walletData.tag;
     let customKeyHack, customValue
-    if (walletData.customData) {
+    if (walletData.customData && walletData.customData[0]) {
       customKeyHack = walletData.customData[0].customKey;
       customValue = walletData.customData[0].customValue;
     }
@@ -1681,40 +1684,42 @@ async function register({ registerHook, peertubeHelpers }) {
       //console.log("⚡️authorized result",authorized);
       let newUserAddress =userAddress.value;
       //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
-      
-      modalAddressAuthorize.style.visible=true;
-      if (!walletAuthorized && newUserAddress.indexOf('@')>1 && newUserAddress.indexOf('getalby.com')>1){
-        modalAddressAuthorize.textContent="Authorize "+newUserAddress+""
-        //console.log("⚡️making button for authorize");
-      } else if (walletAuthorized){
-        modalAddressAuthorize.textContent = "De-Authorize";
-      } else {
-        modalAddressAuthorize.style.visible=false;
-      }
-      modalAddressAuthorize.onclick = async function (){
-        //console.log("⚡️authorize button clicked",walletAuthorized);
-        if (walletAuthorized){
-          try {
-            await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
-            notifier.success("De-Authorized getalby wallet");
-            walletAuthorized=false;
-          } catch {
-            notifier.error("error trying to deauthorize wallet")
+      modalAddressAuthorize.style.visible=false;
+      if (client_id  && peertubeHelpers.isLoggedIn()){
+        modalAddressAuthorize.style.visible=true;
+        if (!walletAuthorized && newUserAddress.indexOf('getalby.com')>1){
+          modalAddressAuthorize.textContent="Authorize "+newUserAddress+""
+        } else {
+          modalAddressAuthorize.textContent = "De-Authorize";
+        } 
+        modalAddressAuthorize.onclick = async function (){
+          //console.log("⚡️authorize button clicked",walletAuthorized);
+          if (walletAuthorized){
+            try {
+              await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
+              notifier.success("De-Authorized getalby wallet");
+              walletAuthorized=false;
+            } catch {
+              notifier.error("error trying to deauthorize wallet")
+            }
+            closeModal();
+            return;
           }
+          let authorizeReturned;        
+          try {
+            authorizeReturned = await axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
+          } catch {
+            notifier.error("error trying to inform peertube of incoming authorization");
+          }  
+          let parts = basePath.split("/");
+          let callbackPath = "https://"+hostPath+"/"+parts[1]+"/"+parts[2]+"/"+parts[4]+"/callback";
+          console.log("callback",callbackPath);
+          let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=`+callbackPath+`&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
+          //console.log("⚡️alby url",albyUrl,authorized);
+          window.open(albyUrl, 'popup', 'width=600,height=800');  
           closeModal();
-          return;
         }
-        let authorizeReturned;        
-        try {
-          authorizeReturned = await axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
-        } catch {
-          notifier.error("error trying to inform peertube of incoming authorization");
-        }  
-        let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=https://p2ptube.us/plugins/lightning/router/callback&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
-        //console.log("⚡️alby url",albyUrl,authorized);
-        window.open(albyUrl, 'popup', 'width=600,height=800');  
-        closeModal();
-    }
+      }
     } else {
       console.log("⚡️no authorize button");
     }

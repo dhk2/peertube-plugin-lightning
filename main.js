@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
 const fs = require('fs');
+const { Console } = require('console');
 
 //const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
 async function register({
@@ -135,6 +136,7 @@ async function register({
       hostSplit = 1;
     }
   }
+  let tipVerb = await settingsManager.getSetting('lightning-tipVerb');
   let enableLegacy = await settingsManager.getSetting("legacy-enable");
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
@@ -146,6 +148,14 @@ async function register({
   let botAccount=await settingsManager.getSetting("boost-bot-account");
   let botPassword=await settingsManager.getSetting("boost-bot-password");
   let simpletipToken=await settingsManager.getSetting("simpletip-token");
+  let botToken;
+  if (botAccount && botPassword){
+    try {
+      botToken = await getPeerTubeToken(botAccount, botPassword);
+    } catch {
+      Console.log("⚡️⚡️⚡️⚡️ error attempting to log bot on");
+    }
+  }
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
   if (enableDebug) {
     console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
@@ -319,9 +329,10 @@ async function register({
       if (videoData) {
         //=videoData.data;
         let duration=videoData.data.duration;
-         console.log("\n⚡️⚡️\n\n\\n\n\n\nnvideodata??",videoData.data);
+         //console.log("\n⚡️⚡️\n\n\\n\n\n\nnvideodata??",videoData.data);
+        
         let videoFiles = videoData.data.streamingPlaylists[0].files;
-         console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
+         //console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
         let smallest = 999999999
         let filename;
         if (videoFiles){
@@ -333,9 +344,10 @@ async function register({
             }
           }
         }
+        var enclosure;
         console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
         if (smallest){
-          var enclosure = {
+          enclosure = {
             name: "audioenclosure",
             attributes: {
               "url": filename,
@@ -344,7 +356,7 @@ async function register({
             }
           }
         } else {
-           var enclosure = {
+           enclosure = {
             name: "audioenclosure",
             attributes: {
               "url": filename,
@@ -353,9 +365,12 @@ async function register({
             }
           }         
         }
+        
         console.log
-        customObjects.push(enclosure);
-        console.log("⚡️⚡️\n\n\n\n\n\n\n\n\Custom Blocks 2",customObjects);
+        if (enclosure){
+          customObjects.push(enclosure);
+        }
+          console.log("⚡️⚡️\n\n\n\n\n\n\n\n\Custom Blocks 2",customObjects);
       }
        //console.log("⚡️⚡️\nCustom Blocks 2",customObjects);
       return result.concat(customObjects);
@@ -666,12 +681,14 @@ async function register({
           line =line+"\n"+spacer+"<podcast:guid>"+podData.data.feedguid+"</podcast:guid>";
         }
       }
+      
       if (line.indexOf("<enclosure")>0){
         continue;
       }
       if (line.indexOf("audioenclosure")>0){
         line = line.replace("audioenclosure","enclosure");
       }
+      
       if (largeChannelAvatar){
         line = line.replace(smallChannelAvatar,largeChannelAvatar);
       }
@@ -1835,11 +1852,12 @@ async function register({
       console.log("\n⚡️⚡️\ncurrent wallet value",state,req.query.state);
     }
     if (state == 'pending'){
+      let callbackUrl = base + "/plugins/lightning/router/callback";
       var formFull = new URLSearchParams();
       //formFull = new FormData();
       formFull.append('code', req.query.code);
       formFull.append('grant_type', 'authorization_code');
-      formFull.append('redirect_uri', 'https://p2ptube.us/plugins/lightning/router/callback');
+      formFull.append('redirect_uri', callbackUrl);
       formFull.append('client_id',client_id);
       formFull.append('client_secret',client_secret);
       
@@ -2063,7 +2081,7 @@ async function register({
     let albyHook="https://api.getalby.com/webhook_endpoints"
     let body ={};
     body.description = "super chat invoices";
-    body.url='https://p2ptube.us/plugins/lightning/router/clearedinvoice';
+    body.url=base + "/plugins/lightning/router/clearedinvoice";
     body.filter_types = ["invoice.incoming.settled"]
     let albyData = await storageManager.getData("alby-"+botAccount);
     let response;
@@ -2111,24 +2129,40 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", req.query,req.body);
     }
-    let tip = req.body.fiat_in_cents.toString();
-    let simpleTip = {
-    "Source": simpletipToken,
-    "SourceID": req.body.identifier,
-    "UserName": req.body.payer_name,
-    "TextContent": req.body.boostagram.message,
-    "PaymentAmount": tip
-    }
-    console.log("simple tip ",simpleTip)
-    // let tipApi= "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
-    let tipApi = base + "/plugins/lightning/router/dirtyhack"
-    let simpleTipResult
-    try {
-      simpleTipResult = await axios.post(tipApi,simpleTip);
-    } catch (err) {
-      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed",tipApi,err.response.data);
-    }
+    if (simpletipToken){
+      let tip = req.body.fiat_in_cents.toString();
+      let simpleTip = {
+      "Source": simpletipToken,
+      "SourceID": req.body.identifier,
+      "UserName": req.body.payer_name,
+      "TextContent": req.body.boostagram.message,
+      "PaymentAmount": tip
+      }
+      console.log("simple tip ",simpleTip)
+      let tipApi;
+      if (simpletipToken){
+        tipApi= "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
+      } else {
+        tipApi = base + "/plugins/lightning/router/dirtyhack"
+      }let simpleTipResult
+      try {
+        simpleTipResult = await axios.post(tipApi,simpleTip);
+      } catch (err) {
+        console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed",tipApi,err.response.data);
+      }
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
+    }
+    if (botToken){
+      let postBody =   req.body.boostagram.value_msat_total/1000 + " Sats "+tipVerb+" from "+req.body.payer_name+"\n"+req.body.boostagram.message;
+      let parts = req.body.boostagram.episode_guid.split("/");
+      let videoUUID = parts[parts.length-1];
+      let postApi = base + "/api/v1/videos/"+videoUUID+"/comment-threads";
+      try {
+        await axios.post(postApi,{"text": postBody},{ headers: {"Authorization" : `Bearer `+botToken} })
+      } catch (err){
+        console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ error posting comment",postBody,postApi,err);
+      }
+    }
     return res.status(200).send();
   })
     router.use('/getchatToken', async (req, res) => {
@@ -2417,7 +2451,35 @@ async function register({
     formData.append(parentKey, value);
   }
   }
-
+  async function getPeerTubeToken(username, password) {
+    var clientTokenPath = base + "/api/v1/oauth-clients/local";
+    var userTokenPath = base + "/api/v1/users/token";
+    try {
+        let clientResult = await axios.get(clientTokenPath);
+        if (clientResult && clientResult.data){
+          let clientId = clientResult.data.client_id;
+          let clientSecret = clientResult.data.client_secret;
+          var data = new URLSearchParams();
+          data.append('client_id', clientId);
+          data.append('client_secret', clientSecret);
+          data.append('grant_type', 'password');
+          data.append('response_type', 'code');
+          data.append('username', username);
+          data.append('password', password);
+          var postData = data.toString();
+          let tokenresponse = await axios.post(userTokenPath, data);
+          console.log("token request respoonse",tokenresponse.data);
+          bearerToken = tokenresponse.data.access_token;
+          return (bearerToken);
+        } else {
+          console.log("failed to get client token");
+        }
+    } catch (error) {
+        console.log("error in get token", ptuser, ptpassword, ptApi);
+        return (-1);
+    }
+    return;
+  }
   function jsonToFormData(data) {
   const formData = new URLSearchParams();
   
@@ -2425,7 +2487,7 @@ async function register({
   
   return formData;
   }
-}
+  }
 async function unregister() {
   return
 }

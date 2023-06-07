@@ -118,7 +118,7 @@ function register({ registerHook }) {
                 boost.episode_guid = video.uuid
                 let pubKey = walletData.keysend.pubkey;
                 let customKeyHack, customValue
-                if (walletData.keysend.customData) {
+                if (walletData.keysend.customData && walletData.keysend.customData[0]) {
                     customKeyHack = walletData.keysend.customData[0].customKey;
                     customValue = walletData.keysend.customData[0].customValue;
                 }

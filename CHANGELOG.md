@@ -1,3 +1,13 @@
+v 4.3.4
+- added cross app comment boost messages using bot
+
+v 4.3.3
+- fixed server side invoice parsing error
+
+v 4.3.2
+- fixed callback path generation.
+- fixed bug boosting nodes without custom values
+
 v 4.3.1
 - fixed bug with disabled lnurl
 - fixed bug with missing account thumbnails
