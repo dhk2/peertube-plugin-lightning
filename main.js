@@ -153,7 +153,7 @@ async function register({
     try {
       botToken = await getPeerTubeToken(botAccount, botPassword);
     } catch {
-      Console.log("⚡️⚡️⚡️⚡️ error attempting to log bot on");
+      console.log("⚡️⚡️⚡️⚡️ error attempting to log bot on");
     }
   }
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
@@ -2093,35 +2093,30 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️",body,headers,albyHook)
         try {
           response  = albyWalletData=await axios.post(albyHook,body,headers)
+          console.log("\n⚡️⚡️⚡️⚡️ created web hook",response)
+          return res.status(200).send(response);
         } catch (err) {
           console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n",err);
           albyWalletData = err.response.status;
         }
         console.log('⚡️⚡️⚡️⚡️ response',response,albyWalletData);
         if (albyWalletData == 401){
-          console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-          let albyUrl = 'https://api.getalby.com/oauth/token'
-          var form = new URLSearchParams();
-          form.append('refresh_token', albyData.refresh_token);
-          form.append('grant_type',"refresh_token");
-          let headers = { auth: { username: client_id, password: client_secret}};
-          let response;
-        try {
-            response  = albyWalletData=await axios.post(albyUrl,body,headers)
-          } catch (err) {
-            console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n",err);
-            albyWalletData = err;
-          }
-          if (response && response.data){
-            console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios",response.data);
-            storageManager.storeData("alby-" + userName.replace(/\./g, "-"),response.data);
+          console.log('⚡️⚡️⚡️⚡️ attempting to refresh token');
+          let newToken = await refreshAlbyToken(albyData.refresh_token);
+          if (newToken && newToken.data){
+
+            console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios",newToken.data);
+            storageManager.storeData("alby-" + userName.replace(/\./g, "-"),newToken.data);
+            try {
+              response  = albyWalletData=await axios.post(albyHook,body,headers)
+            } catch (err) {
+              console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n",err);
+              albyWalletData = err.response.status;
+            }
           }
         }
-
-
-
-
-
+    } else {
+      console.log('⚡️⚡️⚡️⚡️ no stored wallet data for bot',botAccount);
     }
 
   })
@@ -2280,6 +2275,32 @@ async function register({
     }
     return res.status(420).send();
   })
+  router.use('/getwebhooks', async (req, res) => {
+    let albyHook="https://api.getalby.com/webhook_endpoints"
+    let body ={};
+    let albyData = await storageManager.getData("alby-"+botAccount);
+    let response;
+    console.log("⚡️⚡️stored data", albyData);
+    if (albyData && albyData.access_token){
+        let albyToken = albyData.access_token
+        let albyWalletData
+        let headers = { headers: {"Authorization" : `Bearer `+albyToken} }
+        try {
+          response  = albyWalletData=await axios.get(albyHook,body,headers)
+          return response;
+        } catch (err) {
+          console.log("\n⚡️⚡️⚡️⚡️error attempting to get webhook\n",err);
+          albyWalletData = err.response.status;
+        }
+        console.log('⚡️⚡️⚡️⚡️ response',response,albyWalletData);
+        let newToken = refreshAlbyToken(albyData.refresh_token);
+        return res.status(200).send(newToken);
+    } else {
+      console.log('⚡️⚡️⚡️⚡️ no stored wallet data for bot',botAccount);
+    }
+
+  })
+
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
     let feedId;
@@ -2479,6 +2500,22 @@ async function register({
         return (-1);
     }
     return;
+  }
+  async function refreshAlbyToken(refreshToken){
+    let response;
+    console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    let albyUrl = 'https://api.getalby.com/oauth/token'
+    var form = new URLSearchParams();
+    form.append('refresh_token', refreshToken);
+    form.append('grant_type',"refresh_token");
+    let headers = { auth: { username: client_id, password: client_secret}};
+    
+    try {
+      response = await axios.post(albyUrl,form,headers);
+    } catch (err){
+      console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token",err,albyUrl,form);
+    }
+    return response;
   }
   function jsonToFormData(data) {
   const formData = new URLSearchParams();

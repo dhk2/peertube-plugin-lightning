@@ -1,102 +1,50 @@
-{
-amount: 3,
-
-boostagram: {
-
-    action: 'boost',
-
-    app_name: 'PeerTube',
-
-    app_version: '4.2.6',
-
-    boost_link: 'https: //p2ptube.us/w/hXoprghGAigHHz7u2EaRTP?start=10',
-
-    episode: 'How PeerTube administrators can install the Lightning Plugin',
-
-    episode_guid: 'https: //p2ptube.us/w/hXoprghGAigHHz7u2EaRTP',
-
-    feedID: 6073996,
-
-    guid: 'ca1666fc-4160-4b64-83f7-8a9d1a7e073b',
-
-    itemID: 13820660493,
-
-    message: 'durka\n',
-
-
-    podcast: 'lighning_plugin',
-
-    reply_address: 'donkimberlin@getalby.com',
-
-    sender_name: 'goku',
-
-    ts: 10,
-
-    url: 'https: //p2ptube.us/plugins/lightning/router/podcast2?channel=lighning_plugin',
-
-    value_msat: 3000,
-
-    value_msat_total: 69000
-
-  ]:
-},
-
-comment: 'durka\n',
-
-created_at: '2023-06-03T11: 51: 28.785Z',
-
-creation_date: 1685793088,
-
-currency: 'btc',
-
-custom_records: {
-
-    '696969': 'TGlQUTNXVnZkZUVGbnVoY1dOTHk=',
-
-    '7629169': 'eyJhY3Rpb24iOiJib29zdCIsInZhbHVlX21zYXQiOjMwMDAsInZhbHVlX21zYXRfdG90YWwiOjY5MDAwLCJhcHBfbmFtZSI6IlBlZXJUdWJlIiwiYXBwX3ZlcnNpb24iOiI0LjIuNiIsIm5hbWUiOiJQMlBUdWJlICIsInNlbmRlcl9uYW1lIjoiZ29rdSIsIm1lc3NhZ2UiOiJkdXJrYVxuIiwidHMiOjEwLCJwb2RjYXN0IjoibGlnaG5pbmdfcGx1Z2luIiwiZXBpc29kZSI6IkhvdyBQZWVyVHViZSBhZG1pbmlzdHJhdG9ycyBjYW4gaW5zdGFsbCB0aGUgTGlnaHRuaW5nIFBsdWdpbiIsImVwaXNvZGVfZ3VpZCI6Imh0dHBzOi8vcDJwdHViZS51cy93L2hYb3ByZ2hHQWlnSEh6N3UyRWFSVFAiLCJib29zdF9saW5rIjoiaHR0cHM6Ly9wMnB0dWJlLnVzL3cvaFhvcHJnaEdBaWdISHo3dTJFYVJUUD9zdGFydD0xMCIsInVybCI6Imh0dHBzOi8vcDJwdHViZS51cy9wbHVnaW5zL2xpZ2h0bmluZy9yb3V0ZXIvcG9kY2FzdDI/Y2hhbm5lbD1saWdobmluZ19wbHVnaW4iLCJpdGVtSUQiOjEzODIwNjYwNDkzLCJmZWVkSUQiOjYwNzM5OTYsImd1aWQiOiJjYTE2NjZmYy00MTYwLTRiNjQtODNmNy04YTlkMWE3ZTA3M2IiLCJyZXBseV9hZGRyZXNzIjoiZG9ua2ltYmVybGluQGdldGFsYnkuY29tIn0='
-
-  ]:
-},
-
-description_hash: null,
-
-expires_at: '2023-06-03T12: 06: 28.000Z',
-
-expiry: 900,
-
-fiat_currency: 'USD',
-
-fiat_in_cents: 1,
-
-identifier: 'kCyMVun2M8T5PqsjC9VCqz9Y',
-
-keysend_message: null,
-
-memo: '',
-
-metadata: null,
-
-payer_email: null,
-
-payer_name: 'goku',
-
-payer_pubkey: null,
-
-payment_hash: '8b6111ed69d21ae4910ccc88b48f15849b7ba2015eff3e61cf00cb362830aef5',
-
-payment_request: '',
-
-r_hash_str: '8b6111ed69d21ae4910ccc88b48f15849b7ba2015eff3e61cf00cb362830aef5',
-
-settled: true,
-
-settled_at: '2023-06-03T11: 51: 28.000Z',
-
-state: 'SETTLED',
-
-type: 'incoming',
-
-value: 3
-
-]:
-}
+[
+  {
+    "name": "turtle master dojo cut",
+    "split": 95,
+    "keysend": {
+      "tag": "keysend",
+      "cache": 1684193577467,
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "status": "OK",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "LgG0L9WZICAZvKaJKKQS"
+        }
+      ]
+    }
+  },
+  {
+    "name": "donkimberlin@getalby.com",
+    "split": 5,
+    "keysend": {
+      "tag": "keysend",
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "status": "OK",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "LgG0L9WZICAZvKaJKKQS"
+        }
+      ]
+    },
+    "fee": true
+  },
+  {
+    "name": "gorgon",
+    "split": 5,
+    "keysend": {
+      "tag": "keysend",
+      "cache": 1684226693888,
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "status": "OK",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "I0xM3pGdy724ZELF0djP"
+        }
+      ]
+    }
+  }
+]

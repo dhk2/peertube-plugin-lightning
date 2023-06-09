@@ -28,9 +28,9 @@ async function register({ registerHook, peertubeHelpers }) {
       debugEnabled = s['debug-enable'];
       rssEnabled = s['rss-enable'];
       client_id = s['alby-client-id'];
-      if (debugEnabled) {
+     // if (debugEnabled) {
         console.log("⚡️settings", s);
-      }
+     // }
     })
   try {
     let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
@@ -1352,22 +1352,31 @@ async function register({ registerHook, peertubeHelpers }) {
       return;
     }
     var splitTotal = 0;
+    let missing=0;
     for (var split of splitData.data) {
       if (debugEnabled) {
         console.log("⚡️ split math ",splitTotal, split.split,split);
       }
       if (!split.split){
         console.log("⚡️ no split value found ",split);
-        split.split=1;
-      }
-      if (split.split < 1) {
-        console.log("⚡️ split value less than 1 ",split);
-        split.split = 1;
+        missing++
       }
       splitTotal=splitTotal+split.split;
     }
     if (splitTotal != 100){
       console.log("⚡️Split math error!",splitTotal,splitData.data);
+      if (missing==1){
+        let fixSplit = 100-splitTotal;
+        for (var split of splitData.data) {
+          if (!split.split){
+            split.split=fixSplit;
+          }
+        }
+      }
+
+    }
+    if (debugEnabled){
+      console.log("⚡️final split",splitData.data);
     }
     return splitData.data;
   }
@@ -1693,7 +1702,9 @@ async function register({ registerHook, peertubeHelpers }) {
           modalAddressAuthorize.textContent = "De-Authorize";
         } 
         modalAddressAuthorize.onclick = async function (){
-          //console.log("⚡️authorize button clicked",walletAuthorized);
+          if (debugEnabled){
+            console.log("⚡️authorize button clicked",walletAuthorized);
+          }
           if (walletAuthorized){
             try {
               await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
@@ -1705,17 +1716,25 @@ async function register({ registerHook, peertubeHelpers }) {
             closeModal();
             return;
           }
-          let authorizeReturned;        
+          let authorizeReturned;
+          let authorizationUrl = basePath + "/setauthorizedwallet?address="+userAddress.value     
+          let headers = { headers: await peertubeHelpers.getAuthHeader() }
+          if (debugEnabled){
+            console.log("attempting to authorize",authorizationUrl, headers);
+          }
           try {
-            authorizeReturned = await axios.get(basePath + "/setauthorizedwallet?address="+userAddress.value,{ headers: await peertubeHelpers.getAuthHeader() });
-          } catch {
+            authorizeReturned = await axios.get(authorizationUrl,headers);
+          } catch (err){
             notifier.error("error trying to inform peertube of incoming authorization");
+            console.log("error with authorization",err,authorizationUrl,headers);
           }  
           let parts = basePath.split("/");
           let callbackPath = "https://"+hostPath+"/"+parts[1]+"/"+parts[2]+"/"+parts[4]+"/callback";
-          console.log("callback",callbackPath);
+
           let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=`+callbackPath+`&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
-          //console.log("⚡️alby url",albyUrl,authorized);
+          if (debugEnabled){
+            console.log("callback",callbackPath,"\n alby url",albyUrl);
+          }
           window.open(albyUrl, 'popup', 'width=600,height=800');  
           closeModal();
         }

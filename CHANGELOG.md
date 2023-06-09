@@ -1,3 +1,12 @@
+v 4.3.7
+- Client side math fix for missing split data from server
+
+V 4.3.6
+- added logic to check status of webhooks
+
+V 4.3.5
+- fixed typo
+
 v 4.3.4
 - added cross app comment boost messages using bot
 
