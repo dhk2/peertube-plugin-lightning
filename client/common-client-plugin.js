@@ -1154,7 +1154,7 @@ async function register({ registerHook, peertubeHelpers }) {
       case '666': jsConfetti.addConfetti({emojis: ['😇']});break;
       case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
       case '1488': jsConfetti.addConfetti({emojis: ['卐']});break;
-      case '1776': jsConfetti.addConfetti({emojis: ['us']});break;
+      case '1776': jsConfetti.addConfetti({emojis: ['🇺🇸']});break;
       case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
       case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
       case '6006': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;

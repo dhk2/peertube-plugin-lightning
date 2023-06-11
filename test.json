@@ -48,3 +48,48 @@
     }
   }
 ]
+
+[
+  {
+    "name": "errhead@getalby.com",
+    "split": 85,
+    "keysend": {
+      "tag": "keysend",
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "status": "OK",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+        }
+      ]
+    }
+  },
+  {
+    "name": "donkimberlin@getalby.com",
+    "split": 5,
+    "keysend": {
+      "tag": "keysend",
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "status": "OK",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "LgG0L9WZICAZvKaJKKQS"
+        }
+      ]
+    },
+    "fee": true
+  },
+  {
+    "name": "boost",
+    "split": 10,
+    "keysend": {
+      "tag": "keysend",
+      "pubkey": "03d55f4d4c870577e98ac56605a54c5ed20c8897e41197a068fd61bdb580efaa67",
+      "customData": [
+        {}
+      ]
+    }
+  }
+]
