@@ -1,3 +1,12 @@
+v 4.4.0
+- implemented confetti for webln 
+
+v 4.3.9
+- added confetti for authorized payments
+
+v 4.3.8
+- Additional server checks on fixed bug in split math
+
 v 4.3.7
 - Client side math fix for missing split data from server
 

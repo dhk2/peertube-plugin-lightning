@@ -1,10 +1,14 @@
 import axios from 'axios';
 import QRious from 'qrious';
+import JSConfetti from 'js-confetti'
+//import tsParticles from 'tsParticles'
 //import QRCode from 'qrcode';
 //var qrcode = new QRCode("qrcode");
 async function register({ registerHook, peertubeHelpers }) {
   const { notifier } = peertubeHelpers
   const basePath = await peertubeHelpers.getBaseRouterRoute();
+  const jsConfetti = new JSConfetti()
+
   let tipVerb = "tip";
   let chatEnabled, keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
   let streamAmount = 69;
@@ -918,6 +922,7 @@ async function register({ registerHook, peertubeHelpers }) {
         result = await window.webln.sendPayment(invoice);
         var tipfixed = amount / 1000
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+        doConfetti(boostTotal);
         return result;
       } else {
         makeQrDialog(invoice);
@@ -1119,6 +1124,7 @@ async function register({ registerHook, peertubeHelpers }) {
         //console.log("⚡️alby boost result",albyBoostResult);
         var tipfixed = amount
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
+        doConfetti(boostTotal);
         return albyBoostResult;
       } catch (err) {
         console.log("⚡️error attempting to send sats using integrated wallet", err);
@@ -1130,11 +1136,46 @@ async function register({ registerHook, peertubeHelpers }) {
       result = await webln.keysend(paymentInfo);
       var tipfixed = amount
       notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+      doConfetti(boostTotal);
       return result;
     } catch (err) {
       notifier.error("⚡ error attempting to send sats using keysend", err.message);
       return;
     }
+  }
+  function doConfetti(boost){
+    switch(boost){
+      case '69': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:10});break;
+      case '73': jsConfetti.addConfetti({emojis: ['👋']});break;
+      case '88': jsConfetti.addConfetti({emojis: ['🥰']});break;
+      case '314': jsConfetti.addConfetti({emojis: ['🥧']});break;
+      case '321': jsConfetti.addConfetti({emojis: ['💥']});break;
+      case '420': jsConfetti.addConfetti({emojis: ['✌','👽','💨']});break;
+      case '666': jsConfetti.addConfetti({emojis: ['😇']});break;
+      case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
+      case '1488': jsConfetti.addConfetti({emojis: ['卐']});break;
+      case '1776': jsConfetti.addConfetti({emojis: ['us']});break;
+      case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
+      case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
+      case '6006': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
+      case '8008': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
+      case '9653': jsConfetti.addConfetti({emojis: ['🐺']});break;
+      case '30057': jsConfetti.addConfetti({emojis: ['🔁']});break;
+      case '3005': jsConfetti.addConfetti({emojis: ['😇']});break;
+      case '6969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:50});break;
+      case '42069': jsConfetti.addConfetti({emojis: ['🌈', '⚡️', '💥', '✨', '💫', '🌸']});break;
+      case '54321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:300});break;
+      case '696969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:300});break;
+      default:
+        let size =30;
+        if (boost>1000){size=64};
+        if (boost>10000){size=128};
+        if (boost>1000000){size=256};
+        if (boost>10000000){size=512};
+        if (boost>100000000){size=1024};
+        jsConfetti.addConfetti({confettiNumber:size});
+    } 
+  return;
   }
   async function buildBoostObject(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
     if (debugEnabled) {
@@ -1357,18 +1398,19 @@ async function register({ registerHook, peertubeHelpers }) {
       if (debugEnabled) {
         console.log("⚡️ split math ",splitTotal, split.split,split);
       }
-      if (!split.split){
+      if (!Number.isInteger(split.split)){
         console.log("⚡️ no split value found ",split);
         missing++
+      } else {
+        splitTotal=splitTotal+split.split;
       }
-      splitTotal=splitTotal+split.split;
     }
-    if (splitTotal != 100){
+    if (Number.isInteger(splitTotal) && splitTotal != 100){
       console.log("⚡️Split math error!",splitTotal,splitData.data);
       if (missing==1){
         let fixSplit = 100-splitTotal;
         for (var split of splitData.data) {
-          if (!split.split){
+          if (!Number.isInteger(split.split)){
             split.split=fixSplit;
           }
         }
