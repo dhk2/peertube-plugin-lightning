@@ -1,3 +1,10 @@
+v 4.4.1
+- fixed some missing values in RSS feed
+- added season, episode, chapters, txt to episode level
+- modernized string handling in custom RSS feed.
+- fixed cross app comments
+- improved webhook handling
+
 v 4.4.0
 - implemented confetti for webln 
 

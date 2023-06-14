@@ -1,7 +1,10 @@
+//import JSConfetti from 'js-confetti'
 function register({ registerHook }) {
     registerHook({
         target: 'action:embed.player.loaded',
         handler: async ({ player, videojs, video }) => {
+           // const tsParticles = require("tsparticles-engine");
+           //Dconst JSConfetti = require('js-confetti');
             if (typeof window.webln !== 'undefined') {
                 console.log('WebLN is available!');
                 console.log(window.location.href);
@@ -145,6 +148,7 @@ function register({ registerHook }) {
                 let result;
                 try {
                     result = await webln.keysend(paymentInfo);
+                    doConfetti
                     return result;
                 } catch (err) {
                     console.log("error attempting to send sats using keysend", err.message);
@@ -176,6 +180,40 @@ function register({ registerHook }) {
                     return;
                 }
                 return walletData;
+            }
+            function doConfetti(boost){
+                /*
+    switch(boost){
+      case '69': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:10});break;
+      case '73': jsConfetti.addConfetti({emojis: ['👋']});break;
+      case '88': jsConfetti.addConfetti({emojis: ['🥰']});break;
+      case '314': jsConfetti.addConfetti({emojis: ['🥧']});break;
+      case '321': jsConfetti.addConfetti({emojis: ['💥']});break;
+      case '420': jsConfetti.addConfetti({emojis: ['✌','👽','💨']});break;
+      case '666': jsConfetti.addConfetti({emojis: ['😇']});break;
+      case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
+      case '1776': jsConfetti.addConfetti({emojis: ['🇺🇸']});break;
+      case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
+      case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
+      case '6006': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
+      case '8008': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
+      case '9653': jsConfetti.addConfetti({emojis: ['🐺']});break;
+      case '30057': jsConfetti.addConfetti({emojis: ['🔁']});break;
+      case '3005': jsConfetti.addConfetti({emojis: ['😇']});break;
+      case '6969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:50});break;
+      case '42069': jsConfetti.addConfetti({emojis: ['🌈', '⚡️', '💥', '✨', '💫', '🌸']});break;
+      case '54321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:300});break;
+      case '696969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:300});break;
+      default:
+        let size =30;
+        if (boost>1000){size=64};
+        if (boost>10000){size=128};
+        if (boost>1000000){size=256};
+        if (boost>10000000){size=512};
+        if (boost>100000000){size=1024};
+        jsConfetti.addConfetti({confettiNumber:size});
+    } 
+    */
             }
             async function sendSats(walletData, amount) {
                 let message = "zap";
@@ -210,6 +248,7 @@ function register({ registerHook }) {
                 }
                 try {
                     result = await window.webln.sendPayment(result.pr);
+                    doConfetti(totalBoost);
                 } catch (err) {
                   console.log("failed sending webln lnurl" + tipVerb + "\n" + err.message);
                 }

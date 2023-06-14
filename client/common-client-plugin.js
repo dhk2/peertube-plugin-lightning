@@ -4,7 +4,7 @@ import JSConfetti from 'js-confetti'
 //import tsParticles from 'tsParticles'
 //import QRCode from 'qrcode';
 //var qrcode = new QRCode("qrcode");
-async function register({ registerHook, peertubeHelpers }) {
+async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   const { notifier } = peertubeHelpers
   const basePath = await peertubeHelpers.getBaseRouterRoute();
   const jsConfetti = new JSConfetti()
@@ -22,6 +22,89 @@ async function register({ registerHook, peertubeHelpers }) {
   let panelHack;
   let podData;
   let hostPath;
+
+  const videoFormOptions = { tab: 'plugin-settings' };
+  let commonOptions = {
+    name: 'seasonnode',
+    label: 'Season number',
+    descriptionHTML: 'which season this episode belongs to',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+  commonOptions = {
+    name: 'seasonname',
+    label: 'Season descriptive name',
+    descriptionHTML: 'Display name of this season',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+  commonOptions = {
+    name: 'episodenode',
+    label: 'Episode number',
+    descriptionHTML: 'episode number in season',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+  commonOptions = {
+    name: 'episodename',
+    label: 'Episode descriptive name',
+    descriptionHTML: 'Display name of this episode',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+  commonOptions = {
+    name: 'chapters',
+    label: 'Chapter file',
+    descriptionHTML: 'URL for chapter file',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+  commonOptions = {
+    name: 'itemtxt',
+    label: 'arbitrary text',
+    descriptionHTML: 'arbitrary text string for item',
+    type: 'input',
+    default: ''
+  }
+  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  }
+
+
+
+  /*  const commonOptions = {
+    name: 'seasonNode',
+    label: 'Season number',
+    descriptionHTML: 'which season this episode belongs to',
+
+    // type: 'input' | 'input-checkbox' | 'input-password' | 'input-textarea' | 'markdown-text' | 'markdown-enhanced' | 'select' | 'html'
+    // /!\ 'input-checkbox' could send "false" and "true" strings instead of boolean
+    type: 'input',
+
+    default: '',
+    
+  }
+  const videoFormOptions = {
+    // Optional, to choose to put your setting in a specific tab in video form
+    // type: 'main' | 'plugin-settings'
+    tab: 'plugin-settings'
+  }
+*/
   await peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
@@ -739,7 +822,7 @@ async function register({ registerHook, peertubeHelpers }) {
           //let podData= {medium:podcast}
           let html;
           if (!feedID){
-            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent(window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) +`<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
+            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent("https://"+window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) +`"<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
           } else {
             html = "Podcast Index Feed ID: "+feedID;
             //html = html + `<br><button type="button" id="register-feed" name="register-feed" class="peertube-button orange-button ng-star-inserted">Register Feed to Podcast Index</button>`
@@ -1153,7 +1236,6 @@ async function register({ registerHook, peertubeHelpers }) {
       case '420': jsConfetti.addConfetti({emojis: ['✌','👽','💨']});break;
       case '666': jsConfetti.addConfetti({emojis: ['😇']});break;
       case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
-      case '1488': jsConfetti.addConfetti({emojis: ['卐']});break;
       case '1776': jsConfetti.addConfetti({emojis: ['🇺🇸']});break;
       case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
       case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
