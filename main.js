@@ -740,6 +740,8 @@ async function register({
           line =line+`\n${spacer}<podcast:guid>${podData.data.feedguid}</podcast:guid>`;
         }
       }
+      if (line.includes("<atom:link")){
+        line = `${spacer}<atom: link href="{ req.protocol }://${req.get('host')}${req.originalUrl}" rel="self" type="application/rss+xml" />`;
       var customData = {};
       if (line.includes('<guid')){
         let shortUuid=line.split(">")[1].split("<")[0].split("/")[4]
