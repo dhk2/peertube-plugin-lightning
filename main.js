@@ -2212,9 +2212,10 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", suid, req.query,req.body);
     }
-    
-    if (simpletipToken){
-      let tip = req.body.fiat_in_cents.toString();
+    let tip = req.body.fiat_in_cents.toString();
+    if (simpletipToken && tip >10000){
+      
+      
       let simpleTip = {
       "Source": simpletipToken,
       "SourceID": req.body.identifier,
@@ -2241,7 +2242,7 @@ async function register({
       if (req.body.boostagram.app_name != "PeerTube"){
         source = "using "+req.body.boostagram.app_name; 
       }
-      let postBody = `${req.body.boostagram.value_msat_total/1000} Sat ${tipVerb} from ${req.body.payer_name} ${source} \n${req.body.boostagram.message}`;
+      let postBody = `${req.body.boostagram.value_msat_total/1000} Sat ${tipVerb} from ${req.body.payer_name} ${source} \n${req.body. am.message}`;
       if (req.body.boostagram.episode_guid){
         let parts = req.body.boostagram.episode_guid.split("/");
         let videoUUID = parts[parts.length-1].split(";")[0];

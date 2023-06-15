@@ -632,8 +632,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
           if (tipButton) {
             tipButton.onclick = async function () {
-
+              oldValue=tipButton.textContent;
+              tipButton.textContent = "Boosting...";
               await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
+              tipButton.textContent= oldValue
             }
           }
         }
@@ -1238,6 +1240,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
       case '1776': jsConfetti.addConfetti({emojis: ['🇺🇸']});break;
       case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
+      case '2112': jsConfetti.addConfetti({ emojis: ['🖼️'] }); break;
       case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
       case '6006': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
       case '8008': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
