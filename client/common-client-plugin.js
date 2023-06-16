@@ -16,7 +16,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let convertRate = .0002;
   let userName = "PeerTuber";
   let walletAuthorized = false;
-  let accountName, channelName, videoName, instanceName,accountAddress,softwareVersion,client_id;
+  let accountName, channelName, videoName, instanceName, accountAddress, softwareVersion, client_id;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -31,8 +31,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
   commonOptions = {
     name: 'seasonname',
@@ -41,8 +41,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
   commonOptions = {
     name: 'episodenode',
@@ -51,8 +51,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
   commonOptions = {
     name: 'episodename',
@@ -61,8 +61,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
   commonOptions = {
     name: 'chapters',
@@ -71,8 +71,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
   commonOptions = {
     name: 'itemtxt',
@@ -81,8 +81,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     type: 'input',
     default: ''
   }
-  for (const type of [ 'upload', 'import-url', 'import-torrent', 'update', 'go-live' ]) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions  })
+  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
+    registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
 
 
@@ -115,9 +115,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       debugEnabled = s['debug-enable'];
       rssEnabled = s['rss-enable'];
       client_id = s['alby-client-id'];
-     // if (debugEnabled) {
-        console.log("⚡️settings", s);
-     // }
+      // if (debugEnabled) {
+      console.log("⚡️settings", s);
+      // }
     })
   try {
     let conversionData = await axios.get("https://api.coincap.io/v2/rates/bitcoin")
@@ -129,11 +129,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   }
   peertubeHelpers.getServerConfig()
     .then(config => {
-      if (debugEnabled){
-         console.log('⚡️Fetched server config.', config);
+      if (debugEnabled) {
+        console.log('⚡️Fetched server config.', config);
       }
       instanceName = config.instance.name;
-      
+
     })
   try {
     let versionResult = await axios.get(basePath + "/getversion");
@@ -146,36 +146,36 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
-      if (user ) {
-        if (debugEnabled){
-          console.log("⚡️user",user);
+      if (user) {
+        if (debugEnabled) {
+          console.log("⚡️user", user);
         }
-        userName=user.username
+        userName = user.username
         hostPath = user.account.host;
-        let accountWalletApi = basePath + "/walletinfo?account="+user.username;
-        if (debugEnabled){
-          console.log("⚡️wallet api call",accountWalletApi,user.username);
+        let accountWalletApi = basePath + "/walletinfo?account=" + user.username;
+        if (debugEnabled) {
+          console.log("⚡️wallet api call", accountWalletApi, user.username);
         }
         try {
           let accountWallet = await axios.get(accountWalletApi);
-          if (accountWallet){
-            accountAddress=accountWallet.data;
+          if (accountWallet) {
+            accountAddress = accountWallet.data;
             //console.log("⚡️account wallet info",accountAddress);
-            let authorizedWalletApi = basePath +"/checkauthorizedwallet";
+            let authorizedWalletApi = basePath + "/checkauthorizedwallet";
             //console.log("⚡️authorized wallet api:",authorizedWalletApi);
             let headers = { headers: await peertubeHelpers.getAuthHeader() }
             //console.log("⚡️headers",headers)
             let authorized = await axios.get(authorizedWalletApi, headers);
             //console.log("⚡️authorized result",authorized);
-            if (authorized.data){
-              
-              walletAuthorized=true;
+            if (authorized.data) {
+
+              walletAuthorized = true;
             }
           } else {
-            console.log("⚡️no wallet data found for",user.username);
+            console.log("⚡️no wallet data found for", user.username);
           }
         } catch (err) {
-          console.log("⚡️hard error getting wallet data",err);
+          console.log("⚡️no wallet data", err);
         }
       }
 
@@ -236,36 +236,36 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
-            if (debugEnabled){
+            if (debugEnabled) {
               console.log(zap);
             }
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(thread);
             //console.log(zapButton);
-            if (zapButton){
+            if (zapButton) {
               zapButton.onclick = async function () {
-              walletData = null;
-              this.innerText = "🗲";
-              if (comment.innerText) {
-                try {
-                  walletApi = basePath + "/walletinfo?account=" + comment.innerText
-                  walletData = await axios.get(walletApi);
-                } catch {
-                  console.log("⚡️error trying to get wallet info", walletApi);
+                walletData = null;
+                this.innerText = "🗲";
+                if (comment.innerText) {
+                  try {
+                    walletApi = basePath + "/walletinfo?account=" + comment.innerText
+                    walletData = await axios.get(walletApi);
+                  } catch {
+                    console.log("⚡️error trying to get wallet info", walletApi);
+                  }
                 }
-              }
-              if (walletData) {
-                wallet = walletData.data;
-                let weblnSupport = await checkWebLnSupport();
-                if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
-                  await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
-                } else if (wallet.lnurl && lnurlEnabled) {
-                  await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
+                if (walletData) {
+                  wallet = walletData.data;
+                  let weblnSupport = await checkWebLnSupport();
+                  if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
+                    await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, null, 69, this.target, accountAddress);
+                  } else if (wallet.lnurl && lnurlEnabled) {
+                    await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
+                  }
                 }
+                this.innerHTML = "⚡️";
               }
-              this.innerHTML = "⚡️";
             }
-          }
           } else {
             if (debugEnabled) {
               console.log("⚡️wallet doesn't support required address type", walletData.data.address);
@@ -283,7 +283,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
     handler: async () => {
-      if (debugEnabled){
+      if (debugEnabled) {
         console.log("⚡️thread action popped wtfbbq");
       }
       let comments = document.getElementsByClassName("comment-account-fid");
@@ -298,14 +298,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           console.log("⚡️no thread id", date);
           continue;
         }
-        if (debugEnabled){
+        if (debugEnabled) {
           console.log("⚡️whatup gee", com, comment.innerText, date.href);
         }
         let walletApi, walletData, wallet;
         if (comment.wallet) {
-          if (debugEnabled)
-          {
-            console.log("⚡️wallet already set for comment",comment.wallet);
+          if (debugEnabled) {
+            console.log("⚡️wallet already set for comment", comment.wallet);
           }
           continue;
         }
@@ -329,7 +328,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             zap.className = "action-button action-button-zap";
             zap.ariaPressed = "false";
             zap.title = "Zap sats to " + comment.innerText;
-            zap.id = thread +"-"+ com;
+            zap.id = thread + "-" + com;
             //console.log(thread,com,zap.id,thread+"-"+com,com.toString());
             zap.url = date.href;
             zap.comentid = thread;
@@ -337,41 +336,41 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             zap.style = "cursor:pointer";
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
-            if (debugEnabled){
+            if (debugEnabled) {
               console.log(zap);
             }
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(zap.id);
             //console.log("⚡️zapButton",zapButton);
-            if (zapButton){
-            zapButton.onclick = async function () {
-              walletData = null;
-              this.innerText = "🗲";
-              if (comment.innerText) {
-                try {
-                  walletApi = basePath + "/walletinfo?account=" + comment.innerText
-                  walletData = await axios.get(walletApi);
-                } catch {
-                  console.log("⚡️error trying to get wallet info", walletApi);
+            if (zapButton) {
+              zapButton.onclick = async function () {
+                walletData = null;
+                this.innerText = "🗲";
+                if (comment.innerText) {
+                  try {
+                    walletApi = basePath + "/walletinfo?account=" + comment.innerText
+                    walletData = await axios.get(walletApi);
+                  } catch {
+                    console.log("⚡️error trying to get wallet info", walletApi);
+                  }
                 }
+                if (walletData) {
+                  wallet = walletData.data;
+                  let weblnSupport = await checkWebLnSupport();
+                  let threadId = this.id.split("-")[0];
+                  let link = window.location.href + ";threadId=" + threadId;
+                  if (debugEnabled) {
+                    console.log("⚡️thread link", link, this.id);
+                  }
+                  if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
+                    await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target, accountAddress);
+                  } else if (wallet.lnurl && lnurlEnabled) {
+                    await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
+                  }
+                }
+                this.innerHTML = "⚡️";
               }
-              if (walletData) {
-                wallet = walletData.data;
-                let weblnSupport = await checkWebLnSupport();
-                let threadId = this.id.split("-")[0];
-                let link = window.location.href + ";threadId=" + threadId;
-                if (debugEnabled){
-                console.log("⚡️thread link",link, this.id);
-                }
-                if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
-                  await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, null, 69, this.target,accountAddress);
-                } else if (wallet.lnurl && lnurlEnabled) {
-                  await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
-                }
-              }
-              this.innerHTML = "⚡️";
             }
-          }
           } else {
             if (debugEnabled) {
               console.log("⚡️wallet doesn't support required address type", walletData.data.address);
@@ -388,7 +387,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'filter:api.video-watch.video-threads.list.result',
     handler: async (result, params) => {
-      if (debugEnabled){
+      if (debugEnabled) {
         console.log("⚡️thread filter hook", result, params)
       }
       //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`
@@ -407,11 +406,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         clearInterval(streamTimer);
       }
       let videoEl;
-      if (player.el()){
+      if (player.el()) {
         videoEl = player.el().getElementsByTagName('video')[0]
       } else {
         //weird error condition avoidance
-        videoEl - {time:0};
+        videoEl - { time: 0 };
       }
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
@@ -465,7 +464,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
 
       let splitData = await getSplit();
-      var streamButtonText,v4vButtonHTML;
+      var streamButtonText, v4vButtonHTML;
       if (!document.querySelector('.lightning-buttons-block')) {
         if (streamEnabled) {
           streamButtonText = "⚡️" + streamAmount + "/min";
@@ -485,13 +484,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             }
             if (delta > 60 && delta < 64) {
               lastStream = currentTime;
-              delta=0;
+              delta = 0;
               let weblnSupported;
-              weblnSupported =checkWebLnSupport();
-              if (debugEnabled){
-                console.log("⚡️webln support for streaming",weblnSupported,delta,lastStream,currentTime,lastStream-currentTime);
+              weblnSupported = checkWebLnSupport();
+              if (debugEnabled) {
+                console.log("⚡️webln support for streaming", weblnSupported, delta, lastStream, currentTime, lastStream - currentTime);
               }
-              if (weblnSupported<2){
+              if (weblnSupported < 2) {
                 await alertUnsupported();
                 streamEnabled = false;
                 let modalChecker = document.getElementById("modal-streamsats");
@@ -507,8 +506,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
               for (var wallet of splitData) {
                 var amount = streamAmount * (wallet.split / 100);
                 let result;
-                if ((wallet.keysend && keysendEnabled)|| walletAuthorized) {
-                  result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name,accountAddress);
+                if ((wallet.keysend && keysendEnabled) || walletAuthorized) {
+                  result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
                   //walletData = await refreshWalletInfo(walletData.address);
@@ -531,7 +530,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
       }
       if (v4vButtonHTML) {
-      //  console.log("⚡️--------------button hmtl",v4vButtonHTML)
+        //  console.log("⚡️--------------button hmtl",v4vButtonHTML)
         elem.innerHTML = v4vButtonHTML;
         addSpot4.appendChild(elem);
 
@@ -559,7 +558,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
           await setChatRoom(channelName, chatRoom);
         }
-        let chatLink = "https://kiwiirc.com/nextclient/#"+chatRoom+ '?nick=' + userName + '&autoconnect=true&startupscreen=welcome';
+        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName + '&autoconnect=true&startupscreen=welcome';
         //let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
         if (userName === 'PeerTuber') {
           chatLink = chatLink + "???";
@@ -580,11 +579,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         docIframe.style.flexDirection = "column";
         docIframe.style.resize = "both";
         docIframe.style.overflow = "auto";
-        docIframe.contentWindow.kiwiconfig =  () => {console.log("⚡️███kiwi config called ")}
-        let idoc=docIframe.contentWindow.document;
+        docIframe.contentWindow.kiwiconfig = () => { console.log("⚡️███kiwi config called ") }
+        let idoc = docIframe.contentWindow.document;
         let ibody = idoc.getElementsByTagName('body');
         let configScript = document.createElement(`div`);
-        configScript.innerHTML=`<script name="kiwiconfig">{"startupScreen": "welcome", "startupOptions": { "server": "irc.freenode.net", "port": 6697, "tls": true, "direct": false, "nick": "specialk" "autoConnect": true }}</script>`;
+        configScript.innerHTML = `<script name="kiwiconfig">{"startupScreen": "welcome", "startupOptions": { "server": "irc.freenode.net", "port": 6697, "tls": true, "direct": false, "nick": "specialk" "autoConnect": true }}</script>`;
         //console.log("⚡️before",ibody,configScript);
         ibody[0].appendChild(configScript)
         //console.log("⚡️after",ibody,configScript);
@@ -602,21 +601,21 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         transparentButton.ariaPressed = "false";
         transparentButton.title = "Send Sats to " + channelName;
         transparentButton.id = "boostagram"
-        let fiatButtons=document.createElement('span');
-        fiatButtons.innerHTML=buttonHTML;
+        let fiatButtons = document.createElement('span');
+        fiatButtons.innerHTML = buttonHTML;
         addSpot2.insertBefore(transparentButton, addSpot3);
         //let hackspot = document.getElementById("boostagram")
         addSpot2.insertBefore(fiatButtons, addSpot3);
-        buttonHTML=undefined;
+        buttonHTML = undefined;
       }
-      if (buttonHTML){
+      if (buttonHTML) {
         let addSpot2Find = document.getElementsByClassName("video-actions");
         let addSpot2 = addSpot2Find[0];
         let addSpot3Find = document.getElementsByClassName("action-button")
         let addSpot3 = addSpot3Find[2];
-        let fiatButtons=document.createElement('span');
-        fiatButtons.innerHTML=buttonHTML;
-        addSpot2.insertBefore(fiatButtons, addSpot3);  
+        let fiatButtons = document.createElement('span');
+        fiatButtons.innerHTML = buttonHTML;
+        addSpot2.insertBefore(fiatButtons, addSpot3);
       }
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
@@ -632,10 +631,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
           if (tipButton) {
             tipButton.onclick = async function () {
-              oldValue=tipButton.textContent;
+              oldValue = tipButton.textContent;
               tipButton.textContent = "Boosting...";
               await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
-              tipButton.textContent= oldValue
+              tipButton.textContent = oldValue
             }
           }
         }
@@ -759,15 +758,23 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
     }
   })
+  registerHook({
+    target: 'action:router.navigation-end',
+    handler: async ({ params }) => {
+      console.log('New URL! %s.', params);
+      console.log("what the hell bob");
+
+    }
+  })
 
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
       if (debugEnabled) {
-        console.log("⚡️channel update loaded",params);
+        console.log("⚡️channel update loaded", params);
       }
       // why?
-      videoName=undefined;
+      videoName = undefined;
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
       channelName = channel;
@@ -777,31 +784,31 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       let feedGuid = await getChannelGuid(channel);
       let feedTxt = ["txt"];
       podData = await getPodData(channel);
-      if (debugEnabled){
-        console.log("⚡️pod data",podData);
+      if (debugEnabled) {
+        console.log("⚡️pod data", podData);
       }
-      if (!podData){ 
-        podData={
+      if (!podData) {
+        podData = {
           "feedid": feedID,
           "feedguid": feedGuid,
           "medium": "podcast",
-          "channel": channel 
+          "channel": channel
         }
         podData.text = feedTxt;
       }
-      if (!podData.text){
+      if (!podData.text) {
         podData.text = feedTxt;
       }
-      let newPodData=podData
+      let newPodData = podData
       let panel = await getConfigPanel(splitData, channel);
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
       let id = document.getElementById("id");
-      if (id){
+      if (id) {
         id.value = feedID;
         let updateButton = document.getElementById("update-feed");
-        if (updateButton){
-        updateButton.onclick = async function () {
+        if (updateButton) {
+          updateButton.onclick = async function () {
             setFeedID(channel, id.value);
             updateButton.innerText = "Saved!";
           }
@@ -818,78 +825,80 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       //console.log("⚡️checking for rss settings button");
       let rssSettingsButton = document.getElementById("rss-settings");
       let changeMonitor;
-      if (rssSettingsButton){
+      if (rssSettingsButton) {
         rssSettingsButton.onclick = async function () {
           //console.log("⚡️rss settings button clicked");
           //let podData= {medium:podcast}
           let html;
-          if (!feedID){
-            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent("https://"+window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) +`"<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
+          if (!feedID) {
+            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent("https://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) + `"<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
           } else {
-            html = "Podcast Index Feed ID: "+feedID;
+            html = "Podcast Index Feed ID: " + feedID;
             //html = html + `<br><button type="button" id="register-feed" name="register-feed" class="peertube-button orange-button ng-star-inserted">Register Feed to Podcast Index</button>`
           }
           html = html + `<br>Podcast Guid: `;
           html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="channel-guid" width="40" value="` + feedGuid + `">`
-         // html = html + `<button id="update-guid" class="peertube-button orange-button ng-star-inserted">Save</button>`
+          // html = html + `<button id="update-guid" class="peertube-button orange-button ng-star-inserted">Save</button>`
           html = html + `<br>Podcast Medium <select id="feed-medium"><option value="podcast">podcast </option><option value="music">music </option><option value="video">video </option><option value="film">film </option><option value="audiobook">audiobook </option></select>`
 
           for (var i = 0; i < podData.text.length; i++) {
-            html = html + `<br>Podcast txt value `+ i +`: `;
-            html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="feed-txt-`+i+`" width="40" value="` + podData.text[i] + `">`
+            html = html + `<br>Podcast txt value ` + i + `: `;
+            html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="feed-txt-` + i + `" width="40" value="` + podData.text[i] + `">`
           }
           html = html + `<br><button id="rss-link" class="peertube-button orange-button ng-star-inserted">RSS Feed</button>`
           let rssEditSettings = await peertubeHelpers.showModal({
             title: 'RSS settings ' + channel,
             content: "",
             close: true,
-            confirm: { value: 'save', action: async () => {
-              clearInterval(changeMonitor);
-              try {
-                await axios.post(basePath+"/setpoddata",newPodData,{ headers: await peertubeHelpers.getAuthHeader() });
-              } catch (err) {
-                console.log("⚡️ hard error attempting to update pod data",newPodData,)
+            confirm: {
+              value: 'save', action: async () => {
+                clearInterval(changeMonitor);
+                try {
+                  await axios.post(basePath + "/setpoddata", newPodData, { headers: await peertubeHelpers.getAuthHeader() });
+                } catch (err) {
+                  console.log("⚡️ hard error attempting to update pod data", newPodData,)
+                }
               }
-            } },
-          
+            },
+
           });
           let modal = (document.getElementsByClassName('modal-body'))
-          if (modal){
+          if (modal) {
             modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-            modal[0].innerHTML =html;
-            switch(podData.medium){
-              case "podcast" : document.getElementById("feed-medium").selectedIndex = 0;break;
-              case "music" : document.getElementById("feed-medium").selectedIndex = 1;break;
-              case "film" : document.getElementById("feed-medium").selectedIndex = 2;break;
-              case "video" : document.getElementById("feed-medium").selectedIndex = 3;break;
-              case "audiobook" : document.getElementById("feed-medium").selectedIndex = 4;break;
-              default : console.log("⚡️unable to find a match for podData.medium");
+            modal[0].innerHTML = html;
+            switch (podData.medium) {
+              case "podcast": document.getElementById("feed-medium").selectedIndex = 0; break;
+              case "music": document.getElementById("feed-medium").selectedIndex = 1; break;
+              case "film": document.getElementById("feed-medium").selectedIndex = 2; break;
+              case "video": document.getElementById("feed-medium").selectedIndex = 3; break;
+              case "audiobook": document.getElementById("feed-medium").selectedIndex = 4; break;
+              default: console.log("⚡️unable to find a match for podData.medium");
             }
           }
 
           let rssLinkButton = document.getElementById('rss-link');
-          if (rssLinkButton){
+          if (rssLinkButton) {
             rssLinkButton.onclick = async function () {
               let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
               window.open(rssFeedUrl);
             }
           }
-          
-          changeMonitor= setInterval(async function () {
-              try {  
+
+          changeMonitor = setInterval(async function () {
+            try {
               newPodData.feedguid = document.getElementById("channel-guid").value;
               newPodData.medium = document.getElementById("feed-medium").value;
               for (var i = 0; i < feedTxt.length; i++) {
-                podData.text[i]= document.getElementById("feed-txt-"+i).value;                
+                podData.text[i] = document.getElementById("feed-txt-" + i).value;
               }
             } catch {
               clearInterval(changeMonitor);
             }
-          },500);
+          }, 500);
           let registerFeedButton = document.getElementById('register-feed');
-          if (registerFeedButton){
+          if (registerFeedButton) {
             registerFeedButton.onclick = async function () {
-              let registerFeedUrl = "https://podcastindex.org/add?feed="+feedID;
+              let registerFeedUrl = "https://podcastindex.org/add?feed=" + feedID;
               window.open(registerFeedUrl);
             }
           }
@@ -915,7 +924,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           document.getElementById("add-split-final").onclick = async function () {
             let newAddress = document.getElementById("modal-split-address").value;
             let newName = encodeURI(document.getElementById("modal-split-name").value);
-            let createApi = basePath + `/createsplit?channel=` + channel + `&splitaddress=` + newAddress+ `&name=` + newName;
+            let createApi = basePath + `/createsplit?channel=` + channel + `&splitaddress=` + newAddress + `&name=` + newName;
             let createResult;
             try {
               createResult = await axios.get(createApi);
@@ -953,12 +962,38 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'action:embed.player.loaded',
     handler: async ({ player, videojs, video }) => {
-      console.log("⚡️embedded within the wall",player,videojs,video);
+      console.log("⚡️embedded within the wall", player, videojs, video);
       let x = document.getElementsByClassName("vjs-control-bar");
-      console.log("⚡️menu",x.length);
+      console.log("⚡️menu", x.length);
     }
   })
+  registerHook({
+    target: 'filter:left-menu.links.create.result',
+    handler: (result, params) => {
+      console.log("starting left menu creator blcok", params, result);
+      return [
+        {
+          key: 'in-my-stuff',
+          title: 'In my stuff',
+          links: [
+            {
+              path: '/about',
+              icon: 'alert',
+              shortLabel: 'About',
+              label: 'About'
+            },
 
+            {
+              path: peertubeHelpers.getBasePluginClientPath() + '/my-super/route',
+              icon: '',
+              shortLabel: 'super route',
+              label: 'Super route'
+            }
+          ]
+        }
+      ].concat(result)
+    }
+  })
 
   async function sendSats(walletData, amount, message, from) {
     if (debugEnabled) {
@@ -1003,7 +1038,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     let invoice = result.data.pr;
     try {
-      if (supported>0) {
+      if (supported > 0) {
         result = await window.webln.sendPayment(invoice);
         var tipfixed = amount / 1000
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
@@ -1018,14 +1053,14 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress) {
     if (debugEnabled) {
       console.log("⚡️boost called", walletAuthorized, walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
     if (!keysendEnabled) {
       return;
     }
-    if (!walletAuthorized){
+    if (!walletAuthorized) {
       try {
         let supported = await checkWebLnSupport();
         if (debugEnabled) {
@@ -1043,8 +1078,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     let remoteHost, remoteUser, localHost;
     amount = Math.floor(amount)
-    if (parseInt(amount) < 3) {return}
-    
+    if (parseInt(amount) < 3) { return }
+
     if (!from) {
       from = "Anon";
     }
@@ -1061,7 +1096,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         remoteHost = parts[1];
       }
     }
-    if (!walletData || !walletData.pubkey){
+    if (!walletData || !walletData.pubkey) {
       notifier.error("Target wallet doesn't have a keysend address, bug errhead to put in legacy support for luddites");
       return;
     }
@@ -1107,7 +1142,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     if (currentTime) {
       boost.ts = parseInt(currentTime.toFixed());
     } else {
-      console.log("⚡️no current time value for boost",boost);
+      console.log("⚡️no current time value for boost", boost);
     }
     if (channelName) {
       boost.podcast = channelName;
@@ -1144,7 +1179,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
 
     }
-    if (episodeGuid){
+    if (episodeGuid) {
       let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
       try {
         let itemId = await axios.get(itemApi);
@@ -1152,10 +1187,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           boost.itemID = itemId.data;
         }
       } catch (err) {
-        console.log("⚡️error getting itemid",itemApi,err);
+        console.log("⚡️error getting itemid", itemApi, err);
       }
     }
-    if (channelName){
+    if (channelName) {
       let feedApi = basePath + "/getfeedid?channel=" + channelName;
       try {
         let feedId = await axios.get(feedApi);
@@ -1163,19 +1198,19 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           boost.feedID = feedId.data;
         }
       } catch (err) {
-        console.log("⚡️error getting feed id error",feedApi,err);
+        console.log("⚡️error getting feed id error", feedApi, err);
       }
       boost.guid = await getChannelGuid(channelName);
-      console.log("⚡️boost guid", boost.guid,typeof(boost.guid));
+      console.log("⚡️boost guid", boost.guid, typeof (boost.guid));
     }
-    if (replyAddress){
-      if (replyAddress.address){
-        replyAddress=replyAddress.address
+    if (replyAddress) {
+      if (replyAddress.address) {
+        replyAddress = replyAddress.address
       }
-      boost.reply_address=replyAddress;
+      boost.reply_address = replyAddress;
     }
-    if (debugEnabled){
-      console.log("⚡️**boost**",boost)
+    if (debugEnabled) {
+      console.log("⚡️**boost**", boost)
     }
     let paymentInfo;
     if (customValue) {
@@ -1201,11 +1236,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     let result;
     let albyBoostResult;
-    if (walletAuthorized){
+    if (walletAuthorized) {
       try {
-        let sendBoostApi=basePath+"/sendalbypayment"
+        let sendBoostApi = basePath + "/sendalbypayment"
         //console.log("⚡️send boost api",sendBoostApi)
-        albyBoostResult = await axios.post(sendBoostApi,paymentInfo,{ headers: await peertubeHelpers.getAuthHeader() });
+        albyBoostResult = await axios.post(sendBoostApi, paymentInfo, { headers: await peertubeHelpers.getAuthHeader() });
         //console.log("⚡️alby boost result",albyBoostResult);
         var tipfixed = amount
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
@@ -1228,47 +1263,47 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return;
     }
   }
-  function doConfetti(boost){
-    switch(boost){
-      case '69': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:10});break;
-      case '73': jsConfetti.addConfetti({emojis: ['👋']});break;
-      case '88': jsConfetti.addConfetti({emojis: ['🥰']});break;
-      case '314': jsConfetti.addConfetti({emojis: ['🥧']});break;
-      case '321': jsConfetti.addConfetti({emojis: ['💥']});break;
-      case '420': jsConfetti.addConfetti({emojis: ['✌','👽','💨']});break;
-      case '666': jsConfetti.addConfetti({emojis: ['😇']});break;
-      case '777': jsConfetti.addConfetti({emojis: ['😈']});break;
-      case '1776': jsConfetti.addConfetti({emojis: ['🇺🇸']});break;
-      case '1867': jsConfetti.addConfetti({emojis: ['ca']});break;
+  function doConfetti(boost) {
+    switch (boost) {
+      case '69': jsConfetti.addConfetti({ emojis: ['💋'], confettiNumber: 10 }); break;
+      case '73': jsConfetti.addConfetti({ emojis: ['👋'] }); break;
+      case '88': jsConfetti.addConfetti({ emojis: ['🥰'] }); break;
+      case '314': jsConfetti.addConfetti({ emojis: ['🥧'] }); break;
+      case '321': jsConfetti.addConfetti({ emojis: ['💥'] }); break;
+      case '420': jsConfetti.addConfetti({ emojis: ['✌', '👽', '💨'] }); break;
+      case '666': jsConfetti.addConfetti({ emojis: ['😇'] }); break;
+      case '777': jsConfetti.addConfetti({ emojis: ['😈'] }); break;
+      case '1776': jsConfetti.addConfetti({ emojis: ['🇺🇸'] }); break;
+      case '1867': jsConfetti.addConfetti({ emojis: ['ca'] }); break;
       case '2112': jsConfetti.addConfetti({ emojis: ['🖼️'] }); break;
-      case '4321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:50});break;
-      case '6006': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
-      case '8008': jsConfetti.addConfetti({emojis: ['🎱🎱']});break;
-      case '9653': jsConfetti.addConfetti({emojis: ['🐺']});break;
-      case '30057': jsConfetti.addConfetti({emojis: ['🔁']});break;
-      case '3005': jsConfetti.addConfetti({emojis: ['😇']});break;
-      case '6969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:50});break;
-      case '42069': jsConfetti.addConfetti({emojis: ['🌈', '⚡️', '💥', '✨', '💫', '🌸']});break;
-      case '54321': jsConfetti.addConfetti({emojis: ['💥'],confettiNumber:300});break;
-      case '696969': jsConfetti.addConfetti({emojis: ['💋'],confettiNumber:300});break;
+      case '4321': jsConfetti.addConfetti({ emojis: ['💥'], confettiNumber: 50 }); break;
+      case '6006': jsConfetti.addConfetti({ emojis: ['🎱🎱'] }); break;
+      case '8008': jsConfetti.addConfetti({ emojis: ['🎱🎱'] }); break;
+      case '9653': jsConfetti.addConfetti({ emojis: ['🐺'] }); break;
+      case '30057': jsConfetti.addConfetti({ emojis: ['🔁'] }); break;
+      case '3005': jsConfetti.addConfetti({ emojis: ['😇'] }); break;
+      case '6969': jsConfetti.addConfetti({ emojis: ['💋'], confettiNumber: 50 }); break;
+      case '42069': jsConfetti.addConfetti({ emojis: ['🌈', '⚡️', '💥', '✨', '💫', '🌸'] }); break;
+      case '54321': jsConfetti.addConfetti({ emojis: ['💥'], confettiNumber: 300 }); break;
+      case '696969': jsConfetti.addConfetti({ emojis: ['💋'], confettiNumber: 300 }); break;
       default:
-        let size =30;
-        if (boost>1000){size=64};
-        if (boost>10000){size=128};
-        if (boost>1000000){size=256};
-        if (boost>10000000){size=512};
-        if (boost>100000000){size=1024};
-        jsConfetti.addConfetti({confettiNumber:size});
-    } 
-  return;
+        let size = 30;
+        if (boost > 1000) { size = 64 };
+        if (boost > 10000) { size = 128 };
+        if (boost > 1000000) { size = 256 };
+        if (boost > 10000000) { size = 512 };
+        if (boost > 100000000) { size = 1024 };
+        jsConfetti.addConfetti({ confettiNumber: size });
+    }
+    return;
   }
-  async function buildBoostObject(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName,replyAddress) {
+  async function buildBoostObject(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress) {
     if (debugEnabled) {
       console.log("⚡️boost called", walletData, amount, message, from, channel, episode, type, episodeGuid, channelName, itemID)
     }
     let remoteHost, remoteUser, localHost;
-    if (parseInt(amount) < 5) {return}
-    if (!type) {type = "boost"}
+    if (parseInt(amount) < 5) { return }
+    if (!type) { type = "boost" }
     if (channelName) {
       let parts = channelName.split("@");
       remoteUser = parts[0];
@@ -1283,9 +1318,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       customKeyHack = walletData.customData[0].customKey;
       customValue = walletData.customData[0].customValue;
     }
-    if (!splitName) {splitName = channel}
-    if (!boostTotal) {boostTotal = amount}
-    let version =softwareVersion;
+    if (!splitName) { splitName = channel }
+    if (!boostTotal) { boostTotal = amount }
+    let version = softwareVersion;
     var boost = {
       action: type,
       value_msat: amount * 1000,
@@ -1294,12 +1329,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       app_version: version,
       name: splitName,
     };
-// deprecated if (type == "stream") {boost.seconds_back = 60}
-    if (from) {boost.sender_name = from}
-    if (message) {boost.message = message}
-    if (currentTime) {boost.ts = parseInt(currentTime.toFixed())}
-    if (channelName) {boost.podcast = channelName}
-    if (episode) {boost.episode = episode}
+    // deprecated if (type == "stream") {boost.seconds_back = 60}
+    if (from) { boost.sender_name = from }
+    if (message) { boost.message = message }
+    if (currentTime) { boost.ts = parseInt(currentTime.toFixed()) }
+    if (channelName) { boost.podcast = channelName }
+    if (episode) { boost.episode = episode }
     if (window.location.href) {
       boost.episode_guid = window.location.href;
       let parts = boost.episode_guid.split('/');
@@ -1310,7 +1345,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
     }
     boost.boost_link = window.location.href;
-    if (currentTime) {boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed()}
+    if (currentTime) { boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed() }
     if (channelName) {
       if (remoteHost) {
         boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
@@ -1319,7 +1354,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
 
     }
-    if (episodeGuid){
+    if (episodeGuid) {
       let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
       try {
         let itemId = await axios.get(itemApi);
@@ -1327,10 +1362,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           boost.itemID = itemId.data;
         }
       } catch (err) {
-        console.log("⚡️error getting itemid",itemApi,err);
+        console.log("⚡️error getting itemid", itemApi, err);
       }
     }
-    if (channelName){
+    if (channelName) {
       let feedApi = basePath + "/getfeedid?channel=" + channelName;
       try {
         let feedId = await axios.get(feedApi);
@@ -1338,11 +1373,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           boost.feedID = feedId.data;
         }
       } catch (err) {
-        console.log("⚡️error getting feed id error",feedApi,err);
+        console.log("⚡️error getting feed id error", feedApi, err);
       }
       let tempfix = getChannelGuid(channelName);
     }
-    if (replyAddress){boost.reply_address=replyAddress.address}
+    if (replyAddress) { boost.reply_address = replyAddress.address }
     let paymentInfo;
     if (customValue) {
       paymentInfo = {
@@ -1478,32 +1513,32 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return;
     }
     var splitTotal = 0;
-    let missing=0;
+    let missing = 0;
     for (var split of splitData.data) {
       if (debugEnabled) {
-        console.log("⚡️ split math ",splitTotal, split.split,split);
+        console.log("⚡️ split math ", splitTotal, split.split, split);
       }
-      if (!Number.isInteger(split.split)){
-        console.log("⚡️ no split value found ",split);
+      if (!Number.isInteger(split.split)) {
+        console.log("⚡️ no split value found ", split);
         missing++
       } else {
-        splitTotal=splitTotal+split.split;
+        splitTotal = splitTotal + split.split;
       }
     }
-    if (Number.isInteger(splitTotal) && splitTotal != 100){
-      console.log("⚡️Split math error!",splitTotal,splitData.data);
-      if (missing==1){
-        let fixSplit = 100-splitTotal;
+    if (Number.isInteger(splitTotal) && splitTotal != 100) {
+      console.log("⚡️Split math error!", splitTotal, splitData.data);
+      if (missing == 1) {
+        let fixSplit = 100 - splitTotal;
         for (var split of splitData.data) {
-          if (!Number.isInteger(split.split)){
-            split.split=fixSplit;
+          if (!Number.isInteger(split.split)) {
+            split.split = fixSplit;
           }
         }
       }
 
     }
-    if (debugEnabled){
-      console.log("⚡️final split",splitData.data);
+    if (debugEnabled) {
+      console.log("⚡️final split", splitData.data);
     }
     return splitData.data;
   }
@@ -1581,7 +1616,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       html = html + `<button type="button" id="create-split" class="peertube-button orange-button ng-star-inserted">Add Lightning Address</button>`
 
     }
-    if (rssEnabled){
+    if (rssEnabled) {
       html = html + "<hr>"
       html = html + `<button type="button" id="rss-settings" name="ress-settings" class="peertube-button orange-button ng-star-inserted">Podcasting 2.0 RSS settings</button>`;
     }
@@ -1609,10 +1644,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
     let weblnSupport;
-     if (!walletAuthorized){
+    if (!walletAuthorized) {
       weblnSupport = await checkWebLnSupport();
     } else {
-      weblnSupport =69
+      weblnSupport = 69
     }
     lastTip = amount;
     //notifier.success(weblnSupport);
@@ -1751,24 +1786,24 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
   }
   async function checkWebLnSupport() {
-    if (walletAuthorized){
+    if (walletAuthorized) {
       return 69;
     }
     try {
       await webln.enable()
       if (typeof webln.keysend === 'function') {
-        if (debugEnabled){
+        if (debugEnabled) {
           console.log('⚡️✅ webln keysend support');
         }
         return 2;
       } else {
-        if (debugEnabled){
+        if (debugEnabled) {
           console.log("⚡️✅ webln supported ⛔️ keysend not supported");
         }
         return 1;
       }
     } catch {
-      if (debugEnabled){
+      if (debugEnabled) {
         console.log("⚡️⛔️ webln not supported");
       }
       return 0;
@@ -1783,11 +1818,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, <a href="http://signup.hive.io/" target="_blank" rel="noopener noreferrer">Hive</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-address" name="modal-address" value="`+ accountAddress + `" size="42">
     <button id = "modal-address-update" class="peertube-button orange-button ng-star-inserted">Update</button>`;
-    if (peertubeHelpers.isLoggedIn() && client_id){
+    if (peertubeHelpers.isLoggedIn() && client_id) {
       html = html + `<br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
       <button id = "modal-address-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>`;
     }
-    html=html +`<hr>
+    html = html + `<hr>
     <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="modal-streamsats" name="modal-streamsats" value="streamsats">
     <label>Stream Sats per minute:</label>
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-streamamount" name="modal-streamamount" value="`+ streamAmount + `" size="6">
@@ -1805,7 +1840,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     let userAddress = document.getElementById('modal-address');
     let modalAddressAuthorize = document.getElementById("modal-address-authorize");
     if (modalAddressAuthorize) {
-      let authorizedWalletApi = basePath +"/checkauthorizedwallet";
+      let authorizedWalletApi = basePath + "/checkauthorizedwallet";
       //console.log("⚡️authorized wallet api:",authorizedWalletApi);
       let headers = { headers: await peertubeHelpers.getAuthHeader() }
       //console.log("⚡️headers",headers)
@@ -1818,25 +1853,25 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         walletAuthorized = false;
       }
       //console.log("⚡️authorized result",authorized);
-      let newUserAddress =userAddress.value;
+      let newUserAddress = userAddress.value;
       //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
-      modalAddressAuthorize.style.visible=false;
-      if (client_id  && peertubeHelpers.isLoggedIn()){
-        modalAddressAuthorize.style.visible=true;
-        if (!walletAuthorized && newUserAddress.indexOf('getalby.com')>1){
-          modalAddressAuthorize.textContent="Authorize "+newUserAddress+""
+      modalAddressAuthorize.style.visible = false;
+      if (client_id && peertubeHelpers.isLoggedIn()) {
+        modalAddressAuthorize.style.visible = true;
+        if (!walletAuthorized && newUserAddress.indexOf('getalby.com') > 1) {
+          modalAddressAuthorize.textContent = "Authorize " + newUserAddress + ""
         } else {
           modalAddressAuthorize.textContent = "De-Authorize";
-        } 
-        modalAddressAuthorize.onclick = async function (){
-          if (debugEnabled){
-            console.log("⚡️authorize button clicked",walletAuthorized);
+        }
+        modalAddressAuthorize.onclick = async function () {
+          if (debugEnabled) {
+            console.log("⚡️authorize button clicked", walletAuthorized);
           }
-          if (walletAuthorized){
+          if (walletAuthorized) {
             try {
-              await axios.get(basePath + "/setauthorizedwallet?clear=true",{ headers: await peertubeHelpers.getAuthHeader() });
+              await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
               notifier.success("De-Authorized getalby wallet");
-              walletAuthorized=false;
+              walletAuthorized = false;
             } catch {
               notifier.error("error trying to deauthorize wallet")
             }
@@ -1844,49 +1879,49 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             return;
           }
           let authorizeReturned;
-          let authorizationUrl = basePath + "/setauthorizedwallet?address="+userAddress.value     
+          let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value
           let headers = { headers: await peertubeHelpers.getAuthHeader() }
-          if (debugEnabled){
-            console.log("attempting to authorize",authorizationUrl, headers);
+          if (debugEnabled) {
+            console.log("attempting to authorize", authorizationUrl, headers);
           }
           try {
-            authorizeReturned = await axios.get(authorizationUrl,headers);
-          } catch (err){
+            authorizeReturned = await axios.get(authorizationUrl, headers);
+          } catch (err) {
             notifier.error("error trying to inform peertube of incoming authorization");
-            console.log("error with authorization",err,authorizationUrl,headers);
-          }  
-          let parts = basePath.split("/");
-          let callbackPath = "https://"+hostPath+"/"+parts[1]+"/"+parts[2]+"/"+parts[4]+"/callback";
-
-          let albyUrl = `https://getalby.com/oauth?client_id=`+client_id+`&response_type=code&redirect_uri=`+callbackPath+`&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=`+userName;
-          if (debugEnabled){
-            console.log("callback",callbackPath,"\n alby url",albyUrl);
+            console.log("error with authorization", err, authorizationUrl, headers);
           }
-          window.open(albyUrl, 'popup', 'width=600,height=800');  
+          let parts = basePath.split("/");
+          let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
+
+          let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=` + userName;
+          if (debugEnabled) {
+            console.log("callback", callbackPath, "\n alby url", albyUrl);
+          }
+          window.open(albyUrl, 'popup', 'width=600,height=800');
           closeModal();
         }
       }
     } else {
       console.log("⚡️no authorize button");
     }
-    if (modalAddressUpdate){
+    if (modalAddressUpdate) {
       modalAddressUpdate.onclick = async function () {
-        let setWalletApi = basePath + "/setwallet?address="+userAddress.value;    
+        let setWalletApi = basePath + "/setwallet?address=" + userAddress.value;
         //console.log("⚡️api call to update user lightningAddress",setWalletApi);
-        modalAddressUpdate.value="updating";
+        modalAddressUpdate.value = "updating";
         try {
-          let userData =await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
-          if (userData && userData.data){
+          let userData = await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
+          if (userData && userData.data) {
             //console.log("⚡️user lightning address",userData.data);
-            userAddress.value=userData.data;
-            accountAddress=userData.data;
-            notifier.success("updated "+userName+"'s lighting address to "+accountAddress);
+            userAddress.value = userData.data;
+            accountAddress = userData.data;
+            notifier.success("updated " + userName + "'s lighting address to " + accountAddress);
           } else {
             console.log("⚡️didn't get good user address");
-            notifier.error("failed to udate "+userName+"'s lighting address to "+userAddress.value);
+            notifier.error("failed to udate " + userName + "'s lighting address to " + userAddress.value);
           }
-        } catch (err){
-          console.log("⚡️error attempting to update user wallet",setWalletApi,err);
+        } catch (err) {
+          console.log("⚡️error attempting to update user wallet", setWalletApi, err);
         }
         closeModal();
       }
@@ -2155,10 +2190,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     if (newAddress.length == 66) {
       let node = newAddress;
       newAddress = "custom"
-      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress + '&name=' + newName;
       addApi = addApi + `&customkeysend=true&node=` + node + ``
     } else if (newAddress.indexOf("@") > 1) {
-      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress+'&name='+newName;;
+      addApi = `/addsplit?channel=` + channel + `&split=` + newSplit + `&splitaddress=` + newAddress + '&name=' + newName;;
     } else {
       console.log("⚡️unable to add malformed split address", newAddress);
       notifier.error("Lightning address is neither an address or a valid server pubkey");
@@ -2209,17 +2244,17 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     } else {
       html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
     }
-    let customKey,customValue,status,pubKey;
+    let customKey, customValue, status, pubKey;
     html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
     html = html + `<label for="manualkeysend"> Custom Keysend Configuration</label><br>`;
     if (splitData[slot].keysend) {
       status = splitData[slot].keysend.status;
       pubKey = splitData[slot].keysend.pubkey;
-      if (splitData[slot].keysend.customData){
+      if (splitData[slot].keysend.customData) {
         customKey = splitData[slot].keysend.customData[0].customKey;
         customValue = splitData[slot].keysend.customData[0].customValue;
       }
-    } 
+    }
     if (!customKey) {
       customKey = "";
     }
@@ -2245,35 +2280,35 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     return html;
   }
-  async function getChannelGuid(channel){
-      let guid;
-      let guidApi = basePath + "/getchannelguid?channel=" + channel;
-      try {
-        guid = await axios.get(guidApi);
-        if (guid) {
-          if (debugEnabled) {
-            console.log("⚡️guid from guid api",guid)
-          }
-          return guid.data;
+  async function getChannelGuid(channel) {
+    let guid;
+    let guidApi = basePath + "/getchannelguid?channel=" + channel;
+    try {
+      guid = await axios.get(guidApi);
+      if (guid) {
+        if (debugEnabled) {
+          console.log("⚡️guid from guid api", guid)
         }
-      } catch (err) {
-        console.log("⚡️error getting channel guid",guidApi,err)
+        return guid.data;
       }
-      return;
+    } catch (err) {
+      console.log("⚡️error getting channel guid", guidApi, err)
+    }
+    return;
   }
-  async function getPodData(channel){
+  async function getPodData(channel) {
     let freshPodData;
     let podApi = basePath + "/getpoddata?channel=" + channel;
-      try {
-        freshPodData = await axios.get(podApi);
-        if (freshPodData) {
-          return freshPodData.data;
-        }
-      } catch (err) {
-        console.log("⚡️error getting pod Data",podApi,err)
+    try {
+      freshPodData = await axios.get(podApi);
+      if (freshPodData) {
+        return freshPodData.data;
       }
+    } catch (err) {
+      console.log("⚡️error getting pod Data", podApi, err)
+    }
 
-      return;
+    return;
   }
 }
 export {
