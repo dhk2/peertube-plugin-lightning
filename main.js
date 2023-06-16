@@ -2669,14 +2669,25 @@ async function register({
     authDisplayName: () => 'Telegram Authentication',
     getWeight: () => 60,
     onAuthRequest: async (req, res) => {
-      
+      let callbackUrl = base + "/plugins/lightning/router/callback";
+      var formFull = new URLSearchParams();
+      //formFull = new FormData();
+      formFull.append('code', req.query.code);
+      formFull.append('grant_type', 'authorization_code');
+      formFull.append('redirect_uri', callbackUrl);
+      formFull.append('client_id', client_id);
+      formFull.append('client_secret', client_secret);
+
+      let url = "https://api.getalby.com/oauth/token";
+      let response;
+      try {
+        response = await axios.post(url, formFull, { auth: { username: client_id, password: client_secret } });
+      } catch (err) {
+        console.log("\n⚡️⚡️⚡️⚡️axios failed to post to alby", err, url, formFull)
+      }
       var redirectURL = instance + '/plugins/lightning/router/callback';
-      var telegramWidget = "<html><body><script async src=\"https://telegram.org/js/telegram-widget.js?19\" data-telegram-login=\"" + botName + "\" data-size=\"large\" data-auth-url=\"" + redirectURL + "\" data-request-access=\"write\"></script></body></html>"
-      console.log("\n\n\n widget script", telegramWidget);
-      console.log("redirect", redirectURL);
-      console.log("bot key", botKey);
-      console.log("bot name", botName, "\n\n");
-      return res.redirectURL(albyAuth)
+      var albyAuthUrl = "<html><body><script async src=\"https://telegram.org/js/telegram-widget.js?19\" data-telegram-login=\"" + botName + "\" data-size=\"large\" data-auth-url=\"" + redirectURL + "\" data-request-access=\"write\"></script></body></html>"
+      return res.redirectURL(albyAuthUrl)
       //return res.status(200).send(telegramWidget);
     },
   });
