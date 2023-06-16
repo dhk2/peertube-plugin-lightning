@@ -815,8 +815,8 @@ async function register({
       res.status(200).send(fixed);
       //console.log(rssResult.data);
       return;
-
-    })
+    }
+  })
   router.use('/dirtyhack', async (req, res) => {
     //console.log("dirty hack",req.body)
     return res.status(200).send(dirtyHack);
@@ -2665,7 +2665,7 @@ async function register({
     return formData;
   }
   const result = registerExternalAuth({
-    authName: 'telebot',
+    authName: 'getalby',
     authDisplayName: () => 'Telegram Authentication',
     getWeight: () => 60,
     onAuthRequest: async (req, res) => {
