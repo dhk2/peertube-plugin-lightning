@@ -561,6 +561,7 @@ async function register({
       if (storedWallet) {
         if (enableDebug) {
           console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
+          return res.status(200).send(storedWallet);
         }
         if (storedWallet.status === 404) {
           console.log("⚡️⚡️404 not found error, cache dates", storedWallet.cache, Date.now() - storedWallet.cache);
@@ -1924,13 +1925,12 @@ async function register({
   })
   router.use('/callback', async (req, res) => {
     console.log("\n⚡️⚡️\n callback", req.query, req.body);
-
-    let state;
-    if (req.query.state) {
+    var state;
+    if (req.query.state && req.query.state != 'peertube') {
       state = await storageManager.getData("alby-" + req.query.state.replace(/\./g, "-"));
       console.log("\n⚡️⚡️\ncurrent wallet value", state, req.query.state);
-    }
-    if (state == 'pending') {
+    } 
+    if (state == 'pending'  || req.query.state == 'peertube') {
       let callbackUrl = base + "/plugins/lightning/router/callback";
       var formFull = new URLSearchParams();
       //formFull = new FormData();
@@ -1942,6 +1942,7 @@ async function register({
 
       let url = "https://api.getalby.com/oauth/token";
       let response;
+      let albyWalletData;
       try {
         response = await axios.post(url, formFull, { auth: { username: client_id, password: client_secret } });
       } catch (err) {
@@ -1949,23 +1950,47 @@ async function register({
       }
       if (response && response.data) {
         console.log("\n⚡️⚡️⚡️⚡️response to token request axios", response.data);
-        storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
+        //storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
         let albyToken = response.data.access_token
-        let albyWalletData
+        
         let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
         let walletApiUrl = "https://api.getalby.com/user/me"
         try {
 
-          albyWalletData = await axios.get(walletApiUrl, headers)
+          albyWalletData = await axios.get(walletApiUrl, headers);
         } catch (err) {
           console.log("\n⚡️⚡️⚡️⚡️error attempting to get wallet data\n", walletApiUrl, headers, err);
         }
-        console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData);
+        console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData.data);
       }
+      let userName = albyWalletData.data.email.split("@")[0];
+      let userEmail = albyWalletData.data.email;
+      let displayName = albyWalletData.data.name;
+      let lightning = albyWalletData.data.lightning_address;
+      if (!displayName) {
+        displayName=userName;
+      }
+      if (!userName || !userEmail){return}
+      storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
+    /*
+     let userName="dodo";
+     let userEmail="dod@freedom.com";
+     let displayName="dodo the dodo";
+     let lightning = "dod@getalby.com"
+     */
+      console.log("returned user data",userName,userEmail,displayName);
+      return result.userAuthenticated({
+        req,
+        res,
+        username: userName,
+        email: userEmail,
+        role: 2,
+        displayName: displayName,
+      });
     }
-    return res.status(200).send(`<h1>User authorized to boost</h1>hr<div class="callout" data-closable>
-<img src="https://media.tenor.com/bwNyT4OBWz4AAAAC/yay-surprise.gif">
-</div>`);
+    //TODO fix this
+    return res.redirect(`https://p2ptube.us`);
     /*
     var chatID = req.query.id;
     console.log("\n\nchatID", chatID);
@@ -2666,28 +2691,13 @@ async function register({
   }
   const result = registerExternalAuth({
     authName: 'getalby',
-    authDisplayName: () => 'Telegram Authentication',
+    authDisplayName: () => 'Alby Authentication',
     getWeight: () => 60,
     onAuthRequest: async (req, res) => {
       let callbackUrl = base + "/plugins/lightning/router/callback";
-      var formFull = new URLSearchParams();
-      //formFull = new FormData();
-      formFull.append('code', req.query.code);
-      formFull.append('grant_type', 'authorization_code');
-      formFull.append('redirect_uri', callbackUrl);
-      formFull.append('client_id', client_id);
-      formFull.append('client_secret', client_secret);
-
-      let url = "https://api.getalby.com/oauth/token";
-      let response;
-      try {
-        response = await axios.post(url, formFull, { auth: { username: client_id, password: client_secret } });
-      } catch (err) {
-        console.log("\n⚡️⚡️⚡️⚡️axios failed to post to alby", err, url, formFull)
-      }
-      var redirectURL = instance + '/plugins/lightning/router/callback';
-      var albyAuthUrl = "<html><body><script async src=\"https://telegram.org/js/telegram-widget.js?19\" data-telegram-login=\"" + botName + "\" data-size=\"large\" data-auth-url=\"" + redirectURL + "\" data-request-access=\"write\"></script></body></html>"
-      return res.redirectURL(albyAuthUrl)
+      let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
+      console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
+      return res.redirect(albyAuthUrl)
       //return res.status(200).send(telegramWidget);
     },
   });

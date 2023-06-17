@@ -85,26 +85,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     registerVideoField(commonOptions, { type, ...videoFormOptions })
   }
 
-
-
-  /*  const commonOptions = {
-    name: 'seasonNode',
-    label: 'Season number',
-    descriptionHTML: 'which season this episode belongs to',
-
-    // type: 'input' | 'input-checkbox' | 'input-password' | 'input-textarea' | 'markdown-text' | 'markdown-enhanced' | 'select' | 'html'
-    // /!\ 'input-checkbox' could send "false" and "true" strings instead of boolean
-    type: 'input',
-
-    default: '',
-    
-  }
-  const videoFormOptions = {
-    // Optional, to choose to put your setting in a specific tab in video form
-    // type: 'main' | 'plugin-settings'
-    tab: 'plugin-settings'
-  }
-*/
   await peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
@@ -628,7 +608,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           })
           await makeTipDialog(displayName);
           let tipButton = document.getElementById('modal-satbutton');
-
+          let oldValue;
           if (tipButton) {
             tipButton.onclick = async function () {
               oldValue = tipButton.textContent;
@@ -762,11 +742,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     target: 'action:router.navigation-end',
     handler: async ({ params }) => {
       console.log('New URL! %s.', params);
-      console.log("what the hell bob");
-
     }
   })
-
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
@@ -967,6 +944,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       console.log("⚡️menu", x.length);
     }
   })
+ /*
   registerHook({
     target: 'filter:left-menu.links.create.result',
     handler: (result, params) => {
@@ -974,27 +952,40 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return [
         {
           key: 'in-my-stuff',
-          title: 'In my stuff',
+          title: 'Matt\'s Stuff',
           links: [
             {
-              path: '/about',
-              icon: 'alert',
-              shortLabel: 'About',
-              label: 'About'
+              path: 'https://www.mattchristiansenmedia.com/shop#!/',
+              //icon: 'alert',
+              shortLabel: 'Shop',
+              label: 'shop'
             },
 
             {
-              path: peertubeHelpers.getBasePluginClientPath() + '/my-super/route',
+              path: 'https://www.mattchristiansenmedia.com/columns',
               icon: '',
-              shortLabel: 'super route',
-              label: 'Super route'
+              shortLabel: 'Columns  ',
+              label: 'Columns'
+            },
+            {
+              path: 'https://www.mattchristiansenmedia.com/support',
+              icon: '',
+              shortLabel: 'Support',
+              label: 'Support'
+            },
+
+            {
+              path: 'https://www.mattchristiansenmedia.com/deals',
+              icon: '',
+              shortLabel: 'Deals',
+              label: 'Deals'
             }
           ]
         }
       ].concat(result)
     }
   })
-
+*/
   async function sendSats(walletData, amount, message, from) {
     if (debugEnabled) {
       console.log("⚡️sending lnurl boost", walletData, amount, message, from);
