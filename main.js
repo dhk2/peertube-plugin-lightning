@@ -2419,6 +2419,77 @@ async function register({
     }
 
   })
+  router.user('/createsubscription',async(req,res) => {
+    if (!req.body.channel || !req.body.amount || !req.body.type){
+      return res.status(420).send ("malformed request");
+    }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    let userName;
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+      if (enableDebug) {
+        console.log("███ got authorized peertube user", user.dataValues.username);
+      }
+      if (enableDebug) {
+        console.log("⚡️⚡️⚡️⚡️ user", userName);
+      }
+    }
+
+    let newSubscription = {
+      user: userName,
+      channel: req.body.channel,
+      amount: req.body.amount,
+      type: req.body.type,
+      startdate: Date.now(),
+      paiddays: 0,
+      public: req.body.public,
+
+    }
+    let subscriptions = storageManager.getData('subscriptions');
+    if (!subscriptions){
+      subscriptions = [];
+    }
+    subscriptions.push(newSubscription);
+    storageManager.storeData("subscriptions", subscriptions);
+    return res.status(200).send("subscription created");
+  })
+  router.user('/deletesubscription', async (req, res) => {
+
+  })
+  router.user('/editsubscription', async (req, res) => {
+
+  })
+  router.user('/getsubscriptions', async (req, res) => {
+    if (!req.body.channel || !req.body.user) {
+      return res.status(420).send("malformed request");
+    }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    let userName;
+    if (user && user.dataValues && (user.dataValues.username == req.body.user)) {
+      userName = user.dataValues.username;
+      if (enableDebug) {
+        console.log("███ got authorized peertube user", user.dataValues.username);
+      }
+      if (enableDebug) {
+        console.log("⚡️⚡️⚡️⚡️ user", userName);
+      }
+    }
+    let subscriptions = storageManager.getData('subscriptions');
+    let list = [];
+    for (var sub in subscriptions){
+      console.log("⚡️⚡️⚡️⚡️ sub",sub);
+      if (!req.body.channel && req.body.user && (req.body.user == sub.user) && (sub.public || userName)){
+        list.push(sub);
+      } 
+      if (!req.body.user && req.body.channel && (req.body.channel == sub.channel) && (sub.public)) {
+        list.push(sub);
+      } 
+      if ((req.body.user && req.body.channel) && req.body.user == sub.user && req.body.channel == sub.channel && (sub.public || userName)){
+        list.push(sub);
+      }
+    }
+    console.log("⚡️⚡️⚡️⚡️ found subscriptions", list);
+  })
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
