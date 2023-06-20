@@ -11,7 +11,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
   let tipVerb = "tip";
   let chatEnabled, keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
-  let streamAmount = 69;
+  let streamAmount = 69;   
   let lastTip = 69;
   let convertRate = .0002;
   let userName = "PeerTuber";
@@ -22,6 +22,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let panelHack;
   let podData;
   let hostPath;
+  let authorizationChecked = false;
 
   const videoFormOptions = { tab: 'plugin-settings' };
   let commonOptions = {
@@ -123,6 +124,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   } catch (err) {
     console.log("⚡️error getting software version", basePath, err);
   }
+    registerHook({
+    target: 'action:auth-user.logged-out',
+    handler: async () => {
+      walletAuthorized=false;
+      authorizationChecked=false;
+      accountAddress=undefined;
+    }
+  })
+
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -137,6 +147,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           console.log("⚡️wallet api call", accountWalletApi, user.username);
         }
         try {
+          authorizationChecked = true;
           let accountWallet = await axios.get(accountWalletApi);
           if (accountWallet) {
             accountAddress = accountWallet.data;
@@ -740,8 +751,19 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   })
   registerHook({
     target: 'action:router.navigation-end',
-    handler: async ({ params }) => {
-      console.log('New URL! %s.', params);
+    handler: async ({ params, user }) => {
+      console.log('⚡️navigation end!', params,user);
+      console.log("⚡️wallet authorized",walletAuthorized,"pod data",podData);
+      console.log("⚡️instance name",instanceName,"host path",hostPath,"account address",accountAddress);
+      console.log("⚡️logged in",await peertubeHelpers.isLoggedIn(),"authorization checked",authorizationChecked);
+      if (peertubeHelpers.isLoggedIn() && !authorizationChecked){
+        console.log("⚡️may need to load wallet data here ");
+      }
+      if (!peertubeHelpers.isLoggedIn()){
+        walletAuthorized=false;
+        authorizationChecked=false;
+        accountAddress=undefined;
+      }
     }
   })
   registerHook({

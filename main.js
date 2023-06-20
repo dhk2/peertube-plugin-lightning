@@ -1963,125 +1963,36 @@ async function register({
         }
         console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData.data);
       }
-      let userName = albyWalletData.data.email.split("@")[0];
-      let userEmail = albyWalletData.data.email;
-      let displayName = albyWalletData.data.name;
-      let lightning = albyWalletData.data.lightning_address;
-      if (!displayName) {
-        displayName=userName;
+      if (req.query.state == 'peertube'){
+        let userName = albyWalletData.data.email.split("@")[0];
+        let userEmail = albyWalletData.data.email;
+        let displayName = albyWalletData.data.name;
+        let lightning = albyWalletData.data.lightning_address;
+        if (!displayName) {
+          displayName=userName;
+        }
+        if (!userName || !userEmail){return}
+        storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+        storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
+        console.log("returned user data",userName,userEmail,displayName);
+        return result.userAuthenticated({
+          req,
+          res,
+          username: userName,
+          email: userEmail,
+          role: 2,
+          displayName: displayName,
+        });
       }
-      if (!userName || !userEmail){return}
-      storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
-      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
-    /*
-     let userName="dodo";
-     let userEmail="dod@freedom.com";
-     let displayName="dodo the dodo";
-     let lightning = "dod@getalby.com"
-     */
-      console.log("returned user data",userName,userEmail,displayName);
-      return result.userAuthenticated({
-        req,
-        res,
-        username: userName,
-        email: userEmail,
-        role: 2,
-        displayName: displayName,
-      });
+      storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
+      storageManager.storeData("lightning-" + req.query.state.replace(/\./g, "-"), albyWalletData.data.lightning_address);
+      return res.status(200).send(`<h1>User authorized to boost</h1>hr<div class="callout" data-closable>
+        <img src="https://media.tenor.com/bwNyT4OBWz4AAAAC/yay-surprise.gif">
+        </div>`);
     }
     //TODO fix this
     return res.redirect(`https://p2ptube.us`);
-    /*
-    var chatID = req.query.id;
-    console.log("\n\nchatID", chatID);
-    var user = {};
-    if (!botChats.includes(chatID)) {
-      botChats.push(chatID);
-      await storageManager.storeData("telegram-chats", botChats);
-      console.log("added chat id " + chatID + " to existing telegram users")
-    }
-    try {
-      user = await storageManager.getData(chatID)
-      console.log("user data loaded", user);
-    } catch (err) {
-      console.log("error loading user data", err);
-    }
-    var userChannels = "";
-    if (user) {
-      //upgrade hacks
-      console.log("existing user detected");
-      if (user.muteAnnouncements == undefined) { user.muteAnnouncements = false }
-      if (user.muteLives == undefined) { user.muteLives = false }
-      if (user.muteSubscriptions == undefined) { user.muteSubscriptions = false }
-      if (user.muteWelcome == undefined) { user.muteWelcome = false }
-      if (user.pending) { user.pending = undefined }
-      if (user.pending2) { user.pending = undefined }
-      await storageManager.storeData(user.id, user);
-      if (botChats == undefined) {
-        console.log("need to initialize botchats");
-        botChats = [user.id];
-
-      }
-      console.log("\n\nStored telegram user info", user);
-      javascriptisstupid = user.id;
-      console.log(javascriptisstupid, "welcome back to peertube " + user.displayname);
-      if (!user.muteWelcome) {
-        sendTelegram(javascriptisstupid, "welcome back to peertube " + user.displayname);
-      }
-      if (user.avatar != req.query.photo_url) {
-        user.avatar = req.query.photo_url;
-        console.log("need to update avatar url for user", user.avatar);
-        await storageManager.storeData(user.id, user);
-      }
-      console.log("getting user channels for ", user.username);
-      console.log(`/api/v1/accounts/${user.username}/video-channels`)
-      try {
-        userChannels = await axios.get(`${instance}/api/v1/accounts/${user.username}/video-channels`);
-        console.log("User channels loaded during authentication ", userChannels);
-        for (const channel of userChannels.data.data) {
-          console.log("channel name:", channel.name, "\ndisplay name", channel.displayName, channel.sync);
-        }
-      } catch (err) { console.log("failed load user channels", user, err) }
-    } else {
-      user = {};
-      console.log("Building new user", req.query);
-      var displayname = req.query.username;
-      console.log("first try at username", req.query.username);
-      if (displayname == undefined) {
-        displayname = req.query.first_name + "." + req.query.last_name;
-        console.log("fixed username", displayname);
-      }
-      if (displayname == ".") {
-        displayname = req.query.id;
-      }
-      console.log("displayname: ", displayname);
-      user.displayname = displayname;
-      user.id = req.query.id;
-      user.username = displayname.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, ".");
-      user.role = 2;
-      user.email = user.username + `@telegram.com`
-      user.avatar = req.query.photo_url;
-      user.muteAnnouncements = await settingsManager.getSetting("telegram-default-announcements");
-      user.muteLives = await settingsManager.getSetting("telegram-default-lives");
-      user.muteSubscriptions = await settingsManager.getSetting("telegram-default-subscriptions");
-      user.muteWelcome = await settingsManager.getSetting("telegram-default-welcome");
-      console.log("saving new user", user);
-      await storageManager.storeData(user.id, user);
-      await sendTelegram(chatID, instance + "/a/" + user.username);
-      // if (user.avatar != undefined) {
-      // console.log("attempting to download avatar", user.avatar);
-      // avatar = await axios.get(user.avatar);
-    }
-    console.log("pre-authentication user returned", user, user.id, user.username, user.email, user.role);
-    return result.userAuthenticated({
-      req,
-      res,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      displayName: user.displayname,
-    });
-    */
+   
   })
   router.use('/setauthorizedwallet', async (req, res) => {
     if (enableDebug) {

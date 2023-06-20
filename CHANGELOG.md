@@ -4,6 +4,8 @@ v 4.4.1
 - modernized string handling in custom RSS feed.
 - fixed cross app comments
 - improved webhook handling
+- fixed consistency with wallet authorization and webln levels during logout/login/authorization cycle
+
 
 v 4.4.0
 - implemented confetti for webln 
