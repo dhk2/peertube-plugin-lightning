@@ -2330,7 +2330,7 @@ async function register({
     }
 
   })
-  router.user('/createsubscription',async(req,res) => {
+  router.use('/createsubscription',async(req,res) => {
     if (!req.body.channel || !req.body.amount || !req.body.type){
       return res.status(420).send ("malformed request");
     }
