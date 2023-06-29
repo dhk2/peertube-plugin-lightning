@@ -1,95 +1,41 @@
-[
-  {
-    "name": "turtle master dojo cut",
-    "split": 95,
-    "keysend": {
-      "tag": "keysend",
-      "cache": 1684193577467,
-      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-      "status": "OK",
-      "customData": [
-        {
-          "customKey": "696969",
-          "customValue": "LgG0L9WZICAZvKaJKKQS"
-        }
-      ]
-    }
-  },
-  {
-    "name": "donkimberlin@getalby.com",
-    "split": 5,
-    "keysend": {
-      "tag": "keysend",
-      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-      "status": "OK",
-      "customData": [
-        {
-          "customKey": "696969",
-          "customValue": "LgG0L9WZICAZvKaJKKQS"
-        }
-      ]
-    },
-    "fee": true
-  },
-  {
-    "name": "gorgon",
-    "split": 5,
-    "keysend": {
-      "tag": "keysend",
-      "cache": 1684226693888,
-      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-      "status": "OK",
-      "customData": [
-        {
-          "customKey": "696969",
-          "customValue": "I0xM3pGdy724ZELF0djP"
-        }
-      ]
-    }
+server {
+  listen 443 ssl http2;
+  listen [
+    : :
+  ]: 443 ssl http2;
+  server_name peertube-videos.cdn.peertube.biz;
+  ssl_certificate     /etc/letsencrypt/live/cdn.peertube.biz-0002/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/cdn.peertube.biz-0002/privkey.pem;
+  location ^~ '/.well-known/acme-challenge' {
+    default_type "text/plain";
+    root /var/www/certbot;
   }
-]
-
-[
-  {
-    "name": "errhead@getalby.com",
-    "split": 85,
-    "keysend": {
-      "tag": "keysend",
-      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-      "status": "OK",
-      "customData": [
-        {
-          "customKey": "696969",
-          "customValue": "LiPQ3WVvdeEFnuhcWNLy"
-        }
-      ]
-    }
-  },
-  {
-    "name": "donkimberlin@getalby.com",
-    "split": 5,
-    "keysend": {
-      "tag": "keysend",
-      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-      "status": "OK",
-      "customData": [
-        {
-          "customKey": "696969",
-          "customValue": "LgG0L9WZICAZvKaJKKQS"
-        }
-      ]
-    },
-    "fee": true
-  },
-  {
-    "name": "boost",
-    "split": 10,
-    "keysend": {
-      "tag": "keysend",
-      "pubkey": "03d55f4d4c870577e98ac56605a54c5ed20c8897e41197a068fd61bdb580efaa67",
-      "customData": [
-        {}
-      ]
-    }
+     if ($request_method = 'OPTIONS') {
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+        #
+        # Custom headers and headers various browsers *should* be OK with but aren't
+        #
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+        #
+        # Tell client that this pre-flight info is valid for 20 days
+        #
+        add_header 'Access-Control-Max-Age' 1728000;
+        add_header 'Content-Type' 'text/plain; charset=utf-8';
+        add_header 'Content-Length' 0;
+        return 204;
   }
-]
+     if ($request_method = 'POST') {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+  }
+     if ($request_method = 'GET') {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+  }
+  proxy_pass http: //127.0.0.1:8333;
+}
