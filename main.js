@@ -127,6 +127,7 @@ async function register({
   var base = await peertubeHelpers.config.getWebserverUrl();
   var serverConfig = await peertubeHelpers.config.getServerConfig();
   var hostName = serverConfig.instance.name;
+  console.log("⚡️⚡️ home url",base,hostName);
   let lightningAddress = await settingsManager.getSetting("lightning-address");
   if (!lightningAddress) {
     console.log("⚡️⚡️No wallet configured for system");
@@ -384,17 +385,14 @@ async function register({
         console.log("⚡️⚡️\n\n\n\n\n\nfailed to pull information for provided video id", apiCall);
       }
       if (videoData) {
-        //=videoData.data;
         let duration = videoData.data.duration;
-        console.log("\n⚡️⚡️\n\n\\n\n\n\nnvideodata??", videoData.data);
-
+        let customData = videoData.data.pluginData;
         let videoFiles = videoData.data.streamingPlaylists[0].files;
-        //console.log("\n⚡️⚡️\n\n\nfiles??",videoFiles);
         let smallest = 999999999
         let filename;
         if (videoFiles) {
           for (var fileOption of videoFiles) {
-            console.log(fileOption);
+            //console.log(fileOption);
             if (fileOption.size < smallest) {
               smallest = fileOption.size;
               filename = fileOption.fileUrl
@@ -403,7 +401,7 @@ async function register({
         }
         var enclosure;
         //console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
-        if (smallest) {
+        if (filename) {
           enclosure = {
             name: "audioenclosure",
             attributes: {
@@ -422,16 +420,59 @@ async function register({
             }
           }
         }
-
-        console.log
         if (enclosure) {
           customObjects.push(enclosure);
         }
-        console.log("⚡️⚡️\n\n\n\n\n\n\n\n\Custom Blocks 2", customObjects);
-        let plugin = videoData.data.pluginData;
-        console.log("⚡️⚡️\nplugin data", plugin);
+        console.log("⚡️⚡️\nplugin data", customData);
+        
+        if (customData && customData.seasonnode){
+          let seasonItem = {
+            name: "podcast:season",
+            value: await customData.seasonnode.toString()
+          };
+          if (customData.seasonname){
+            seasonItem.attributes={
+              "name": customData.seasonname
+            }
+          }
+          customObjects.push(seasonItem);
+        }
+        
+        if (customData && customData.episodenode){
+          episodeItem = {
+            name: "podcast:episode",
+            value: await customData.episodenode.toString()
+          };
+          if (customData.episodename){
+            episodeItem.attributes={
+              "display": customData.episodename
+            }
+          }
+          customObjects.push(episodeItem);
+        }
+        
+        if (customData && customData.chapters){
+          chaptersItem = {
+            name: "podcast:chapters",
+            attributes: {
+              "url": customData.chapters,
+              type: "application/json+chapters"
+            }
+          };
+          customObjects.push(chaptersItem);
+        }
+       
+        if (customData && customData.itemtxt){
+         // let txtValue=[].push(customData.itemtxt);
+          let txtItem = {
+            name: "podcast:txt",
+            value: customData.itemtxt
+          }
+          customObjects.push(txtItem);
+        }
+        
       }
-      //console.log("⚡️⚡️\nCustom Blocks 2",customObjects);
+      console.log("custom objects to add to video",customObjects);
       return result.concat(customObjects);
     }
   })
@@ -667,6 +708,7 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ podcast2 request ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", req.query);
     }
     if (!enableRss) {
+      console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️RSS disabled");
       return res.status(403).send();
     }
     if (req.query.channel == undefined) {
@@ -692,6 +734,7 @@ async function register({
       largePersonAvatar = channelData.data.ownerAccount.avatars[1].path;
     }
     //console.log("⚡️⚡️⚡️⚡️channel info", channelData.data);
+    
     let rssUrl = base + "/feeds/podcast/videos.xml?videoChannelId=" + channelData.data.id;
     let rssData;
     try {
@@ -717,7 +760,7 @@ async function register({
     try {
       podData = await axios.get(base + "/plugins/lightning/router/getpoddata?channel=" + channel);
     } catch {
-      console.log("⚡️⚡️unable to load PODCAST data");
+      console.log("unable to load PODCAST data");
     }
     if (podData) {
       console.log("⚡️⚡️\n\n\n\n pod dta \n", podData.data);
@@ -727,12 +770,14 @@ async function register({
     let spacer = "";
     let rss = rssData.data;
     let lines = rss.split('\n');
-    for (var line of lines) {
+      console.log("⚡️⚡️\n\n\n\n starting linbe loop \n", lines.length,lines[33]);
+    //for (const line of lines) {
+    let totalSize = lines.length;
+    while (counter<totalSize){
+      let line = lines[counter];
+      console.log(`⚡️line${counter}:`,line)
       counter++;
       spacer = line.split("<")[0];
-      if (enableDebug) {
-        // console.log(line);
-      }
       if (line.includes("Toraifōsu") && podData && podData.data) {
 
         if (podData.data.text) {
@@ -743,80 +788,82 @@ async function register({
         }
       }
       if (line.includes("<atom:link")) {
-        line = `${spacer}<atom: link href="{ req.protocol }://${req.get('host')}${req.originalUrl}" rel="self" type="application/rss+xml" />`;
-        var customData = {};
-        if (line.includes('<guid')) {
-          let shortUuid = line.split(">")[1].split("<")[0].split("/")[4]
-          try {
-            var videoData = await axios.get(base + "/api/v1/videos/" + shortUuid);
-            if (videoData && videoData.data) {
-              customData = videoData.data.pluginData;
-            }
-          } catch (err) {
-            console.log("⚡️⚡️⚡️⚡️hard error trying to get video data for RSS feed", err);
-          }
-          if (enableDebug) {
-            console.log("⚡️⚡️⚡️⚡️item plugin data", shortUuid, customData);
-          }
-          if (customData.seasonnode) {
-            if (customData.seasonname) {
-              line = line + `\n${spacer}<podcast:season name ="${customData.seasonname}">${customData.seasonnode}</podcast:season>`;
-            } else {
-              line = line + `\n${spacer}<podcast:season>${customData.seasonnode}</podcast:season>`;
-            }
-          }
-          if (customData.episodenode) {
-            if (customData.episodename) {
-              line = line + `\n${spacer}<podcast:episode display ="${customData.episodename}">${customData.episodenode}</podcast:episode>`;
-            } else {
-              line = line + `\n${spacer}<podcast:episode>${customData.episodenode}</podcast:episode>`;
-            }
-          }
-          if (customData.chapters) {
-            line = line + `\n${spacer}<podcast:chapters url="${customData.chapters}" type="application/json+chapters" />`
-          }
-          if (customData.itemtxt) {
-            line = line + `\n${spacer}<podcast:txt>${customData.itemtxt}</podcast:txt>`;
-          }
-        }
-        if (line.includes("<enclosure") > 0) {
-          continue;
-        }
-        if (line.includes("audioenclosure") > 0) {
-          line = line.replace("audioenclosure", "enclosure");
-        }
-        if (line.includes(`title="HLS"`) && !line.includes(`length="`)) {
-          console.log("fixing length");
-          line = line.replace(`title="HLS"`, `title="HLS" length ="69"`);
-        }
-        if (line.includes(`title="HLS"`) && !line.includes(`type="`)) {
-          console.log("fixing type");
-          line = line.replace(`title="HLS"`, `title="HLS" type="application/x-mpegURL"`);
-        }
-        if (line.includes(`title="Audio"`) && !line.includes(`type="`)) {
-          console.log("fixing type");
-          line = line.replace(`title="Audio"`, `title="Audio" type="video/mp4"`);
-        }
-        if (largeChannelAvatar) {
-          line = line.replace(smallChannelAvatar, largeChannelAvatar);
-        }
-        if (largePersonAvatar) {
-          line = line.replace(smallPersonAvatar, largePersonAvatar);
-        }
-        if (podData && podData.data && podData.data.medium) {
-          line = line.replace(`<podcast:medium>video</podcast:medium>`, `<podcast:medium>${podData.data.medium}</podcast:medium>`);
-        }
-        if (counter > 1) {
-          fixed = fixed + '\n' + line;
-        } else {
-          fixed = line;
-        }
+        line = `${spacer}<atom:link href="https://${req.get('host')}${req.originalUrl}" rel="self" type="application/rss+xml" />`;
       }
-      res.setHeader('content-type', 'application/rss+xml');
-      res.status(200).send(fixed);
-      //console.log(rssResult.data);
-      return;
+      var customData = {};
+      if (line.includes('<guid')) {
+        let shortUuid = line.split(">")[1].split("<")[0].split("/")[4]
+        try {
+          var videoData = await axios.get(base + "/api/v1/videos/" + shortUuid);
+          if (videoData && videoData.data) {
+            customData = videoData.data.pluginData;
+          }
+        } catch (err) {
+          console.log("⚡️⚡️⚡️⚡️hard error trying to get video data for RSS feed", err);
+        }
+        if (enableDebug) {
+          console.log("⚡️⚡️⚡️⚡️item plugin data", shortUuid, customData);
+        }
+        /* moved to shared code 
+        if (customData.seasonnode) {
+          if (customData.seasonname) {
+            line = line + `\n${spacer}<podcast:season name ="${customData.seasonname}">${customData.seasonnode}</podcast:season>`;
+          } else {
+            line = line + `\n${spacer}<podcast:season>${customData.seasonnode}</podcast:season>`;
+          }
+        }
+        if (customData.episodenode) {
+          if (customData.episodename) {
+            line = line + `\n${spacer}<podcast:episode display ="${customData.episodename}">${customData.episodenode}</podcast:episode>`;
+          } else {
+            line = line + `\n${spacer}<podcast:episode>${customData.episodenode}</podcast:episode>`;
+          }
+        }
+        if (customData.chapters) {
+          line = line + `\n${spacer}<podcast:chapters url="${customData.chapters}" type="application/json+chapters" />`
+        }
+        if (customData.itemtxt) {
+          line = line + `\n${spacer}<podcast:txt>${customData.itemtxt}</podcast:txt>`;
+        }
+        */
+      }
+      if (line.includes("<enclosure") > 0) {
+        continue;
+      }
+      if (line.includes("audioenclosure") > 0) {
+        line = line.replace("audioenclosure", "enclosure");
+      }
+      if (line.includes(`title="HLS"`) && !line.includes(`length="`)) {
+        console.log("fixing length");
+        line = line.replace(`title="HLS"`, `title="HLS" length ="69"`);
+      }
+      if (line.includes(`title="HLS"`) && !line.includes(`type="`)) {
+        console.log("fixing type");
+        line = line.replace(`title="HLS"`, `title="HLS" type="application/x-mpegURL"`);
+      }
+      if (line.includes(`title="Audio"`) && !line.includes(`type="`)) {
+        console.log("fixing type");
+        line = line.replace(`title="Audio"`, `title="Audio" type="video/mp4"`);
+      }
+      if (largeChannelAvatar) {
+        line = line.replace(smallChannelAvatar, largeChannelAvatar);
+      }
+      if (largePersonAvatar) {
+        line = line.replace(smallPersonAvatar, largePersonAvatar);
+      }
+      if (podData && podData.data && podData.data.medium) {
+        line = line.replace(`<podcast:medium>video</podcast:medium>`, `<podcast:medium>${podData.data.medium}</podcast:medium>`);
+      }
+      if (counter > 1) {
+        fixed = fixed + '\n' + line;
+      } else {
+        fixed = line;
+      }
     }
+    res.setHeader('content-type', 'application/rss+xml');
+    console.log("⚡️⚡️\n\n\n\n ending line loop \n",fixed.length);
+    return  res.status(200).send(fixed);
+    
   })
   router.use('/dirtyhack', async (req, res) => {
     //console.log("dirty hack",req.body)
@@ -1991,7 +2038,7 @@ async function register({
         </div>`);
     }
     //TODO fix this
-    return res.redirect(`https://p2ptube.us`);
+    return res.redirect(base);
    
   })
   router.use('/setauthorizedwallet', async (req, res) => {
@@ -2294,13 +2341,14 @@ async function register({
     if (user && user.dataValues && req.body) {
       let userName = user.dataValues.username;
       if (enableDebug) {
-        console.log("███ got authorized peertube user", user.dataValues.username);
+        console.log("⚡️⚡️⚡️ got authorized peertube user to set pod data ", user.dataValues.username);
       }
       if (enableDebug) {
         console.log("⚡️⚡️⚡️⚡️ user", userName);
       }
       let channel = req.body.channel;
       storageManager.storeData("pod-" + channel.replace(/\./g, "-"), req.body);
+      pingPI(channel);
       return res.status(200).send();
     }
     return res.status(420).send();
@@ -2364,13 +2412,13 @@ async function register({
     storageManager.storeData("subscriptions", subscriptions);
     return res.status(200).send("subscription created");
   })
-  router.user('/deletesubscription', async (req, res) => {
+  router.use('/deletesubscription', async (req, res) => {
 
   })
-  router.user('/editsubscription', async (req, res) => {
+  router.use('/editsubscription', async (req, res) => {
 
   })
-  router.user('/getsubscriptions', async (req, res) => {
+  router.use('/getsubscriptions', async (req, res) => {
     if (!req.body.channel || !req.body.user) {
       return res.status(420).send("malformed request");
     }
@@ -2419,17 +2467,17 @@ async function register({
     if (storedSplitData) {
       for (var split of storedSplitData) {
         if (enableDebug) {
-          console.log("⚡️ split math ", splitTotal, split);
+          //console.log("⚡️ split math ", splitTotal, split);
         }
         if (!Number.isInteger(split.split)) {
-          console.log("⚡️ no split value found ", split);
+          //console.log("⚡️ no split value found ", split);
           missing++
         } else {
           splitTotal = splitTotal + split.split;
         }
       }
       if (Number.isInteger(splitTotal) && splitTotal != 100) {
-        console.log("⚡️Split math error!", splitTotal, storedSplitData);
+        //console.log("⚡️Split math error!", splitTotal, storedSplitData);
         if (missing == 1) {
           let fixSplit = 100 - splitTotal;
           for (var split of storedSplitData) {
@@ -2441,7 +2489,7 @@ async function register({
       }
     }
     if (enableDebug) {
-      console.log("⚡️ returned stored split ", storedSplitData);
+      //console.log("⚡️ returned stored split ", storedSplitData);
     }
     return storedSplitData;
   }

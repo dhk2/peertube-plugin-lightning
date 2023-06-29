@@ -16,7 +16,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let convertRate = .0002;
   let userName = "PeerTuber";
   let walletAuthorized = false;
-  let accountName, channelName, videoName, instanceName, accountAddress, softwareVersion, client_id;
+  let accountName, channelName, videoName, instanceName, accountAddress, softwareVersion, client_id, channelId;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -406,6 +406,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
       }
+      console.log("⚡️⚡️looking for video id",video.channel.id);
+      channelId=video.channel.id
       accountName = video.byAccount;
       channelName = video.byVideoChannel;
       videoName = video.uuid;
@@ -465,9 +467,14 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "boostagram" type="button" class="peertube-button orange-button ng-star-inserted">⚡️` + tipVerb + `</button>`
         v4vButtonHTML = ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">` + streamButtonText + `</button>`
         let delta = 0;
-        let lastStream = videoEl.currentTime;
+        let lastStream;
+        if (videoEl){
+          lastStream = videoEl.currentTime;
+        }
         streamTimer = setInterval(async function () {
-          currentTime = videoEl.currentTime;
+          if (videoEl){
+            currentTime = videoEl.currentTime;
+          }
           if (streamEnabled) {
             delta = (currentTime - lastStream).toFixed();
             if (debugEnabled) {
@@ -1188,7 +1195,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       if (remoteHost) {
         boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
       } else {
-        boost.url = window.location.protocol + "//" + localHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+        if (rssEnabled){
+          boost.url = window.location.protocol + "//" + localHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+        } else {
+          boost.url = boost.url = window.location.protocol + "//" + localHost + "/feeds/podcast/videos.xml?videoChannelId="+channelId;
+        }
       }
 
     }
