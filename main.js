@@ -1991,7 +1991,7 @@ async function register({
         </div>`);
     }
     //TODO fix this
-    return res.redirect(`https://p2ptube.us`);
+    //return res.redirect(`https://p2ptube.us`);
    
   })
   router.use('/setauthorizedwallet', async (req, res) => {
