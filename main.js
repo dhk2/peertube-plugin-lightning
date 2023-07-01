@@ -117,6 +117,14 @@ async function register({
     private: false
   })
   registerSetting({
+    name: 'logon-enable',
+    default: false,
+    label: 'Enable logging in with alby wallet',
+    type: 'input-checkbox',
+    descriptionHTML: 'This will allow users to authenticate and create accounts using Alby Wallet credentials',
+    private: true
+  })
+  registerSetting({
     name: 'debug-enable',
     default: false,
     label: 'Enable diagnostic log updates',
@@ -124,6 +132,7 @@ async function register({
     descriptionHTML: 'This will create more extensive logging of program state data both client and server side for finding and resolving errors ',
     private: false
   })
+
   var base = await peertubeHelpers.config.getWebserverUrl();
   var serverConfig = await peertubeHelpers.config.getServerConfig();
   var hostName = serverConfig.instance.name;
@@ -147,6 +156,7 @@ async function register({
   let enableKeysend = await settingsManager.getSetting("keysend-enable");
   let enableLnurl = await settingsManager.getSetting("lnurl-enable");
   let enableDebug = await settingsManager.getSetting("debug-enable");
+  let enableAlbyAuth = await settingsManager.getSetting("logon-enable");
   let enableRss = await settingsManager.getSetting("rss-enable");
   let enableChat = await settingsManager.getSettings("irc-enable");
   let client_id = await settingsManager.getSetting("alby-client-id");
@@ -2010,7 +2020,7 @@ async function register({
         }
         console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData.data);
       }
-      if (req.query.state == 'peertube'){
+      if (req.query.state == 'peertube' && enableAlbyAuth){
         let userName = albyWalletData.data.email.split("@")[0];
         let userEmail = albyWalletData.data.email;
         let displayName = albyWalletData.data.name;
@@ -2719,18 +2729,19 @@ async function register({
 
     return formData;
   }
-  const result = registerExternalAuth({
-    authName: 'getalby',
-    authDisplayName: () => 'Alby Authentication',
-    getWeight: () => 60,
-    onAuthRequest: async (req, res) => {
-      let callbackUrl = base + "/plugins/lightning/router/callback";
-      let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
-      console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
-      return res.redirect(albyAuthUrl)
-      //return res.status(200).send(telegramWidget);
-    },
-  });
+  if (enableAlbyAuth){
+    const result = registerExternalAuth({
+      authName: 'getalby',
+      authDisplayName: () => 'Alby Authentication',
+      getWeight: () => 60,
+      onAuthRequest: async (req, res) => {
+        let callbackUrl = base + "/plugins/lightning/router/callback";
+        let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
+        console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
+        return res.redirect(albyAuthUrl)
+      },
+    });
+  }
 }
 
 async function unregister() {
