@@ -1040,7 +1040,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     //fixing millisats for lnpay
     amount = amount * 1000
     //("parsint", parseInt(amount));
-    let supported = checkWebLnSupport();
+    let supported = await checkWebLnSupport();
     if (debugEnabled) {
       console.log("⚡️webln enabled:", supported);
     }
@@ -1062,7 +1062,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         result = await window.webln.sendPayment(invoice);
         var tipfixed = amount / 1000
         notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
-        doConfetti(boostTotal);
+        doConfetti(amount);
         return result;
       } else {
         makeQrDialog(invoice);

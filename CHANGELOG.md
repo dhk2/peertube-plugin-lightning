@@ -6,7 +6,9 @@ v 4.4.1
 - improved webhook handling
 - fixed consistency with wallet authorization and webln levels during logout/login/authorization cycle
 - fixed podcast url in boosts for instances not using extended RSS
-- fixed fall through url for callbacks to instance home.
+- fixed fall through url for getalby callbacks to instance home.
+- added missing await for webln legacy split payment
+- fixed confetti amount variable for webln legacy payments
 
 v 4.4.0
 - implemented confetti for webln 
