@@ -1,3 +1,6 @@
+v 4.4.2
+- fixed issue with persistent live UUID including date
+
 v 4.4.1
 - fixed some missing values in RSS feed
 - added season, episode, chapters, txt to episode level

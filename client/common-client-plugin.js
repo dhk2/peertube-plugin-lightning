@@ -16,7 +16,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let convertRate = .0002;
   let userName = "PeerTuber";
   let walletAuthorized = false;
-  let accountName, channelName, videoName, instanceName, accountAddress, softwareVersion, client_id, channelId;
+  let accountName, channelName, videoName, instanceName, accountAddress, softwareVersion, client_id, channelId,videoUuid;
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
@@ -406,14 +406,19 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
       }
-      console.log("⚡️⚡️looking for video id",video.channel.id);
+      console.log("⚡️⚡️looking for permanent live info",video.isLive);
+      if (video.isLive){
+        videoUuid = video.uuid+'_'+video.publishedAt.toISOString();
+      } else {
+        videoUuid = video.uuid;
+      }
       channelId=video.channel.id
       accountName = video.byAccount;
       channelName = video.byVideoChannel;
       videoName = video.uuid;
       let episodeName = video.name;
       let itemID;
-      let episodeGuid = video.uuid;
+      let episodeGuid = videoUuid;
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
       let addSpot4 = document.getElementsByClassName('root-header-right')[0];
@@ -1170,14 +1175,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     if (episode) {
       boost.episode = episode;
     }
-    //  if (guid) {
-    //    boost.guid = guid;
-    //  }
     // for some reason episode guid is the url not an actual guid but a url.
-    //  if (episodeGuid) {
-    //    boost.episode_guid = episodeGuid;
-    //  }
-
+      if (episodeGuid) {
+        boost.episode_guid = episodeGuid;
+      }
+    /* okay, now i'm told episode guid is a the straight guid and not a url.
     if (window.location.href) {
       boost.episode_guid = window.location.href;
       let parts = boost.episode_guid.split('/');
@@ -1187,6 +1189,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         localHost = parts[2];
       }
     }
+    */
     boost.boost_link = window.location.href;
     if (currentTime) {
       boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();

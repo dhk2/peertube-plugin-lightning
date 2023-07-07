@@ -2204,7 +2204,7 @@ async function register({
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", suid, req.query, req.body);
     }
     let tip = req.body.fiat_in_cents.toString();
-    if (simpletipToken && tip > 10000) {
+    if (simpletipToken && tip > 1000) {
 
 
       let simpleTip = {
