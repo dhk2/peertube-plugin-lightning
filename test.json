@@ -1,41 +1,9 @@
-server {
-  listen 443 ssl http2;
-  listen [
-    : :
-  ]: 443 ssl http2;
-  server_name peertube-videos.cdn.peertube.biz;
-  ssl_certificate     /etc/letsencrypt/live/cdn.peertube.biz-0002/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/cdn.peertube.biz-0002/privkey.pem;
-  location ^~ '/.well-known/acme-challenge' {
-    default_type "text/plain";
-    root /var/www/certbot;
-  }
-     if ($request_method = 'OPTIONS') {
-        add_header 'Access-Control-Allow-Origin' '*';
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-        #
-        # Custom headers and headers various browsers *should* be OK with but aren't
-        #
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
-        #
-        # Tell client that this pre-flight info is valid for 20 days
-        #
-        add_header 'Access-Control-Max-Age' 1728000;
-        add_header 'Content-Type' 'text/plain; charset=utf-8';
-        add_header 'Content-Length' 0;
-        return 204;
-  }
-     if ($request_method = 'POST') {
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
-        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-  }
-     if ($request_method = 'GET') {
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
-        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-  }
-  proxy_pass http: //127.0.0.1:8333;
-}
+{"@context":["https://www.w3.org/ns/activitystreams",
+{"receiver":"vf:receiver",
+"vf":"https://w3id.org/valueflows/",
+"provider":"vf:provider",
+"resourceConformsTo":"vf:resourceConformsTo",
+"resourceQuantity":"vf:resourceQuantity",
+"publishes":"vf:publishes",
+"Intent":"vf:Intent","hasUnit":"om2:hasUnit","action":"vf:action","resourceClassifiedAs":"vf:resourceClassifiedAs","hasNumericalValue":"om2:hasNumericalValue","om2":"http://www.ontology-of-units-of-measure.org/resource/om-2/","Proposal":"vf:Proposal","reciprocal":"vf:reciprocal"}],"type":"Proposal","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270","name":"Pay for subscription","publishes":{"type":"Intent","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270#service","action":"deliverService","resourceClassifiedAs":"https://www.wikidata.org/wiki/Q1260632","resourceQuantity":{"hasUnit":"second","hasNumericalValue":"1"},"provider":"https://mitra.social/users/silverpill"},"reciprocal":{"type":"Intent","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270#payment","action":"transfer",
+"resourceConformsTo":"caip:19:monero:418015bb9ae982a1975da7d79277"resourceQuantity":{"hasUnit":"one","hasNumericalValue":"7716"},"receiver":"https://mitra.social/users/silverpill"}

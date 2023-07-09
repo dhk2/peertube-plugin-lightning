@@ -2730,17 +2730,20 @@ async function register({
     return formData;
   }
   //need to find a good way to disable get alby auth without erroring out
-   const result = registerExternalAuth({
-    authName: 'getalby',
-    authDisplayName: () => 'Alby Authentication',
-    getWeight: () => 60,
-    onAuthRequest: async (req, res) => {
-      let callbackUrl = base + "/plugins/lightning/router/callback";
-      let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
-      console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
-      return res.redirect(albyAuthUrl)
-    },
-  });
+  var result;
+  if (enableAlbyAuth){
+    result = registerExternalAuth({
+      authName: 'getalby',
+      authDisplayName: () => 'Alby Authentication',
+      getWeight: () => 60,
+      onAuthRequest: async (req, res) => {
+        let callbackUrl = base + "/plugins/lightning/router/callback";
+        let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
+        console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
+        return res.redirect(albyAuthUrl)
+      },
+    });
+  }
 }
 
 async function unregister() {
