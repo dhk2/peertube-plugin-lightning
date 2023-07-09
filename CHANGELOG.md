@@ -1,3 +1,6 @@
+v 4.4.3
+- fixed ably authentication error
+
 v 4.4.2
 - fixed issue with persistent live UUID including date
 
