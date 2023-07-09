@@ -443,6 +443,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             buttonHTML = buttonHTML + ` <button title="tipeee pop up fiat payment" id = "tipeee" class="action-button">💲Tipeee</button>`
           }
           if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs") <= 0)) {
+            console.log("streamlabs links",url);
             streamlabsLink = url;
             buttonHTML = buttonHTML + ` <button id="streamlabs" class="action-button">💲Streamlabs</button>`
           }

@@ -2032,7 +2032,7 @@ async function register({
         storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
         storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
         console.log("returned user data",userName,userEmail,displayName);
-        return result.userAuthenticated({
+        return response.userAuthenticated({
           req,
           res,
           username: userName,
