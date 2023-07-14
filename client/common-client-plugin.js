@@ -442,7 +442,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             //buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" type="button" title="tipeee" id = "tipeee" class="peertube-button orange-button ng-star-inserted"><span _ngcontent-vww-c178="" class="ng-star-inserted">💲Tipeee<!----><!----><!----></span><!----><!----></button>`
             buttonHTML = buttonHTML + ` <button title="tipeee pop up fiat payment" id = "tipeee" class="action-button">💲Tipeee</button>`
           }
-          if ((url.indexOf("streamlabs.com") > 0) && (buttonHTML.indexOf("streamlabs") <= 0)) {
+          if ((url.indexOf("streamlabs.com") > 0 && url.indexOf("streamlabs.com")<10) && (buttonHTML.indexOf("streamlabs") <= 0)) {
+            console.log("streamlabs links",url);
+            streamlabsLink = url;
+            buttonHTML = buttonHTML + ` <button id="streamlabs" class="action-button">💲Streamlabs</button>`
+          }
+          if ((url.indexOf("streamlabs.com") > 0 && url.indexOf("streamlabs.com")>9) && (buttonHTML.indexOf("streamlabs") <= 0)) {
+            url = `https://`+ url.substring(url.indexOf("streamlabs.com"));
             console.log("streamlabs links",url);
             streamlabsLink = url;
             buttonHTML = buttonHTML + ` <button id="streamlabs" class="action-button">💲Streamlabs</button>`

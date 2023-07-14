@@ -611,8 +611,12 @@ async function register({
       }
       if (storedWallet) {
         if (enableDebug) {
-          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
-          return res.status(200).send(storedWallet);
+          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet,Date.now()-storedWallet.cache);
+          if (storedWallet,Date.now()-storedWallet.cache<(60*60*24)){
+            return res.status(200).send(storedWallet);
+          } else {
+            console.log("⚡️⚡️ saved data expired");
+          }
         }
         if (storedWallet.status === 404) {
           console.log("⚡️⚡️404 not found error, cache dates", storedWallet.cache, Date.now() - storedWallet.cache);
@@ -656,7 +660,7 @@ async function register({
         }
         if (!foundLightningAddress && account.fields) {
           for (var field of account.fields) {
-            if (field.name === "Lightning Address" || field.name === "LUD16") {
+            if (field.name.toLowerCase() === "lightning address" || field.name.toLowerCase() === "lud16") {
               foundLightningAddress = field.value;
             }
           }
@@ -2197,11 +2201,12 @@ async function register({
   router.use('/clearedinvoice', async (req, res) => {
     let suid = req.body.payer_name + (Math.round(parseInt(req.body.creation_date) / 10));
     if (invoices.includes(suid)) {
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️duplicate payment ", suid);
       return res.status(200).send();
     }
     invoices.push(suid);
     if (enableDebug) {
-      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", suid, req.query, req.body);
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", suid, req.query, req.body, req.headers);
     }
     let tip = req.body.fiat_in_cents.toString();
     if (simpletipToken && tip > 1000) {
@@ -2393,6 +2398,9 @@ async function register({
       return res.status(420).send ("malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
+    if (!user || !user.dataValues){
+      return res.status(420).send ("unable to confirm authorized user making request");
+    }
     let userName;
     if (user && user.dataValues) {
       userName = user.dataValues.username;
@@ -2403,7 +2411,7 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️ user", userName);
       }
     }
-
+    
     let newSubscription = {
       user: userName,
       channel: req.body.channel,
@@ -2610,10 +2618,12 @@ async function register({
     const match = text.match(
       /((⚡|⚡️):?|lightning:|lnurl:)\s?([\w-.]+@[\w-.]+[.][\w-.]+)/i
     );
+    console.log("⚡️⚡️ match", match);
     if (match) return match[3];
     const matchAlbyLink = text.match(
       /http(s)?:\/\/(www[.])?getalby\.com\/p\/(\w+)/
     );
+    console.log("⚡️⚡️ match", matchAlbyLink);
     if (matchAlbyLink) {
 
       return matchAlbyLink[3] + "@getalby.com";

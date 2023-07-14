@@ -1,5 +1,10 @@
+v 4.4.4
+- expire old cached wallet data
+- fix case issue with lud16 addresses
+- fix streamlabs funding string parse issue specific to clownfish
+
 v 4.4.3
-- fixed ably authentication error
+- fixed alby authentication error
 
 v 4.4.2
 - fixed issue with persistent live UUID including date
