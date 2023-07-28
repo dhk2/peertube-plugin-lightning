@@ -2,6 +2,8 @@ v 4.4.4
 - expire old cached wallet data
 - fix case issue with lud16 addresses
 - fix streamlabs funding string parse issue specific to clownfish
+- Change boost-url and boost-link to better support peertube internal rss
+- Fix error when skipping boosts <3 sats
 
 v 4.4.3
 - fixed alby authentication error

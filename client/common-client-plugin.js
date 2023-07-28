@@ -386,6 +386,75 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
   })
 
+    registerHook({
+    target: 'action:video-channel-videos.video-channel.loaded',
+    handler: async (result, params) => {
+      if (debugEnabled) {
+        console.log("⚡️ chanel loaded result ", result,"params:", params)
+      }
+
+      let buttonSpot= document.getElementsByClassName("channel-buttons");
+      let buttonHtml = document.createElement("div");
+      let subscribed,subApi;
+      try {
+        subApi=basePath + `/getsubscriptions?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`
+        console.log("trying to get subscription",subApi);
+        subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
+        if (subscribed && subscribed.data) {
+          console.log("⚡️subscribed ",subscribed.data);
+        } else {
+          console.log("⚡️didn't get good subscriptiondata");
+        }
+      } catch (err) {
+         console.log("⚡️error attempting to get subscribed status", subApi, err);
+      }
+      if (subscribed && subscribed.data){
+        buttonHtml.innerHTML="<button id='depatronize-channel'>De-Patronize</button>"
+      } else {
+        buttonHtml.innerHTML="<button id='patronize-channel'>Patronize</button>"
+      }
+      buttonSpot[0].appendChild(buttonHtml);
+      let subscribeButton = document.getElementById("patronize-channel");
+      let unsubscribeButton = document.getElementById("depatronize-channel")
+      if (subscribeButton){
+        subscribeButton.onclick = async function () {
+          console.log("!! subscribo !!");
+          let body={
+            user: userName,
+            channel: result.videoChannel.nameWithHostForced,
+            amount: 69,
+            public: true,
+            type: 'daily'
+          }
+          let subscribe;
+          try {
+            subApi=basePath + `/createsubscription`
+            subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
+            if (subscribe && subscribe.data) {
+              console.log("⚡️subscribe ",subscribe.data);
+            } else {
+              console.log("⚡️ unable to subscribe");
+            }
+          } catch (err) {
+            console.log("⚡️error attempting to subscribe", subApi, err);
+          }
+        }
+      } else {
+        console.log("no subscribe button");
+      }
+      if (unsubscribeButton){
+        unsubscribeButton.onclick = async function () {
+          console.log("!! un~subscribo !!");
+        }
+      } else {
+        console.log("no unsubscribe buitton");
+      }
+      //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`
+      return result;
+    }
+  })
+
+
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
@@ -1110,7 +1179,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     let remoteHost, remoteUser, localHost;
     amount = Math.floor(amount)
-    if (parseInt(amount) < 3) { return }
+    if (parseInt(amount) < 3) { return true }
 
     if (!from) {
       from = "Anon";
@@ -1189,30 +1258,34 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     /* okay, now i'm told episode guid is a the straight guid and not a url.
     if (window.location.href) {
       boost.episode_guid = window.location.href;
-      let parts = boost.episode_guid.split('/');
-      localHost = parts[2];
-      if (remoteHost) {
-        boost.episode_guid = "https://" + remoteHost + "/" + parts[3] + "/" + parts[4];
-        localHost = parts[2];
-      }
     }
     */
+    if (window.location.href) {
+      let parts = window.location.href.split('/');
+      localHost = parts[2];
+    }
+    console.log("Boost URL",boost.url,remoteHost,localHost);
     boost.boost_link = window.location.href;
     if (currentTime) {
       boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();
     }
     if (channelName) {
       if (remoteHost) {
-        boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+        //boost.url = window.location.protocol + "//" + remoteHost + "/plugins/lightning/router/podcast2?channel=" + channelName
+        boost.url = window.location.protocol + "//" + remoteHost + "/feeds/podcast/videos.xml?videoChannelId="+channelId;
       } else {
+        boost.url = window.location.protocol + "//" + localHost + "/feeds/podcast/videos.xml?videoChannelId="+channelId;
+        /*
         if (rssEnabled){
           boost.url = window.location.protocol + "//" + localHost + "/plugins/lightning/router/podcast2?channel=" + channelName
         } else {
-          boost.url = boost.url = window.location.protocol + "//" + localHost + "/feeds/podcast/videos.xml?videoChannelId="+channelId;
+          boost.url = window.location.protocol + "//" + localHost + "/feeds/podcast/videos.xml?videoChannelId="+channelId;
         }
+        */
       }
-
+      
     }
+    console.log("Boost URL",boost.url,remoteHost,localHost);
     if (episodeGuid) {
       let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
       try {

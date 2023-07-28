@@ -2420,13 +2420,15 @@ async function register({
       startdate: Date.now(),
       paiddays: 0,
       public: req.body.public,
-
+      pendingconfetti: 0,
     }
-    let subscriptions = storageManager.getData('subscriptions');
+    let subscriptions = await storageManager.getData('subscriptions');
     if (!subscriptions){
       subscriptions = [];
     }
+    console.log("⚡️⚡️⚡️⚡️ subscriptions plus new one",subscriptions,newSubscription);
     subscriptions.push(newSubscription);
+    console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     storageManager.storeData("subscriptions", subscriptions);
     return res.status(200).send("subscription created");
   })
@@ -2437,12 +2439,12 @@ async function register({
 
   })
   router.use('/getsubscriptions', async (req, res) => {
-    if (!req.body.channel || !req.body.user) {
+    if (!req.query.channel || !req.query.user) {
       return res.status(420).send("malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
-    let userName;
-    if (user && user.dataValues && (user.dataValues.username == req.body.user)) {
+    let userName = req.query.user;
+    if (user && user.dataValues && (user.dataValues.username == req.query.user)) {
       userName = user.dataValues.username;
       if (enableDebug) {
         console.log("███ got authorized peertube user", user.dataValues.username);
@@ -2451,21 +2453,27 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️ user", userName);
       }
     }
-    let subscriptions = storageManager.getData('subscriptions');
+    let subscriptions = await storageManager.getData('subscriptions');
     let list = [];
-    for (var sub in subscriptions){
+    console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+    for (var sub of subscriptions){
       console.log("⚡️⚡️⚡️⚡️ sub",sub);
-      if (!req.body.channel && req.body.user && (req.body.user == sub.user) && (sub.public || userName)){
+      if (!req.query.channel && req.query.user && (req.query.user == sub.user) && (sub.public || userName)){
         list.push(sub);
       } 
-      if (!req.body.user && req.body.channel && (req.body.channel == sub.channel) && (sub.public)) {
+      if (!req.query.user && req.query.channel && (req.query.channel == sub.channel) && (sub.public)) {
         list.push(sub);
       } 
-      if ((req.body.user && req.body.channel) && req.body.user == sub.user && req.body.channel == sub.channel && (sub.public || userName)){
+      if ((req.query.user && req.query.channel) && req.query.user == sub.user && req.query.channel == sub.channel && (sub.public || userName)){
         list.push(sub);
       }
     }
-    console.log("⚡️⚡️⚡️⚡️ found subscriptions", list);
+    console.log("⚡️⚡️⚡️⚡️ found subscriptions", list,list.length);
+    if (list.length>0){
+      return res.status(200).send(list);
+    } else {
+      return res.status(200).send();
+    }
   })
   async function saveSplit(uuid, split) {
     try {
