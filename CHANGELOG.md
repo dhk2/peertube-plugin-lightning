@@ -1,3 +1,6 @@
+v 4.4.5
+- fix stupid subscripting iterating error
+
 v 4.4.4
 - expire old cached wallet data
 - fix case issue with lud16 addresses

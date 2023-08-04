@@ -2456,6 +2456,7 @@ async function register({
     let subscriptions = await storageManager.getData('subscriptions');
     let list = [];
     console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+    /*
     for (var sub of subscriptions){
       console.log("⚡️⚡️⚡️⚡️ sub",sub);
       if (!req.query.channel && req.query.user && (req.query.user == sub.user) && (sub.public || userName)){
@@ -2468,6 +2469,7 @@ async function register({
         list.push(sub);
       }
     }
+    */
     console.log("⚡️⚡️⚡️⚡️ found subscriptions", list,list.length);
     if (list.length>0){
       return res.status(200).send(list);
