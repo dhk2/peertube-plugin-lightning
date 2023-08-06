@@ -1,5 +1,8 @@
+v 4.4.6
+- added routes and ui to patronize and depatronize channels
+
 v 4.4.5
-- fix stupid subscripting iterating error
+- fix stupid subscription iterating error
 
 v 4.4.4
 - expire old cached wallet data

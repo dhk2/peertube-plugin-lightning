@@ -392,64 +392,76 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       if (debugEnabled) {
         console.log("⚡️ chanel loaded result ", result,"params:", params)
       }
-
+      if (document.getElementById("patronize-channel")){
+        console.log("buttons already exist");
+        return;
+      }
       let buttonSpot= document.getElementsByClassName("channel-buttons");
       let buttonHtml = document.createElement("div");
       let subscribed,subApi;
       try {
-        subApi=basePath + `/getsubscriptions?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`
+        subApi=basePath + `/getsubscriptions?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`;
         console.log("trying to get subscription",subApi);
         subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
+        console.log("subscription result",subscribed);
         if (subscribed && subscribed.data) {
           console.log("⚡️subscribed ",subscribed.data);
         } else {
-          console.log("⚡️didn't get good subscriptiondata");
+          console.log("⚡️didn't get good subscription data");
         }
+        console.log("subscription result",subscribed,buttonHtml.innerHTML);
       } catch (err) {
          console.log("⚡️error attempting to get subscribed status", subApi, err);
       }
-      if (subscribed && subscribed.data){
-        buttonHtml.innerHTML="<button id='depatronize-channel'>De-Patronize</button>"
-      } else {
-        buttonHtml.innerHTML="<button id='patronize-channel'>Patronize</button>"
-      }
+      buttonHtml.innerHTML="<button id='depatronize-channel'>De-Patronize</button><button id='patronize-channel'>Patronize</button>";
       buttonSpot[0].appendChild(buttonHtml);
       let subscribeButton = document.getElementById("patronize-channel");
-      let unsubscribeButton = document.getElementById("depatronize-channel")
-      if (subscribeButton){
-        subscribeButton.onclick = async function () {
-          console.log("!! subscribo !!");
-          let body={
-            user: userName,
-            channel: result.videoChannel.nameWithHostForced,
-            amount: 69,
-            public: true,
-            type: 'daily'
-          }
-          let subscribe;
-          try {
-            subApi=basePath + `/createsubscription`
-            subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
-            if (subscribe && subscribe.data) {
-              console.log("⚡️subscribe ",subscribe.data);
-            } else {
-              console.log("⚡️ unable to subscribe");
-            }
-          } catch (err) {
-            console.log("⚡️error attempting to subscribe", subApi, err);
-          }
-        }
+      let unsubscribeButton = document.getElementById("depatronize-channel");
+      if (subscribed && subscribed.data){
+        subscribeButton.style.visibility="hidden";
+        unsubscribeButton.style.visibility="visible";
       } else {
-        console.log("no subscribe button");
+        subscribeButton.style.visibility="visible";
+        unsubscribeButton.style.visibility="hidden";
       }
-      if (unsubscribeButton){
-        unsubscribeButton.onclick = async function () {
-          console.log("!! un~subscribo !!");
+      subscribeButton.onclick = async function () {
+        console.log("!! subscribo !!");
+        let body={
+          user: userName,
+          channel: result.videoChannel.nameWithHostForced,
+          amount: 69,
+          public: true,
+          type: 'daily'
         }
-      } else {
-        console.log("no unsubscribe buitton");
+        let subscribe;
+        try {
+          subApi=basePath + `/createsubscription`
+          subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
+          if (subscribe && subscribe.data) {
+            console.log("⚡️subscribe ",subscribe.data);
+          } else {
+            console.log("⚡️ unable to subscribe");
+          }
+        } catch (err) {
+          console.log("⚡️error attempting to subscribe", subApi, err);
+        }
+        subscribeButton.style.visibility="hidden";
+        unsubscribeButton.style.visibility="visible";
       }
-      //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`
+      unsubscribeButton.onclick = async function () {
+        console.log("!! un~subscribo !!");
+        try {
+          subApi=`${basePath}/deletesubscription?user=${userName}&channel=${result.videoChannel.nameWithHostForced}`;
+          console.log("attempting to delete subscription",subApi)
+          await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
+          console.log("unsubscribed");
+        } catch (err) {
+          console.log("⚡️error attempting to unsubscribe", subApi, err);
+        }
+        subscribeButton.style.visibility="visible";
+        unsubscribeButton.style.visibility="hidden";
+      }
+      //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`;
       return result;
     }
   })
@@ -458,7 +470,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
-      let buttonBlock = document.getElementsByClassName('tip-buttons-block')
+      let buttonBlock = document.getElementsByClassName('tip-buttons-block');
       if (buttonBlock.length > 0) {
         buttonBlock[0].remove();
       }
