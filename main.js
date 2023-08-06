@@ -2776,197 +2776,14 @@ async function register({
       let walletApiUrl = "https://api.getalby.com/payments/keysend"
       let data = {crap:true};
       console.log("-=--=-=-=-=-", data, boostHeaders, walletApiUrl,albyToken)
-var storedSplitData;
-    if (req.query.video) {
-      storedSplitData = await getSavedSplit(req.query.video);
-      if (storedSplitData) {
-        return res.status(200).send(storedSplitData);
-      }
-      let parts;
-      if (req.query.channel) {
-        parts = req.query.channel.split("@");
-        if (parts.length > 1) {
-          var apiCall = "https://" + parts[1] + "/plugins/lightning/router/getsplit?video=" + req.query.video;
-          let remoteSplit;
-          try {
-            remoteSplit = await axios.get(apiCall);
-          } catch {
-            console.log("⚡️⚡️unable to fetch remote split data", apiCall);
-          }
-          if (remoteSplit) {
-            if (enableDebug) {
-              console.log("⚡️⚡️returning remote split", apiCall, remoteSplit.data);
-            }
-            return res.status(200).send(remoteSplit.data);
-          }
-        }
-      }
-      //if no channel provided for video, need to look it up channel
-      if (!req.query.channel) {
-        var apiCall = base + "/api/v1/videos/" + req.query.video;
-        let videoData;
-        try {
-          videoData = await axios.get(apiCall);
-        } catch {
-          console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
-        }
-        if (videoData) {
-          let videoChannel = videoData.data.channel.name;
-          let videoHost = "https://" + videoData.data.channel.host;
-          storedSplitData = await getSavedSplit(videoChannel);
-          console.log("⚡️⚡️retrieved chaNNEL split info for video", videoChannel, storedSplitData);
-          if (storedSplitData) {
-
-            return res.status(200).send(storedSplitData);
-          }
-          if (videoHost != base) {
-            remoteWalletApi = videoHost + "/plugins/lightning/router/getsplit?channel=" + channel.name;
-            let remoteSplitData;
-            try {
-              remoteSplitData = await axios.get(remoteWalletApi);
-            } catch {
-              console.log("failed to pull remote split info", apiCall);
-            }
-            if (remoteSplitData) {
-              return res.status(200).send(remoteSplitData);
-            }
-          }
-          //let split
-          console.log("⚡️⚡️channels", videoData.data.channel);
-          let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support + " " + videoData.data.channel.description + " " + videoData.data.channel.support + " " + videoData.data.account.description);
-          if (foundLightningAddress) {
-            console.log("⚡️⚡️lightning address found in video description [" + foundLightningAddress + ']');
-            let keysendData = await getKeysendInfo(foundLightningAddress);
-            let lnurlData = await getLnurlInfo(foundLightningAddress);
-            if (lnurlData || keysendData) {
-              let walletData = {};
-              walletData.address = foundLightningAddress;
-              if (keysendData) {
-                walletData.keysend = keysendData;
-                console.log("⚡️⚡️successfully retrieved keysend data for wallet in video", videoData.data.channel.name, keysendData);
-                //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-              }
-              if (lnurlData) {
-                walletData.lnurl = lnurlData;
-                console.log("⚡️⚡️successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
-                //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-              }
-              if (walletData.keysend) {
-                if (walletData.address.indexOf("fountain.fm") > 0) {
-                  walletData.keysend = null;
-                }
-              }
-              var splitData = new Array();
-              walletData.split = 100;
-              splitData.push(walletData);
-              if (hostWalletData && (videoHost == base)) {
-                splitData[0].split = 100 - hostWalletData.split;
-                splitData.push(hostWalletData);
-              }
-              try {
-                await storageManager.storeData("lightningsplit" + "-" + req.query.video, splitData);
-              } catch {
-                console.log("⚡️⚡️failed to store lightning split", req.query.video, splitData);
-              }
-              return res.status(200).send(splitData);
-            } else {
-              console.log("⚡️⚡️lightning address in video description does not resolve", foundLightningAddress);
-            }
-          } else {
-            console.log("⚡️⚡️no lightning address found in video description");
-          }
-        }
-      }
-      //console.log("unable to find any split info in video data");
-      //return res.status(400).send();
-    }
-    if (req.query.channel) {
+      var storedSplitData;
       var storedSplitData;
       try {
-        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
+        storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
       } catch {
-        console.log("⚡️⚡️failed to get lightning split", req.query.channel);
+        console.log("⚡️⚡️failed to get lightning split", channel);
       }
-      if (storedSplitData) {
-        for (var splitSlot in storedSplitData) {
-          if (storedSplitData[splitSlot].fee) {
-            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", storedSplitData[splitSlot].address, storedSplitData[splitSlot].split);
-            storedSplitData[splitSlot] = hostWalletData;
-            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", storedSplitData[splitSlot].address, storedSplitData[splitSlot].split);
-          }
-        }
-        return res.status(200).send(storedSplitData);
-      }
-      let remoteHost, remoteChannel;
-      if (req.query.channel.indexOf("@") > 1) {
-        let channelParts = req.query.channel.split("@");
-        remoteHost = channelParts[1];
-        remoteChannel = channelParts[0];
-      }
-      var apiCall;
-      if (remoteHost) {
-        console.log("⚡️⚡️getting remote data");
-        apiCall = "https://" + remoteHost + "/plugins/lightning/router/getsplit?channel=" + remoteChannel;
-        let remoteSplit;
-        try {
-          remoteSplit = await axios.get(apiCall);
-        } catch {
-          console.log("⚡️⚡️unable to fetch remote split data", apiCall);
-        }
-        if (remoteSplit) {
-          if (enableDebug) {
-            console.log("⚡️⚡️returning remote split", apiCall, remoteSplit.data);
-          }
-          return res.status(200).send(remoteSplit.data);
-        }
-      }
-      var storedSplitData;
-      try {
-        storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.channel);
-      } catch {
-        console.log("⚡️⚡️failed to get stored lightning split", req.query.channel);
-      }
-      if (storedSplitData) {
-        for (var splitSlot in storedSplitData) {
-          if (storedSplitData[splitSlot].fee) {
-            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", storedSplitData[splitSlot].address, storedSplitData[splitSlot].split);
-            storedSplitData[splitSlot] = hostWalletData;
-            console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", storedSplitData[splitSlot].address, storedSplitData[splitSlot].split);
-          }
-        }
-        return res.status(200).send(storedSplitData);
-      }
-      let remoteHost, remoteChannel;
-      if (req.query.channel.indexOf("@") > 1) {
-        let channelParts = req.query.channel.split("@");
-        remoteHost = channelParts[1];
-        remoteChannel = channelParts[0];
-      }
-      var apiCall;
-      if (remoteHost) {
-        console.log("⚡️⚡️getting remote data");
-        apiCall = "https://" + remoteHost + "/plugins/lightning/router/getsplit?channel=" + remoteChannel;
-        let remoteSplit;
-        try {
-          remoteSplit = await axios.get(apiCall);
-        } catch {
-          console.log("⚡️⚡️unable to fetch remote split data", apiCall);
-        }
-        if (remoteSplit) {
-          if (enableDebug) {
-            console.log("⚡️⚡️returning remote split", apiCall, remoteSplit.data);
-          }
-          return res.status(200).send(remoteSplit.data);
-        }
-      }
-
-
-
-
-
-
-      return;
+      // need to generate split blocks data her zoinks.
       try {
         albyWalletData = await axios.post(walletApiUrl, data, boostHeaders)
       } catch (err) {
@@ -2999,9 +2816,7 @@ var storedSplitData;
         }
       }
       return res.status(200).send(true);
-    } else {
-      return res.status(420).send(false);
-    }
+    } 
   }
 
   async function refreshAlbyToken(refreshToken) {
