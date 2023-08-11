@@ -387,6 +387,16 @@ async function register({
         };
         customObjects.push(captionItem);
       }
+      let hackItem = {
+        name: "test:testes",
+        attributes: {
+          "url": captionPath,
+          "language": captionLanguage,
+          "type": type,
+          "rel": "captions"
+        }
+      };
+      customObjects.push(hackItem);
       var apiCall = base + "/api/v1/videos/" + videoUuid;
       let videoData;
       try {
@@ -2777,11 +2787,11 @@ async function register({
       let data = {crap:true};
       console.log("-=--=-=-=-=-", data, boostHeaders, walletApiUrl,albyToken)
       var storedSplitData;
-      var storedSplitData;
       try {
         storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
       } catch {
-        console.log("⚡️⚡️failed to get lightning split", channel);
+        console.log("⚡️⚡️hard failed to get lightning split", channel);
+        return;
       }
       // need to generate split blocks data her zoinks.
       try {
