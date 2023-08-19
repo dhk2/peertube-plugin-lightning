@@ -892,7 +892,7 @@ async function register({
     
   })
   router.use('/dirtyhack', async (req, res) => {
-    //console.log("dirty hack",req.body)
+    console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack)
     return res.status(200).send(dirtyHack);
   });
   router.use('/setWallet', async (req, res) => {
@@ -2133,7 +2133,7 @@ async function register({
       let walletApiUrl = "https://api.getalby.com/payments/keysend"
       let data = req.body;
       console.log("-=--=-=-=-=-", data, headers, walletApiUrl)
-      dirtyhack=data;
+      dirtyHack=data;
       try {
         albyWalletData = await axios.post(walletApiUrl, data, headers)
       } catch (err) {
@@ -2254,7 +2254,7 @@ async function register({
       }
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
     }
-    if (botToken && req.body.boostagram.message) {
+    if (botToken && req.body.boostagram && req.body.boostagram.message) {
       let source = "";
       if (req.body.boostagram.app_name != "PeerTube") {
         source = "using " + req.body.boostagram.app_name;
@@ -2477,17 +2477,20 @@ async function register({
     console.log("⚡️⚡️⚡️⚡️ deleting subs",userName,channel);
     let subscriptions = await storageManager.getData('subscriptions');
     let list = [];
+    let subs = [];
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     if (subscriptions){
       for (var sub of subscriptions){
-        console.log("⚡️⚡️⚡️⚡️ subscription",sub);
+        //console.log("⚡️⚡️⚡️⚡️ subscription",sub);
         if (userName != sub.user || channel != sub.channel){
           list.push(sub);
+          subs.push(sub.channel)
         } else {
           console.log("⚡️⚡️⚡️⚡️ deleted subscription",sub)
         }
       }
       storageManager.storeData("subscriptions", list);
+      console.log("⚡️⚡️⚡️⚡️ Saving subscriptions", subs);
       return res.status(200).send("subscription deleted");
     }
     console.log("⚡️⚡️⚡️⚡️ found subscriptions", list,list.length);
@@ -2796,22 +2799,45 @@ async function register({
       let boostHeaders = { headers: { "Authorization": `Bearer ` + albyToken } }
       let walletApiUrl = "https://api.getalby.com/payments/keysend/multi"
       let data = {crap:true};
-      console.log("-=--=-=-=-=-", data, boostHeaders, walletApiUrl,albyToken)
+      console.log("⚡️⚡️", data, boostHeaders, walletApiUrl,albyToken)
       var storedSplitData;
+      // try getting cached split info with full address
       try {
         storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel);
       } catch {
-        console.log("⚡️⚡️hard failed to get lightning split", channel);
-        return;
+        console.log("⚡️⚡️hard failed to get lightning split with full address", channel);
+        //return;
       }
-      if (!storedSplitData && channel.indexOf('@')>1){
+      let remoteChannel,host,remoteApi;
+      if (channel.indexOf('@')>1){
+        remoteChannel= channel.split('@')[0];
+        host = channel.split('@')[1];
+        remoteApi = "https://"+host+"/plugins/lightning/router/getsplit?channel="+remoteChannel;
+      }
+      console.log("⚡️⚡️ get split info", channel,remoteChannel,host, remoteApi);
+      //try for local stored split data
+      if (!storedSplitData && host){
         try {
-          storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel.split("@")[0]);
+          storedSplitData = await storageManager.getData("lightningsplit" + "-" + remoteChannel);
         } catch {
           console.log("⚡️⚡️hard failed to get lightning split for local channel", channel);
-          return;
+          //return;
         }
-      }
+        //try plugin API
+        if (!storedSplitData){
+          try {
+            let splitData = await axios.get(remoteApi);
+            storedSplitData = splitData.data;
+            console.log("⚡️⚡️ remoteApi call", remoteApi,storedSplitData);
+          }
+          catch {
+            console.log("⚡️⚡️hard failed to get lightning split via api", channel,remoteApi);
+            //return;
+          }
+        }
+      }  
+      
+      
       if (!storedSplitData){
         console.log("⚡️⚡️unable to get split bock for channel", channel);
         return;
@@ -2855,10 +2881,26 @@ async function register({
             }
           };
         }
-
+// could not get multipayment working, here's a hack to send the pieces individually
+if (albyData && albyData.access_token) {
+  let albyToken = albyData.access_token
+  let albyWalletData
+  let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
+  let walletApiUrl = "https://api.getalby.com/payments/keysend"
+  console.log("-=--=-=-=-=-testes", data, headers, walletApiUrl)
+  dirtyHack=data;
+  try {
+    albyWalletData = await axios.post(walletApiUrl, keysend, headers)
+  } catch (err) {
+    console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
+    albyWalletData = err.response.status;
+  }
+}
+//
 
         boosts.push(keysend);
       }
+      return;
       dirtyHack=boosts
       console.log("-=--=-goku-=-=-=-", boosts,boosts[0],boosts[0].custom_records);
 

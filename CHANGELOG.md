@@ -1,5 +1,7 @@
 v 4.4.6
 - added routes and ui to patronize and depatronize channels
+- switched to multiple transaction for subscriptions and working perfectly
+
 
 v 4.4.5
 - fix stupid subscription iterating error
