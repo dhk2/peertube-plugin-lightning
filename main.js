@@ -262,7 +262,7 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoChannelModel }
       const { videoChannel } = params
-      dirtyHack = params;
+      //dirtyHack = params;
       //console.log("⚡️⚡️⚡️⚡️ initial channel values ⚡️⚡️⚡️⚡️",params.videoChannel.dataValues.Actor.dataValues.Banners,params.videoChannel.dataValues.Actor.dataValues.Avatars, params);
       console.log("⚡️⚡️⚡️⚡️ initial channel values ⚡️⚡️⚡️⚡️");
       var channel = params.videoChannel.dataValues.Actor.dataValues.preferredUsername;
@@ -313,7 +313,7 @@ async function register({
       const { video, liveItem } = params
       //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video);
       if (liveItem) {
-        dirtyHack = params;
+       //dirtyHack = params;
       }
       var videoUuid = params.video.dataValues.uuid;
       var storedSplitData = await getSavedSplit(videoUuid);
@@ -387,16 +387,18 @@ async function register({
         };
         customObjects.push(captionItem);
       }
-      let hackItem = {
-        name: "test:testes",
+      /*let hackItem = {
+        name: "enclosure",
         attributes: {
-          "url": captionPath,
-          "language": captionLanguage,
-          "type": type,
-          "rel": "captions"
+          "url": "https://google.com?",
+          "language": "explicit",
+          "type": "hornypost",
+          "rel": "testes"
         }
       };
+      console.log("⚡️⚡️\n\n\n\n\n\nfailed to pull information for provided video id", hackItem);
       customObjects.push(hackItem);
+      */
       var apiCall = base + "/api/v1/videos/" + videoUuid;
       let videoData;
       try {
@@ -2131,6 +2133,7 @@ async function register({
       let walletApiUrl = "https://api.getalby.com/payments/keysend"
       let data = req.body;
       console.log("-=--=-=-=-=-", data, headers, walletApiUrl)
+      dirtyhack=data;
       try {
         albyWalletData = await axios.post(walletApiUrl, data, headers)
       } catch (err) {
@@ -2153,7 +2156,15 @@ async function register({
         if (response && response.data) {
           console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
           storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+          albyToken = response.data.access_token;
         }
+      }
+      headers = { headers: { "Authorization": `Bearer ` + albyToken } }
+      try {
+        albyWalletData = await axios.post(walletApiUrl, data, headers)
+      } catch (err) {
+        console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
+        return res.status(420);
       }
       return res.status(200).send(true);
     } else {
@@ -2783,7 +2794,7 @@ async function register({
       let albyToken = albyData.access_token
       let albyWalletData
       let boostHeaders = { headers: { "Authorization": `Bearer ` + albyToken } }
-      let walletApiUrl = "https://api.getalby.com/payments/keysend"
+      let walletApiUrl = "https://api.getalby.com/payments/keysend/multi"
       let data = {crap:true};
       console.log("-=--=-=-=-=-", data, boostHeaders, walletApiUrl,albyToken)
       var storedSplitData;
@@ -2793,11 +2804,68 @@ async function register({
         console.log("⚡️⚡️hard failed to get lightning split", channel);
         return;
       }
+      if (!storedSplitData && channel.indexOf('@')>1){
+        try {
+          storedSplitData = await storageManager.getData("lightningsplit" + "-" + channel.split("@")[0]);
+        } catch {
+          console.log("⚡️⚡️hard failed to get lightning split for local channel", channel);
+          return;
+        }
+      }
+      if (!storedSplitData){
+        console.log("⚡️⚡️unable to get split bock for channel", channel);
+        return;
+      }
       // need to generate split blocks data her zoinks.
+      let boosts=[];
+      for (var payee of storedSplitData){
+        console.log("payee",payee);
+        let splitAmount = Math.trunc(amount*payee.split/100)
+        let msat = splitAmount*1000;
+        let totalAmount= amount*1000;
+        let boost = {
+          "app_name": "PeerTube",
+          "value_msat_total": totalAmount, // TOTAL Number of millisats for the payment (all splits together, before fees. The actual number someone entered in their player, for numerology purposes.)
+          "value_msat": msat, // Number of millisats for this split payment
+          "podcast": channel,
+          "action": "auto",
+          "name": channel,
+          "sender_name": user,
+          "message": message
+
+        }
+        let keysend;
+        if (payee.keysend.customData){
+          let customKeyHack = payee.keysend.customData[0].customKey;
+          let customValue = payee.keysend.customData[0].customValue;
+          keysend = {
+            'destination': payee.keysend.pubkey,
+            'amount': splitAmount,
+            'customRecords': {
+              7629169: JSON.stringify(boost),
+              [customKeyHack]: customValue,
+            }
+          };
+        } else {
+          keysend = {
+            'destination': payee.keysend.pubkey,
+            'amount': splitAmount,
+            'customRecords': {
+              7629169: JSON.stringify(boost),
+            }
+          };
+        }
+
+
+        boosts.push(keysend);
+      }
+      dirtyHack=boosts
+      console.log("-=--=-goku-=-=-=-", boosts,boosts[0],boosts[0].custom_records);
+
       try {
-        albyWalletData = await axios.post(walletApiUrl, data, boostHeaders)
+        albyWalletData = await axios.post(walletApiUrl, boosts, boostHeaders)
       } catch (err) {
-        console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
+        console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err);
         albyWalletData = err.response.status;
       }
       if (albyWalletData == 401) {
@@ -2825,7 +2893,7 @@ async function register({
           }
         }
       }
-      return res.status(200).send(true);
+      return;
     } 
   }
 

@@ -1,9 +1,27 @@
-{"@context":["https://www.w3.org/ns/activitystreams",
-{"receiver":"vf:receiver",
-"vf":"https://w3id.org/valueflows/",
-"provider":"vf:provider",
-"resourceConformsTo":"vf:resourceConformsTo",
-"resourceQuantity":"vf:resourceQuantity",
-"publishes":"vf:publishes",
-"Intent":"vf:Intent","hasUnit":"om2:hasUnit","action":"vf:action","resourceClassifiedAs":"vf:resourceClassifiedAs","hasNumericalValue":"om2:hasNumericalValue","om2":"http://www.ontology-of-units-of-measure.org/resource/om-2/","Proposal":"vf:Proposal","reciprocal":"vf:reciprocal"}],"type":"Proposal","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270","name":"Pay for subscription","publishes":{"type":"Intent","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270#service","action":"deliverService","resourceClassifiedAs":"https://www.wikidata.org/wiki/Q1260632","resourceQuantity":{"hasUnit":"second","hasNumericalValue":"1"},"provider":"https://mitra.social/users/silverpill"},"reciprocal":{"type":"Intent","id":"https://mitra.social/users/silverpill/proposals/monero:418015bb9ae982a1975da7d79277c270#payment","action":"transfer",
-"resourceConformsTo":"caip:19:monero:418015bb9ae982a1975da7d79277"resourceQuantity":{"hasUnit":"one","hasNumericalValue":"7716"},"receiver":"https://mitra.social/users/silverpill"}
+[
+    {
+        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "amount": 65,
+        "customRecords": {
+            "696969": "7AIrKi4oNyO6ndZUWIEo",
+            "7629169": "{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":65000,\"podcast\":\"clipshow@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"clipshow@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"
+        }
+    },
+    {
+        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "amount": 3,
+        "customRecords": {
+            "696969": "ukPtJhg4rq1RaSdQlrYs",
+            "7629169": "{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":3000,\"podcast\":\"clipshow@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"clipshow@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"
+        }
+    }
+]
+
+    {
+        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+        "amount": 3,
+        "customRecords": {
+            "696969": "ukPtJhg4rq1RaSdQlrYs",
+            "7629169": "{\"action\":\"boost\",\"value_msat\":3000,\"value_msat_total\":69000,\"app_name\":\"PeerTube\",\"app_version\":\"4.4.6\",\"name\":\"Matt Christiansen Media\",\"sender_name\":\"marc\",\"message\":\"for the horde\\n\",\"ts\":8,\"podcast\":\"marc_duquesne\",\"episode\":\"Breitbart - WAR -- _Language Warning_-1138p-hls\",\"episode_guid\":\"635e8082-93c7-4be3-b037-e7298d7344eb\",\"boost_link\":\"https://tv.mattchristiansenmedia.com/w/dgG3ThLwwDCZDHLcHx5A1T?start=8\",\"url\":\"https://tv.mattchristiansenmedia.com/feeds/podcast/videos.xml?videoChannelId=19\",\"guid\":\"d3b12e67-9350-4e78-a1e3-5fccf5d01145\",\"reply_address\":\"mcduquesne@getalby.com\"}"
+        }
+    }
