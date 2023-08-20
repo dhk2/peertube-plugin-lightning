@@ -1,7 +1,9 @@
 v 4.4.6
 - added routes and ui to patronize and depatronize channels
 - switched to multiple transaction for subscriptions and working perfectly
-
+- refined dedicated alby token refresh function
+- initial auto payment working
+- setup up daily subscription servicing routine
 
 v 4.4.5
 - fix stupid subscription iterating error

@@ -4,6 +4,7 @@ const { channel } = require('diagnostics_channel');
 const { version } = require('./package.json');
 const fs = require('fs');
 const { Console } = require('console');
+const { waitForDebugger } = require('inspector');
 
 //const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
 async function register({
@@ -132,7 +133,8 @@ async function register({
     descriptionHTML: 'This will create more extensive logging of program state data both client and server side for finding and resolving errors ',
     private: false
   })
-
+  var timeCheck=new Date().getDay();
+  console.log("⚡️⚡️⚡️⚡️ time stamp",timeCheck);
   var base = await peertubeHelpers.config.getWebserverUrl();
   var serverConfig = await peertubeHelpers.config.getServerConfig();
   var hostName = serverConfig.instance.name;
@@ -241,7 +243,14 @@ async function register({
     handler: async (video) => {
       if (!video) return video
       if (!video.pluginData) video.pluginData = {}
-
+      var check=new Date().getDay();
+      if (timeCheck != check) {
+        timeCheck = check;
+        console.log ("⚡️⚡️ new day",timeCheck);
+        doSubscriptions();
+      } else {
+        console.log ("⚡️⚡️ same day",timeCheck);
+      }
       const seasonNode = await storageManager.getData('seasonnode-' + video.id)
       video.pluginData["seasonnode"] = seasonNode;
       const seasonName = await storageManager.getData('seasonname-' + video.id)
@@ -801,7 +810,7 @@ async function register({
     let totalSize = lines.length;
     while (counter<totalSize){
       let line = lines[counter];
-      console.log(`⚡️line${counter}:`,line)
+      //console.log(`⚡️line${counter}:`,line)
       counter++;
       spacer = line.split("<")[0];
       if (line.includes("Toraifōsu") && podData && podData.data) {
@@ -893,6 +902,7 @@ async function register({
   })
   router.use('/dirtyhack', async (req, res) => {
     console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack)
+    doSubscriptions();
     return res.status(200).send(dirtyHack);
   });
   router.use('/setWallet', async (req, res) => {
@@ -2196,14 +2206,12 @@ async function register({
       console.log('⚡️⚡️⚡️⚡️ response', response, albyWalletData);
       if (albyWalletData == 401) {
         console.log('⚡️⚡️⚡️⚡️ attempting to refresh token');
-        let newToken = await refreshAlbyToken(albyData.refresh_token);
-        if (newToken && newToken.data) {
-
-          console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", newToken.data);
-          storageManager.storeData("alby-" + botAccount.replace(/\./g, "-"), newToken.data);
+        response = await refreshAlbyToken(albyData,botAccount);
+        if (response) {
+          headers = { headers: { "Authorization": `Bearer ` + response.access_token } }
           try {
             response = await axios.post(albyHook, body, headers)
-            return res.status(200).send(response.data);
+            return res.status(200).send(response);
           } catch (err) {
             console.log("\n⚡️⚡️⚡️⚡️error attempting to set webhook\n", err);
             albyWalletData = err.response.status;
@@ -2401,18 +2409,24 @@ async function register({
       let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
       try {
         response = albyWalletData = await axios.get(albyHook, body, headers)
-        return response;
+        return res.status(200).send(response);
+      } catch (err) {
+        console.log("\n⚡️⚡️⚡️⚡️error attempting to get webhook\n", err);
+        albyWalletData = err.response.status;
+      }
+      let newToken = await refreshAlbyToken(albyData,botAccount);
+      headers = { headers: { "Authorization": `Bearer ` + newToken.access_token} }
+      try {
+        response = albyWalletData = await axios.get(albyHook, body, headers)
+        return res.status(200).send(response);
       } catch (err) {
         console.log("\n⚡️⚡️⚡️⚡️error attempting to get webhook\n", err);
         albyWalletData = err.response.status;
       }
       console.log('⚡️⚡️⚡️⚡️ response', response, albyWalletData);
-      let newToken = refreshAlbyToken(albyData.refresh_token);
-      return res.status(200).send(newToken);
-    } else {
-      console.log('⚡️⚡️⚡️⚡️ no stored wallet data for bot', botAccount);
     }
-
+    console.log('⚡️⚡️⚡️⚡️ no stored wallet data for bot', botAccount);
+    return res.status(404).send(response);
   })
   router.use('/createsubscription',async(req,res) => {
     if (!req.body.channel || !req.body.amount || !req.body.type){
@@ -2447,9 +2461,9 @@ async function register({
     if (!subscriptions){
       subscriptions = [];
     }
-    console.log("⚡️⚡️⚡️⚡️ subscriptions plus new one",subscriptions,newSubscription);
+    //console.log("⚡️⚡️⚡️⚡️ subscriptions plus new one",subscriptions,newSubscription);
     subscriptions.push(newSubscription);
-    console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+    //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     storageManager.storeData("subscriptions", subscriptions);
     sendPatronPayment(userName,req.body.channel,req.body.amount, "first patron payment");
     return res.status(200).send("subscription created");
@@ -2792,14 +2806,15 @@ async function register({
       console.log("⚡️⚡️sending patron payment", user, channel,amount,message);
     }
     let albyData = await storageManager.getData("alby-" + user.replace(/\./g, "-"));
-    console.log("⚡️⚡️stored data", albyData);
+    //console.log("⚡️⚡️stored data", albyData);
     if (albyData && albyData.access_token) {
       let albyToken = albyData.access_token
       let albyWalletData
       let boostHeaders = { headers: { "Authorization": `Bearer ` + albyToken } }
       let walletApiUrl = "https://api.getalby.com/payments/keysend/multi"
       let data = {crap:true};
-      console.log("⚡️⚡️", data, boostHeaders, walletApiUrl,albyToken)
+      let worked=0;
+      //console.log("⚡️⚡️", data, boostHeaders, walletApiUrl,albyToken)
       var storedSplitData;
       // try getting cached split info with full address
       try {
@@ -2814,7 +2829,7 @@ async function register({
         host = channel.split('@')[1];
         remoteApi = "https://"+host+"/plugins/lightning/router/getsplit?channel="+remoteChannel;
       }
-      console.log("⚡️⚡️ get split info", channel,remoteChannel,host, remoteApi);
+      //console.log("⚡️⚡️ get split info", channel,remoteChannel,host, remoteApi);
       //try for local stored split data
       if (!storedSplitData && host){
         try {
@@ -2828,7 +2843,7 @@ async function register({
           try {
             let splitData = await axios.get(remoteApi);
             storedSplitData = splitData.data;
-            console.log("⚡️⚡️ remoteApi call", remoteApi,storedSplitData);
+            //console.log("⚡️⚡️ remoteAp",i call remoteApi,storedSplitData);
           }
           catch {
             console.log("⚡️⚡️hard failed to get lightning split via api", channel,remoteApi);
@@ -2845,7 +2860,7 @@ async function register({
       // need to generate split blocks data her zoinks.
       let boosts=[];
       for (var payee of storedSplitData){
-        console.log("payee",payee);
+        //console.log("payee",payee);
         let splitAmount = Math.trunc(amount*payee.split/100)
         let msat = splitAmount*1000;
         let totalAmount= amount*1000;
@@ -2882,22 +2897,36 @@ async function register({
           };
         }
 // could not get multipayment working, here's a hack to send the pieces individually
-if (albyData && albyData.access_token) {
-  let albyToken = albyData.access_token
-  let albyWalletData
-  let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
-  let walletApiUrl = "https://api.getalby.com/payments/keysend"
-  console.log("-=--=-=-=-=-testes", data, headers, walletApiUrl)
-  dirtyHack=data;
-  try {
-    albyWalletData = await axios.post(walletApiUrl, keysend, headers)
-  } catch (err) {
-    console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
-    albyWalletData = err.response.status;
-  }
-}
-//
-
+        if (albyData && albyData.access_token) {
+          let albyToken = albyData.access_token
+          let albyWalletData
+          
+          let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
+          let walletApiUrl = "https://api.getalby.com/payments/keysend"
+          //console.log("-=--=-=-=-=-testes", data, headers, walletApiUrl)
+          dirtyHack=data;
+          try {
+            albyWalletData = await axios.post(walletApiUrl, keysend, headers);
+            //console.log("\n⚡️⚡️⚡️⚡️sent subscription\n", albyWalletData);
+          } catch (err) {
+            console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
+            albyWalletData = err.response.status;
+          }
+          if (albyWalletData === 401 ){
+            let newToken = refreshAlbyToken(albyData,user)
+            headers = { headers: { "Authorization": `Bearer ` + newToken.access_token } }
+            try {
+              albyWalletData = await axios.post(walletApiUrl, keysend, headers);
+              //console.log("\n⚡️⚡️⚡️⚡️sent subscription\n", albyWalletData);
+            } catch (err) {
+              console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost with refreshed token\n", err.response.status);
+            }
+          }
+          if (albyWalletData && albyWalletData.status == 200){
+            worked = worked+payee.split;
+          }
+        }
+        console.log("\n⚡️⚡️⚡️⚡️subscription paid",worked)
         boosts.push(keysend);
       }
       return;
@@ -2938,22 +2967,38 @@ if (albyData && albyData.access_token) {
       return;
     } 
   }
+  async function doSubscriptions() {
+    let subscriptions = await storageManager.getData('subscriptions');
+    let list = [];
+    //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+    if (subscriptions){
+      for (var sub of subscriptions){
+        console.log("⚡️⚡️⚡️⚡️ sub",sub);
+        
+      }
+    }
 
-  async function refreshAlbyToken(refreshToken) {
+  }
+    async function refreshAlbyToken(albyData,userName) {
     let response;
     console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     let albyUrl = 'https://api.getalby.com/oauth/token'
     var form = new URLSearchParams();
-    form.append('refresh_token', refreshToken);
+    form.append('refresh_token', albyData.refreshToken);
     form.append('grant_type', "refresh_token");
     let headers = { auth: { username: client_id, password: client_secret } };
 
     try {
       response = await axios.post(albyUrl, form, headers);
+      if (response.data){
+        console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
+        storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+        return response.data;
+      }
     } catch (err) {
       console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token", err, albyUrl, form);
     }
-    return response;
+    
   }
   function jsonToFormData(data) {
     const formData = new URLSearchParams();
