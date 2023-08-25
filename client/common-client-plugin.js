@@ -406,6 +406,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         console.log("subscription result",subscribed);
         if (subscribed && subscribed.data) {
           console.log("⚡️subscribed ",subscribed.data);
+          let pend = subscribed.data[0].pendingconfetti;
+          if (pend>0){
+            doConfetti(pend*69)
+            notifier.success(`patronized for ${pend} days of ${subscribed.data[0].paiddays}`)
+            let ccApi=basePath + `/clearconfetti?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`;
+            console.log("trying to clear confetti pending",ccApi);
+            subscribed = await axios.get( ccApi, { headers: await peertubeHelpers.getAuthHeader() });
+            console.log("confetti clearing result",subscribed);
+          }
         } else {
           console.log("⚡️didn't get good subscription data");
         }
@@ -439,14 +448,21 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
           if (subscribe && subscribe.data) {
             console.log("⚡️subscribe ",subscribe.data);
+            subscribeButton.style.visibility="hidden";
+            unsubscribeButton.style.visibility="visible";
+            doConfetti(69);
           } else {
             console.log("⚡️ unable to subscribe");
           }
         } catch (err) {
           console.log("⚡️error attempting to subscribe", subApi, err);
+          if (err && err.response && err.response.data){
+            notifier.error(err.response.data);
+          } else {
+             notifier.error("unable to create subscription");
+          }
         }
-        subscribeButton.style.visibility="hidden";
-        unsubscribeButton.style.visibility="visible";
+
       }
       unsubscribeButton.onclick = async function () {
         console.log("!! un~subscribo !!");
@@ -455,11 +471,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           console.log("attempting to delete subscription",subApi)
           await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
           console.log("unsubscribed");
+          subscribeButton.style.visibility="visible";
+          unsubscribeButton.style.visibility="hidden";
         } catch (err) {
           console.log("⚡️error attempting to unsubscribe", subApi, err);
         }
-        subscribeButton.style.visibility="visible";
-        unsubscribeButton.style.visibility="hidden";
+
       }
       //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`;
       return result;
@@ -568,7 +585,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           if (videoEl){
             currentTime = videoEl.currentTime;
           }
-          if (streamEnabled) {
+          if (streamEnabled && splitData) {
             delta = (currentTime - lastStream).toFixed();
             if (debugEnabled) {
               console.log("⚡️counting for stream payments", delta);
@@ -1948,6 +1965,26 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     / $
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>`;
+    let subApi=basePath + `/getsubscriptions?user=`+userName;
+    try {
+      
+      console.log("⚡️trying to get subscription",subApi);
+      let subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
+      console.log("⚡️subscription result",subscribed);
+      if (subscribed && subscribed.data) {
+        console.log("⚡️subscribed ",subscribed.data);
+        html = html + "<h2>Patronage</h2>"
+        for (var sub of subscribed.data){
+          let startDate= new Date(sub.startdate).toLocaleDateString()
+          let link = "https://"+window.location.hostname+"/c/"+sub.channel;
+          html = html+ `<a href=${link}>${sub.channel}</a> for ${sub.paiddays} days since ${startDate}<br>`;
+        }
+      } else {
+        console.log("⚡️didn't get good subscription data");
+      }
+    } catch (err) {
+        console.log("⚡️error attempting to get subscribed status", subApi, err);
+    }
     let modal = (document.getElementsByClassName('modal-body'));
     modal[0].innerHTML = html;
     let modalSatStream = document.getElementById("modal-streamamount");

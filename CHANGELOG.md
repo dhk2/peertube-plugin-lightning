@@ -1,3 +1,11 @@
+v 4.4.7
+- enhanced messaging in patronize/depatronize
+- daily autopayment functions working
+- changed daily check trigger
+- fixed bug that deleted subscription list
+- added confetti for past autopayments since last visit to channel page
+- cleaned up patronage message metadata
+
 v 4.4.6
 - added routes and ui to patronize and depatronize channels
 - switched to multiple transaction for subscriptions and working perfectly

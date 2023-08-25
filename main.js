@@ -239,10 +239,8 @@ async function register({
 
   // Add your custom value to the video, so the client autofill your field using the previously stored value
   registerHook({
-    target: 'filter:api.video.get.result',
+    target: 'action:activity-pub.remote-video.created',
     handler: async (video) => {
-      if (!video) return video
-      if (!video.pluginData) video.pluginData = {}
       var check=new Date().getDay();
       if (timeCheck != check) {
         timeCheck = check;
@@ -901,7 +899,19 @@ async function register({
     
   })
   router.use('/dirtyhack', async (req, res) => {
-    console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack)
+    console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack,req.query);
+    if (req.query.cp){
+      console.log("⚡️⚡️⚡️⚡️ clearing patronage paid days");
+      let subscriptions = await storageManager.getData('subscriptions');
+      let list = [];
+      if (subscriptions){
+        for (var sub of subscriptions){
+          sub.paiddays=0;
+        }
+        storageManager.storeData("subscriptions", subscriptions);
+        return res.status(200).send(subscriptions);
+      }
+    }
     doSubscriptions();
     return res.status(200).send(dirtyHack);
   });
@@ -2464,10 +2474,38 @@ async function register({
     //console.log("⚡️⚡️⚡️⚡️ subscriptions plus new one",subscriptions,newSubscription);
     subscriptions.push(newSubscription);
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
-    storageManager.storeData("subscriptions", subscriptions);
-    sendPatronPayment(userName,req.body.channel,req.body.amount, "first patron payment");
-    return res.status(200).send("subscription created");
+    await storageManager.storeData("subscriptions", subscriptions);
+    if (await sendPatronPayment(userName,req.body.channel,req.body.amount, "first patron payment")){
+      console.log("⚡️⚡️⚡️⚡️ made first subscription payment");
+      return res.status(200).send("subscription created");
+    } else {
+      console.log("⚡️⚡️⚡️⚡️ Failed to make first subscription payment");
+      return res.status(420).send("unable to patronize");
+    }
   })
+
+  router.use('/clearconfetti', async (req,res) => {
+    let channel=req.query.channel;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    let userName;
+    if (user && user.dataValues){
+      userName = user.dataValues.username;
+    } else {
+      return res.status(420).send("not a user");
+    }
+    let subscriptions = await storageManager.getData('subscriptions');
+    if (subscriptions){
+      for (var sub of subscriptions){
+        if (userName == sub.user && channel == sub.channel){
+          sub.pendingconfetti=0
+        }
+      }
+      storageManager.storeData("subscriptions", subscriptions);
+      console.log("⚡️⚡️⚡️⚡️ Saving subscriptions", subscriptions);
+      return res.status(200).send("confetti cleared");
+    }
+  })
+
   router.use('/deletesubscription', async (req, res) => {
     if (!req.query.channel || !req.query.user) {
       return res.status(420).send("malformed request");
@@ -2513,9 +2551,10 @@ async function register({
 
   })
   router.use('/getsubscriptions', async (req, res) => {
-    if (!req.query.channel || !req.query.user) {
-      return res.status(420).send("malformed request");
-    }
+    console.log("⚡️⚡️⚡️⚡️get subscriptions");
+    //if (!req.query.channel || !req.query.user) {
+    //  return res.status(420).send("malformed request");
+    //}
     let user = await peertubeHelpers.user.getAuthUser(res);
     let userName = req.query.user;
     if (user && user.dataValues && (user.dataValues.username == req.query.user)) {
@@ -2855,7 +2894,7 @@ async function register({
       
       if (!storedSplitData){
         console.log("⚡️⚡️unable to get split bock for channel", channel);
-        return;
+        return false;
       }
       // need to generate split blocks data her zoinks.
       let boosts=[];
@@ -2896,7 +2935,7 @@ async function register({
             }
           };
         }
-// could not get multipayment working, here's a hack to send the pieces individually
+          // could not get multipayment working, here's a hack to send the pieces individually
         if (albyData && albyData.access_token) {
           let albyToken = albyData.access_token
           let albyWalletData
@@ -2927,8 +2966,36 @@ async function register({
           }
         }
         console.log("\n⚡️⚡️⚡️⚡️subscription paid",worked)
+
         boosts.push(keysend);
       }
+        if (worked>1){
+          let subscriptions = await storageManager.getData('subscriptions');
+          let list = [];
+          let subs = [];
+          //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+          if (subscriptions){
+            for (var sub of subscriptions){
+              //console.log("⚡️⚡️⚡️⚡️ subscription",sub);
+              if (user != sub.user || channel != sub.channel){
+
+                list.push(sub);
+                //subs.push(sub.channel)
+              } else {
+                sub.paiddays++;
+                sub.pendingconfetti++;
+                list.push(sub);
+                subs.push(sub);
+                console.log("⚡️⚡️⚡️⚡️ updated subscription",sub)
+              }
+            }
+            storageManager.storeData("subscriptions", list);
+            console.log("⚡️⚡️⚡️⚡️ Saving updated subscription", subs);
+            return true ;
+          }
+        } else {
+          return false;
+        }
       return;
       dirtyHack=boosts
       console.log("-=--=-goku-=-=-=-", boosts,boosts[0],boosts[0].custom_records);
@@ -2969,22 +3036,36 @@ async function register({
   }
   async function doSubscriptions() {
     let subscriptions = await storageManager.getData('subscriptions');
-    let list = [];
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     if (subscriptions){
+      console.log("⚡️⚡️⚡️⚡️ doing subscriptons ",subscriptions.length);
+      const date = new Date();
+      const today = date.getTime()
       for (var sub of subscriptions){
-        console.log("⚡️⚡️⚡️⚡️ sub",sub);
-        
+        console.log("⚡️⚡️⚡️⚡️ sub",sub.channel);
+        if (sub.startdate+sub.paiddays*24*60*60*1000<today){
+          let mess = `Patronage for ${sub.channel} on `+date.toLocaleDateString()
+          let paid = await sendPatronPayment(sub.user,sub.channel,69, mess);
+          if (paid){
+            console.log(`${sub.user} patronized ${sub.channel}`);
+          } else {
+            console.log(`${sub.user} failed to pay for ${sub.channel}`);
+          }
+        } else {
+          console.log("⚡️⚡️⚡️⚡️ subscription already paid",sub.channel)
+        }
       }
+    } else {
+      console.log("⚡️⚡️⚡️⚡️ no subscriptions found "); 
     }
 
   }
     async function refreshAlbyToken(albyData,userName) {
     let response;
-    console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    console.log("refreshing token via function!",userName,albyData);
     let albyUrl = 'https://api.getalby.com/oauth/token'
     var form = new URLSearchParams();
-    form.append('refresh_token', albyData.refreshToken);
+    form.append('refresh_token', albyData.refresh_token);
     form.append('grant_type', "refresh_token");
     let headers = { auth: { username: client_id, password: client_secret } };
 
