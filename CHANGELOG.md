@@ -1,3 +1,6 @@
+v 4.4.8
+- made daily patron update more reliable
+
 v 4.4.7
 - enhanced messaging in patronize/depatronize
 - daily autopayment functions working

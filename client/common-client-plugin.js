@@ -451,6 +451,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             subscribeButton.style.visibility="hidden";
             unsubscribeButton.style.visibility="visible";
             doConfetti(69);
+            notifier.success(`Automatic patron support for ${result.videoChannel.name} enabled`)
           } else {
             console.log("⚡️ unable to subscribe");
           }

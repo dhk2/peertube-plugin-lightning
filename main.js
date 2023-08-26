@@ -134,6 +134,7 @@ async function register({
     private: false
   })
   var timeCheck=new Date().getDay();
+  var checking=false;
   console.log("⚡️⚡️⚡️⚡️ time stamp",timeCheck);
   var base = await peertubeHelpers.config.getWebserverUrl();
   var serverConfig = await peertubeHelpers.config.getServerConfig();
@@ -202,65 +203,27 @@ async function register({
   }
   let invoices = [];
   // Store data associated to this video
-  registerHook({
-    target: 'action:api.video.updated',
-    handler: ({ video, body }) => {
-      if (!body.pluginData) return
 
-      const seasonNode = body.pluginData['seasonnode'];
-      const seasonName = body.pluginData['seasonname'];
-      const episodeNode = body.pluginData['episodenode'];
-      const episodeName = body.pluginData['episodename'];
-      const chapters = body.pluginData['chapters'];
-      const itemTxt = body.pluginData['itemtxt'];
-
-      //if (!value) return
-      if (seasonNode) {
-        storageManager.storeData('seasonnode-' + video.id, seasonNode)
-      }
-      if (seasonName) {
-        storageManager.storeData('seasonname-' + video.id, seasonName)
-      }
-      if (episodeNode) {
-        storageManager.storeData('episodenode-' + video.id, episodeNode)
-      }
-      if (episodeName) {
-        storageManager.storeData('episodename-' + video.id, episodeName)
-      }
-      if (chapters) {
-        storageManager.storeData('chapters-' + video.id, chapters)
-      }
-      if (itemTxt) {
-        storageManager.storeData('itemtxt-' + video.id, itemTxt)
-      }
-      return;
-    }
-  })
 
   // Add your custom value to the video, so the client autofill your field using the previously stored value
   registerHook({
-    target: 'action:activity-pub.remote-video.created',
+    target: 'action:activity-pub.remote-video.updated',
     handler: async (video) => {
+      
+      if (checking == true){
+        console.log("⚡️⚡️ already checking")
+        return video;
+      } 
+      checking =true;
       var check=new Date().getDay();
       if (timeCheck != check) {
         timeCheck = check;
         console.log ("⚡️⚡️ new day",timeCheck);
-        doSubscriptions();
+        await doSubscriptions();
       } else {
         console.log ("⚡️⚡️ same day",timeCheck);
       }
-      const seasonNode = await storageManager.getData('seasonnode-' + video.id)
-      video.pluginData["seasonnode"] = seasonNode;
-      const seasonName = await storageManager.getData('seasonname-' + video.id)
-      video.pluginData["seasonname"] = seasonName;
-      const episodeNode = await storageManager.getData('episodenode-' + video.id)
-      video.pluginData["episodenode"] = episodeNode;
-      const episodeName = await storageManager.getData('episodename-' + video.id)
-      video.pluginData["episodename"] = episodeName;
-      const chapters = await storageManager.getData('chapters-' + video.id)
-      video.pluginData["chapters"] = chapters;
-      const itemTxt = await storageManager.getData('itemtxt-' + video.id)
-      video.pluginData["itemtxt"] = itemTxt;
+      checking=false;
       return video
     }
   })
@@ -503,6 +466,40 @@ async function register({
       }
       console.log("custom objects to add to video",customObjects);
       return result.concat(customObjects);
+    }
+  })
+  registerHook({
+    target: 'action:api.video.updated',
+    handler: ({ video, body }) => {
+      if (!body.pluginData) return
+
+      const seasonNode = body.pluginData['seasonnode'];
+      const seasonName = body.pluginData['seasonname'];
+      const episodeNode = body.pluginData['episodenode'];
+      const episodeName = body.pluginData['episodename'];
+      const chapters = body.pluginData['chapters'];
+      const itemTxt = body.pluginData['itemtxt'];
+
+      //if (!value) return
+      if (seasonNode) {
+        storageManager.storeData('seasonnode-' + video.id, seasonNode)
+      }
+      if (seasonName) {
+        storageManager.storeData('seasonname-' + video.id, seasonName)
+      }
+      if (episodeNode) {
+        storageManager.storeData('episodenode-' + video.id, episodeNode)
+      }
+      if (episodeName) {
+        storageManager.storeData('episodename-' + video.id, episodeName)
+      }
+      if (chapters) {
+        storageManager.storeData('chapters-' + video.id, chapters)
+      }
+      if (itemTxt) {
+        storageManager.storeData('itemtxt-' + video.id, itemTxt)
+      }
+      return;
     }
   })
   const router = getRouter();
