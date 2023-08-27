@@ -1,5 +1,10 @@
 v 4.4.8
 - made daily patron update more reliable
+- improved patronage button visibility
+- fixed bug in setting reply lightning address
+- seem to have fixed initial authorization status with alby login
+- added necessary await to alby token refreshing.
+- fixed error with non-boostagram payments crashing node
 
 v 4.4.7
 - enhanced messaging in patronize/depatronize

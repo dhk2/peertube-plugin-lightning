@@ -2065,14 +2065,16 @@ async function register({
         storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
         storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
         console.log("returned user data",userName,userEmail,displayName);
-        return result.userAuthenticated({
+        let returnData = {
           req,
           res,
           username: userName,
           email: userEmail,
           role: 2,
           displayName: displayName,
-        });
+        }
+        
+        return result.userAuthenticated(returnData);
       }
       storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
       storageManager.storeData("lightning-" + req.query.state.replace(/\./g, "-"), albyWalletData.data.lightning_address);
@@ -2170,20 +2172,20 @@ async function register({
         } catch (err) {
           console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token", err, albyUrl, form);
         }
-        if (response && response.data) {
+        if (response && response.data && response.data.access_token) {
           console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
-          storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
-          albyToken = response.data.access_token;
+          await storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+          headers = { headers: { "Authorization": `Bearer ` + response.data.access_token } }
+          try {
+            albyWalletData = await axios.post(walletApiUrl, data, headers)
+          } catch (err) {
+            console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
+            return res.status(420);
+          }
+          return res.status(200).send(true);
         }
       }
-      headers = { headers: { "Authorization": `Bearer ` + albyToken } }
-      try {
-        albyWalletData = await axios.post(walletApiUrl, data, headers)
-      } catch (err) {
-        console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status);
-        return res.status(420);
-      }
-      return res.status(200).send(true);
+
     } else {
       return res.status(420).send(false);
     }
@@ -2243,6 +2245,10 @@ async function register({
     invoices.push(suid);
     if (enableDebug) {
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared payment", suid, req.query, req.body, req.headers);
+    }
+    if (!req.body.boostagram){
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ not a boostagram ", suid);
+      return res.status(200).send(); 
     }
     let tip = req.body.fiat_in_cents.toString();
     if (simpletipToken && tip > 1000) {
@@ -2887,8 +2893,6 @@ async function register({
           }
         }
       }  
-      
-      
       if (!storedSplitData){
         console.log("⚡️⚡️unable to get split bock for channel", channel);
         return false;
@@ -2949,7 +2953,7 @@ async function register({
             albyWalletData = err.response.status;
           }
           if (albyWalletData === 401 ){
-            let newToken = refreshAlbyToken(albyData,user)
+            let newToken = await refreshAlbyToken(albyData,user)
             headers = { headers: { "Authorization": `Bearer ` + newToken.access_token } }
             try {
               albyWalletData = await axios.post(walletApiUrl, keysend, headers);
@@ -3070,7 +3074,7 @@ async function register({
       response = await axios.post(albyUrl, form, headers);
       if (response.data){
         console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
-        storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+        await storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
         return response.data;
       }
     } catch (err) {

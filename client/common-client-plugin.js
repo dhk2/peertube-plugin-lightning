@@ -150,7 +150,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           authorizationChecked = true;
           let accountWallet = await axios.get(accountWalletApi);
           if (accountWallet) {
-            accountAddress = accountWallet.data;
+            accountAddress = accountWallet.data.address;
             //console.log("⚡️account wallet info",accountAddress);
             let authorizedWalletApi = basePath + "/checkauthorizedwallet";
             //console.log("⚡️authorized wallet api:",authorizedWalletApi);
@@ -422,7 +422,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       } catch (err) {
          console.log("⚡️error attempting to get subscribed status", subApi, err);
       }
-      buttonHtml.innerHTML="<button id='depatronize-channel'>De-Patronize</button><button id='patronize-channel'>Patronize</button>";
+      buttonHtml.innerHTML=`<button id='depatronize-channel' class="peertube-button-link orange-button ng-star-inserted"'>De-Patronize</button><button id='patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Patronize</button>`;
       buttonSpot[0].appendChild(buttonHtml);
       let subscribeButton = document.getElementById("patronize-channel");
       let unsubscribeButton = document.getElementById("depatronize-channel");
