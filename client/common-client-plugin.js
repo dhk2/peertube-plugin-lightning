@@ -130,6 +130,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       walletAuthorized=false;
       authorizationChecked=false;
       accountAddress=undefined;
+      userName = "PeerTuber";
+      accountName = undefined;
+      streamEnabled = false;
+      wallet = undefined;
     }
   })
 
@@ -386,7 +390,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
   })
 
-    registerHook({
+  registerHook({
     target: 'action:video-channel-videos.video-channel.loaded',
     handler: async (result, params) => {
       if (debugEnabled) {
@@ -483,7 +487,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return result;
     }
   })
-
 
   registerHook({
     target: 'action:video-watch.player.loaded',
@@ -871,16 +874,54 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     target: 'action:router.navigation-end',
     handler: async ({ params, user }) => {
       console.log('⚡️navigation end!', params,user);
-      console.log("⚡️wallet authorized",walletAuthorized,"pod data",podData);
-      console.log("⚡️instance name",instanceName,"host path",hostPath,"account address",accountAddress);
-      console.log("⚡️logged in",await peertubeHelpers.isLoggedIn(),"authorization checked",authorizationChecked);
+      //console.log("⚡️wallet authorized",walletAuthorized,"pod data",podData);
+      //console.log("⚡️instance name",instanceName,"host path",hostPath,"account address",accountAddress);
+      //console.log("⚡️logged in",await peertubeHelpers.isLoggedIn(),"authorization checked",authorizationChecked);
       if (peertubeHelpers.isLoggedIn() && !authorizationChecked){
         console.log("⚡️may need to load wallet data here ");
       }
+      var streamButton;
       if (!peertubeHelpers.isLoggedIn()){
+        console.log("⚡️ user not logged in ");
         walletAuthorized=false;
         authorizationChecked=false;
         accountAddress=undefined;
+      } else {
+        console.log("⚡️ logged in user ");
+        /*
+        streamButton = document.getElementById("stream");
+        if (streamButton){
+          return;
+        }
+        console.log("⚡️ attempting to build v4v button ");
+        var elem = document.createElement('div');
+
+        elem.className = 'tip-buttons-block';
+        let v4vButtonHTML = ` <button _ngcontent-vww-c178="" id = "stream" type="button" class="peertube-button orange-button ng-star-inserted" title="Configure Value For Value settings">V4V</button>`
+        elem.innerHTML = v4vButtonHTML;
+        let addSpot4 = document.getElementsByClassName('root-header-right')[0];
+        addSpot4.appendChild(elem);
+        streamButton = document.getElementById("stream");
+        
+        if (streamButton) {
+          var popup;
+          streamButton.title = "Stream Sats to " + channelName + " every minute of watching";
+          document.getElementById("stream").onclick = async function () {
+            popup = await peertubeHelpers.showModal({
+              title: 'V4V settings',
+              content: ` `,
+              close: true,
+            })
+            await makeStreamDialog(displayName);
+            let streamButton = document.getElementById('modal-streambutton');
+            if (streamButton) {
+              streamButton.onclick = async function () {
+                walletData = await buildTip(walletData, displayName, episodeName, episodeGuid, itemID);
+              }
+            }
+          }
+        }
+        */
       }
     }
   })
@@ -1378,10 +1419,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         let sendBoostApi = basePath + "/sendalbypayment"
         //console.log("⚡️send boost api",sendBoostApi)
         albyBoostResult = await axios.post(sendBoostApi, paymentInfo, { headers: await peertubeHelpers.getAuthHeader() });
-        //console.log("⚡️alby boost result",albyBoostResult);
+        if (debugEnabled) {
+          console.log("⚡️alby boost result",albyBoostResult);
+        }
         var tipfixed = amount
-        notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
-        doConfetti(boostTotal);
+        await notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
+        await doConfetti(boostTotal);
         return albyBoostResult;
       } catch (err) {
         console.log("⚡️error attempting to send sats using integrated wallet", err);
@@ -1654,6 +1697,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     for (var split of splitData.data) {
       if (debugEnabled) {
         console.log("⚡️ split math ", splitTotal, split.split, split);
+        if (split.keysend.cache){
+          var lastsync=new Date(split.keysend.cache);
+          var syncdate = lastsync.toLocaleDateString;
+          console.log("⚡️ cache date:",split.keysend.cache,lastsync,syncdate);
+        }
       }
       if (!Number.isInteger(split.split)) {
         console.log("⚡️ no split value found ", split);
