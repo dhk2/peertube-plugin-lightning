@@ -539,82 +539,6 @@ async function register({
         return res.status(400).send("Lightning address" + address + "does not resolve");
       }
     }
-    /* Videos and channels should have splits, not single wallets.
-    if (req.query.video) {
-      //var helpervideo = await peertubeHelpers.videos.loadByIdOrUUID(req.query.video);
-      apiCall = base + "/api/v1/videos/" + req.query.video;
-      console.log("⚡️⚡️ getting video data", apiCall);
-      let videoData;
-      try {
-        videoData = await axios.get(apiCall);
-      } catch {
-        console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
-      }
-      if (videoData) {
-        let foundLightningAddress = await findLightningAddress(videoData.data.description + " " + videoData.data.support);
-        if (foundLightningAddress) {
-          console.log("⚡️⚡️lightning address found in video description [" + foundLightningAddress + ']');
-          let keysendData = await getKeysendInfo(foundLightningAddress);
-          let lnurlData = await getLnurlInfo(foundLightningAddress);
-          if (lnurlData || keysendData) {
-            let walletData = {};
-            walletData.address = foundLightningAddress;
-            if (keysendData) {
-              walletData.keysend = keysendData;
-              console.log("⚡️⚡️successfully retrieved keysend data for wallet in video", videoData.data.channel.name, keysendData);
-              //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-            }
-            if (lnurlData) {
-              walletData.lnurl = lnurlData;
-              console.log("⚡️⚡️successfully retrieved lnurl data for wallet in video", videoData.data.channel.name, lnurlData);
-              //storageManager.storeData("lightning" + "-" + videoData.data.channel.name, videoLightning);
-
-            }
-            return res.status(200).send(walletData);
-          } else {
-            console.log("⚡️⚡️lightning address in video description does not resolve", foundLightningAddress);
-          }
-        } else {
-          console.log("⚡️⚡️no lightning address found in video description");
-        }
-      }
-    }
-    if (req.query.channel) {
-      apiCall = base + "/api/v1/video-channels/" + req.query.channel;
-      console.log("⚡️⚡️ getting channel data", apiCall);
-      let channelData;
-      try {
-        channelData = await axios.get(apiCall);
-      } catch {
-        console.log("⚡️⚡️failed to pull information for provided channel id", apiCall);
-      }
-      if (channelData) {
-        let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
-        if (foundLightningAddress) {
-          console.log("⚡️⚡️lightning address found in channel description [" + foundLightningAddress + ']');
-          let keysendData = await getKeysendInfo(foundLightningAddress);
-          let lnurlData = await getLnurlInfo(foundLightningAddress);
-          if (lnurlData || keysendData) {
-            let walletData = {};
-            walletData.address = foundLightningAddress;
-            if (keysendData) {
-              walletData.keysend = keysendData;
-              console.log("⚡️⚡️successfully retrieved keysend data for wallet in channel", channelData.data.name, keysendData);
-            }
-            if (lnurlData) {
-              walletData.lnurl = lnurlData;
-              console.log("⚡️⚡️successfully retrieved lnurl data for wallet in channel", channelData.data.name, lnurlData);
-            }
-            return res.status(200).send(walletData);
-          } else {
-            console.log("⚡️⚡️lightning address in channel description does not resolve", foundLightningAddress);
-          }
-        } else {
-          console.log("⚡️⚡️no lightning address found in channel description");
-        }
-      }
-    }
-    */
     if (req.query.account) {
       var storedWallet
       try {
@@ -1236,6 +1160,7 @@ async function register({
       console.log("⚡️⚡️Request for split info\n", req.query)
     }
     if (!enableKeysend && !enableLnurl) {
+      console.log("⚡️⚡️No lighting support")
       return res.status(503).send();
     }
     var storedSplitData;
@@ -1254,6 +1179,10 @@ async function register({
       console.log("⚡️⚡️ failed to get channel stored split",req.query.channel);
     }
     let parts;
+
+
+
+
     if (req.query.channel) {
       console.log("⚡️⚡️ looking for channel/video split");
       parts = req.query.channel.split("@");
@@ -1269,7 +1198,7 @@ async function register({
         console.log("⚡️⚡️ getting remote split",apiCall,remoteSplit);
         if (remoteSplit) {
           if (enableDebug) {
-            console.log("⚡️⚡️ caching returning first channel remote split", apiCall, remoteSplit.data);
+            console.log("⚡️⚡️ caching channel/video remote split", apiCall, remoteSplit.data);
           }
           try {
             let fixedSplit = await setCache(remoteSplit.data)
@@ -2091,7 +2020,7 @@ async function register({
         if (!userName || !userEmail){return}
         storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
         storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
-        console.log("returned user data",userName,userEmail,displayName);
+        console.log("⚡️⚡️ returned user data",userName,userEmail,displayName,lightning);
         let returnData = {
           req,
           res,
@@ -2100,7 +2029,6 @@ async function register({
           role: 2,
           displayName: displayName,
         }
-        
         return result.userAuthenticated(returnData);
       }
       storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
@@ -3043,14 +2971,14 @@ async function register({
           //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
           if (subscriptions){
             for (var sub of subscriptions){
-              //console.log("⚡️⚡️⚡️⚡️ subscription",sub);
+              console.log("⚡️⚡️⚡️⚡️ subscription",sub);
               if (user != sub.user || channel != sub.channel){
 
                 list.push(sub);
                 //subs.push(sub.channel)
               } else {
-                sub.paiddays+days;
-                sub.pendingconfetti+days;
+                sub.paiddays = sub.paiddays+days;
+                sub.pendingconfetti = sub.pendingconfetti+days;
                 list.push(sub);
                 subs.push(sub);
                 console.log("⚡️⚡️⚡️⚡️ updated subscription",sub)
@@ -3114,8 +3042,11 @@ async function register({
         let paidDate = sub.startdate+(sub.paiddays*milliday);
         if (paidDate<today){
           let unPaidTime = today-paidDate;
-          let payDays = parseInt(Math.floor(unPaidTime / milliday))+1;
+          let payDays = parseInt(Math.floor(unPaidTime / milliday));
           console.log("⚡️⚡️⚡️⚡️what the hell dave",payDays,unPaidTime,milliday)
+          if (payDays<1){
+            continue;
+          }
           let payAmount = payDays*69;
           let payStart = new Date(paidDate);
           let mess = `Patronage for ${sub.channel} for ${payStart.toLocaleDateString()} to `+date.toLocaleDateString()
@@ -3133,6 +3064,20 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️ no subscriptions found "); 
     }
 
+  }
+  async function cacheValid(splits){
+    let expired=false;
+    for (var splitSlot in splits) {
+      if (storedSplitData[splitSlot].keysend && storedSplitData[splitSlot].keysend.cache) {
+        let cached = storedSplitData[splitSlot].keysend.cache
+        let since = new Date().getTime - cached;
+        if (since>7*24*60*60*1000){
+          console.log("⚡️⚡️cached wallet data is expired",storedSplitData[splitSlot].address)
+          expired = true;
+        } 
+      }
+    }
+    return !expired; 
   }
   async function setCache (splits){
     let now = new Date().getTime();

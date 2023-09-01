@@ -1076,7 +1076,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `<label for="name">Display name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name"><br>
+          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name"><br>
           Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
           document.getElementById("add-split-final").onclick = async function () {
@@ -1111,6 +1111,17 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             panelHack = newPanel;
             await assignEditButtons(splitData, channel);
 
+          }
+          let optionBox = document.getElementById("names");
+          if (optionBox){
+            optionBox.addEventListener('change', async                           function() {
+              console.log("⚡️ changed value",this.value);
+              document.getElementById("modal-split-name").value = this.value;
+              let dude = await getLightningAddress(this.value);
+              document.getElementById("modal-split-address").value = dude.address;
+            })
+          } else {
+            console.log("⚡️ unable to link optionbox");
           }
         }
       }
@@ -2269,7 +2280,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             console.log("⚡️assigning edit butts!", splitData.length, channel);
           }
           await peertubeHelpers.showModal({
-            title: 'Add Split for' + channel,
+            title: 'Add Split for ' + channel,
             content: ` `,
             close: true,
             confirm: { value: 'X', action: () => { } },
@@ -2278,7 +2289,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = `<label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
+          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
           Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
           <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
@@ -2287,6 +2298,17 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             addFinalButton.onclick = async function () {
               await doAddSplit(channel);
             }
+          }
+          let optionBox = document.getElementById("names");
+          if (optionBox){
+            optionBox.addEventListener('change', async function() {
+              console.log("⚡️ changed value",this.value);
+              document.getElementById("modal-split-name").value = this.value;
+              let dude = await getLightningAddress(this.value);
+              document.getElementById("modal-split-address").value = dude.address;
+            })
+          } else {
+            console.log("⚡️ unable to link optionbox");
           }
         }
       }
@@ -2514,6 +2536,43 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
 
     return;
+  }
+  async function getDirectoryHtml(){
+    let html = `<label for="Support V4V">Select Splitter:</label><select id="names" name="names">`;
+    for (var dude of await getLightningAddress() ){
+      html = html + `<option value="${dude.name}">${dude.name}</option>`;
+    }
+    html = html + `</select>`;
+    return html;
+  }
+  async function getLightningAddress(name){
+    let directory=[{ name: "Services and developers",address: "" },
+      { name: "Podcast Index",
+        address: "03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a" },
+      { name: "BoostBot",
+        address: "03d55f4d4c870577e98ac56605a54c5ed20c8897e41197a068fd61bdb580efaa67" },
+      { name: "err head (PeerTube Dev)",
+        address: "errhead@getalby.com" },
+      { name: "Alecks Gates (PeerTube & PodPing Dev)",
+        address: "02b66d7caae1acb51a95e036fc12b1e6837d9143141fcff520876b04b9d82f36d1" },
+      { name: "Brian of London (Hive and PodPing Dev)",
+        address: "brianoflondon@v4v.app" },
+      { name: "Dave Jones (Pod Sage)",
+        address: "dave@getalby.com" },
+      { name: "Steven Crader (Podcastindex Dev)",
+        address: "(stevencrader@getalby.com" },
+      { name: "Steven Bell (LNBeats Sovereign Feeds Music Side Project CurioCaster Dev)",
+        address: "steven@getalby.com" },  
+    ]
+    if (name){
+      for (var dude of directory){
+        if (dude.name == name){
+          return dude;
+        }
+      }
+    } else {
+      return directory;
+    }
   }
 }
 export {

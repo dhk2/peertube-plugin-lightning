@@ -1,10 +1,15 @@
+v 5.0.1
+- fixed days since last payment calculation
+- added lightning address directory support
+- fixed sending 0 amount autopayments
+
 v 5.0.0 
 - improved diagnostics during patronpayments to hunt down intermittant failures.
 - fixed invalid token update after refresh causing host payment failures
 - improved variable re-initialization on logout
 - enabled multi-day subscription payments
 - enabled expiring of cached wallet data
-- 
+
 v 4.4.9
 - fixed error with non-boostagram payments crashing node
 
