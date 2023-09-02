@@ -1,3 +1,14 @@
+v 5.0.3
+
+v 5.0.2
+- re-arranged hook code on client side to fix refreshed pages not having plugin buttons
+- fixed account and address differences in walletinfo route
+- fixed known caching issues with wallet info
+- implented refresh=true in walletinfo route to force cached data refresh
+- fixed reply address issues in cross app comment zaps
+- fixed well-known saving so peertube reply addresses are also lightning addresses
+- fixed reply address assignment with alby authentication.
+
 v 5.0.1
 - fixed days since last payment calculation
 - added lightning address directory support

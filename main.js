@@ -17,7 +17,7 @@ async function register({
   registerVideoField,
   registerExternalAuth,
 }) {
-
+  const milliday = 24*60*60*1000;
   registerSetting({
     name: 'lightning-address',
     label: 'Lightning address',
@@ -500,7 +500,9 @@ async function register({
     }
   })
   const router = getRouter();
+  //TODO normalize behavior for account and address
   router.use('/walletinfo', async (req, res) => {
+    let now = Date.now();
     if (enableDebug) {
       console.log("⚡️⚡️Request for wallet info\n", req.query)
     }
@@ -509,57 +511,49 @@ async function register({
     }
     let foundLightningAddress;
     if (req.query.address) {
-      let keysendData;
-      let lnurlData;
-      let address = req.query.address;
-      if (enableKeysend) {
-        keysendData = await getKeysendInfo(address);
-      }
-      if (enableLnurl) {
-        lnurlData = await getLnurlInfo(address);
-      }
-      if (lnurlData || keysendData) {
-        let walletData = {};
-        walletData.address = address;
-        if (keysendData) {
-          walletData.keysend = keysendData;
-          if (enableDebug) {
-            console.log("⚡️⚡️successfully retrieved keysend data for ", address, keysendData);
-          }
+      let storedWallet = await storageManager.getData("lightning-" + req.query.address.replace(/\./g, "-"));
+      if (storedWallet && !req.query.refresh){
+        let timePassed = (now - storedWallet.retrieved)/milliday;
+        if (enableDebug) {
+          console.log(`⚡️⚡️ found cached wallet data for ${req.query.address} from ${timePassed} days ago`,storedWallet)
         }
-        if (lnurlData) {
-          walletData.lnurl = lnurlData;
-          if (enableDebug) {
-            console.log("⚡️⚡️successfully retrieved lnurl data for ", address, lnurlData);
-          }
+        if (timePassed < 7){
+          return res.status(200).send(storedWallet);
         }
-        return res.status(200).send(walletData);
-      } else {
-        console.log("⚡️⚡️lightning address passed in query does not resolve", address);
-        return res.status(400).send("Lightning address" + address + "does not resolve");
       }
+      let newWallet = await createWalletObject(req.query.address);
+      if (enableDebug) {
+        console.log(`⚡️⚡️ created new wallet`,newWallet)
+      }
+      if (newWallet){
+        await storageManager.storeData("lightning-" + req.query.address(/\./g, "-"), newWallet);
+        return res.status(200).send(newWallet);
+      }
+      return res.status(400).send(`Error creating wallet info object for ${address}`);
     }
     if (req.query.account) {
       var storedWallet
-      try {
-        storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
-      } catch (err) {
-        console.log("⚡️⚡️failed to get stored lightning address for account", req.query.account, err);
-      }
-      if (storedWallet) {
+      storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
+      if (storedWallet && !req.query.refresh) {
         if (enableDebug) {
-          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet,Date.now()-storedWallet.cache);
-          if (storedWallet,Date.now()-storedWallet.cache<(60*60*24)){
-            return res.status(200).send(storedWallet);
-          } else {
-            console.log("⚡️⚡️ saved data expired");
-          }
+          console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
         }
-        if (storedWallet.status === 404) {
-          console.log("⚡️⚡️404 not found error, cache dates", storedWallet.cache, Date.now() - storedWallet.cache);
-        } else {
-          //saveWellKnown(req.query.account, storedWallet.keysendData)
+        let timePassed = (now - storedWallet.retrieved)/milliday;
+        if (timePassed < 7){
           return res.status(200).send(storedWallet);
+        } else {
+          console.log(`⚡️⚡️ saved wallet data expired after ${timePassed}`);
+        }
+        if (storedWallet.address){
+          let newWallet = await createWalletObject(storedWallet.address);
+          if (newWallet.keysend){
+            saveWellKnown(req.query.account, newWallet.keysend);
+          }
+          if (newWallet && newWallet.lnurl){
+            saveWellKnownLnurl(req.query.account, newWallet.lnurl);
+          }
+          await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
+          return res.status(200).send(newWallet);
         }
       } else {
         if (enableDebug) {
@@ -605,52 +599,15 @@ async function register({
         if (!foundLightningAddress && account.note) {
           foundLightningAddress = await findLightningAddress(account.note);
         }
-        if (foundLightningAddress) {
-          let keysendData
-          if (enableKeysend) {
-            keysendData = await getKeysendInfo(foundLightningAddress);
-          }
-          let lnurlData;
-          if (enableLnurl) {
-            lnurlData = await getLnurlInfo(foundLightningAddress);
-          }
-          if (lnurlData || keysendData) {
-            let walletData = {};
-            walletData.address = foundLightningAddress;
-            if (keysendData) {
-              walletData.keysend = keysendData;
-              if (req.query.account.indexOf("@") < 0) {
-                if (enableDebug) {
-                  console.log("attempting to save keysend info", req.query.account)
-                }
-                saveWellKnown(req.query.account, keysendData);
-              }
-            }
-            if (lnurlData) {
-              walletData.lnurl = lnurlData;
-            }
-            walletData.cache = Date.now();
-            if (enableDebug) {
-              console.log("⚡️⚡️preparing to save and return found wallet info", req.query.account, walletData.address);
-            }
-            try {
-              storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), walletData);
-            } catch {
-              console.log("⚡️⚡️failed to store lighting address", req.query.account, walletData);
-            }
-            return res.status(200).send(walletData);
-          } else {
-            console.log("⚡️⚡️ no lightning address support enabled", foundLightningAddress, req.query);
-          }
+        let newWallet = await createWalletObject(foundLightningAddress);
+        if (newWallet.keysend){
+          saveWellKnown(req.query.account, newWallet.keysend);
         }
-        let notFound = { status: 404 };
-        notFound.cache = Date.now();
-        try {
-          storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), notFound);
-        } catch {
-          console.log("⚡️⚡️hard error storing address not found", req.query.account, notFound);
+        if (newWallet && newWallet.lnurl){
+          saveWellKnownLnurl(req.query.account, newWallet.lnurl);
         }
-        return res.status(400).send();
+        await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
+        return res.status(200).send(newWallet);
       }
     }
   })
@@ -844,10 +801,17 @@ async function register({
         console.log("███ got authorized peertube user", user.dataValues.username);
       }
       if (enableDebug) {
-        console.log("⚡️⚡️⚡️⚡️ user", userName);
+        console.log("⚡️⚡️⚡️⚡️ user", userName, "address:",req.query.address);
       }
-      storageManager.storeData("lightning-" + user.dataValues.username.replace(/\./g, "-"), req.query.address);
-      return res.status(200).send(req.query.address);
+      let newWallet = await createWalletObject(req.query.address);
+      if (newWallet.keysend){
+        saveWellKnown(userName, newWallet.keysend);
+      }
+      if (newWallet && newWallet.lnurl){
+        saveWellKnownLnurl(userName, newWallet.lnurl);
+      }
+      storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), newWallet);
+      return res.status(200).send(newWallet);
     }
     return res.status(420).send();
     /* disabling pubkey/custom value for now
@@ -1195,7 +1159,7 @@ async function register({
         } catch {
           console.log("⚡️⚡️unable to fetch remote split data", apiCall);
         }
-        console.log("⚡️⚡️ getting remote split",apiCall,remoteSplit);
+        console.log("⚡️⚡️ getting remote split",apiCall);
         if (remoteSplit) {
           if (enableDebug) {
             console.log("⚡️⚡️ caching channel/video remote split", apiCall, remoteSplit.data);
@@ -2018,9 +1982,16 @@ async function register({
           displayName=userName;
         }
         if (!userName || !userEmail){return}
+        let newWallet = await createWalletObject(lightning);
+        if (newWallet.keysend){
+          saveWellKnown(userName, newWallet.keysend);
+        }
+        if (newWallet && newWallet.lnurl){
+          saveWellKnownLnurl(userName, newWallet.lnurl);
+        }
+        storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), newWallet);
         storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
-        storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), lightning);
-        console.log("⚡️⚡️ returned user data",userName,userEmail,displayName,lightning);
+        console.log("⚡️⚡️ returned user data",userName,userEmail,displayName,lightning,newWallet,response.data);
         let returnData = {
           req,
           res,
@@ -2660,7 +2631,7 @@ async function register({
     let whatHappened;
     try {
       whatHappened = await storageManager.storeData(storageIndex, walletData.data);
-      saveWellKnown(parts[0], walletData.data);
+      //saveWellKnown(parts[0], walletData.data);
     } catch {
       console.log("⚡️⚡️failed to store lighting address", storageIndex, walletData.data);
     }
@@ -2722,7 +2693,7 @@ async function register({
       console.error("⚡️⚡️ problem with well known keysend folder", err, account);
     }
     if (enableDebug) {
-      console.error("⚡️⚡️ about to save", account, keySend);
+      console.error("⚡️⚡️ about to save keysend data", account, keySend);
     }
     try {
       fs.writeFileSync(folderName + account, JSON.stringify(keySend));
@@ -2730,8 +2701,28 @@ async function register({
       console.error("⚡️⚡️ trouble saving the keysend info to peertube folder", err, account);
     }
   }
-  async function saveWellKnownSplit(account, splits) {
+
+    async function saveWellKnownLnurl(account, lnurl) {
     //return;
+    const folderName = '/var/www/peertube/storage/well-known/lnurlp/';
+    try {
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName);
+      }
+    } catch (err) {
+      console.error("⚡️⚡️ problem with well known lnurlp folder", err, account);
+    }
+    if (enableDebug) {
+      console.error("⚡️⚡️ about to save lnurl data", account, lnurl);
+    }
+    try {
+      fs.writeFileSync(folderName + account, JSON.stringify(lnurl));
+    } catch (err) {
+      console.error("⚡️⚡️ trouble saving the lnurl info to peertube folder", err, account);
+    }
+  }
+  async function saveWellKnownSplit(account, splits) {
+    return;
     const folderName = '/var/www/peertube/storage/well-known/keysendsplit/';
     let knownSplits = [];
     for (const split of splits) {
@@ -3030,7 +3021,7 @@ async function register({
     } 
   }
   async function doSubscriptions() {
-    const milliday = 24*60*60*1000
+    
     let subscriptions = await storageManager.getData('subscriptions');
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     if (subscriptions){
@@ -3087,7 +3078,41 @@ async function register({
     }
     return splits
   }
-
+  async function createWalletObject(address){
+    if (enableDebug) {
+      console.log("⚡️⚡️creating wallet object for ", address);
+    }
+    if (address) {
+      let keysendData;
+      let lnurlData;
+      if (enableKeysend) {
+        keysendData = await getKeysendInfo(address);
+      }
+      if (enableLnurl) {
+        lnurlData = await getLnurlInfo(address);
+      }
+      let walletData = {};
+      walletData.address = address;
+      walletData.retrieved = Date.now();
+      if (keysendData) {
+        walletData.keysend = keysendData;
+        if (enableDebug) {
+          console.log("⚡️⚡️successfully retrieved keysend data for ", address, keysendData);
+        }
+      }
+      if (lnurlData) {
+        walletData.lnurl = lnurlData;
+        if (enableDebug) {
+          console.log("⚡️⚡️successfully retrieved lnurl data for ", address, lnurlData);
+        }
+      }
+      return walletData;
+    }
+    let walletData = {};
+    walletData.address = address;
+    walletData.retrieved = Date.now();
+    return walletData;
+  }
   async function refreshAlbyToken(albyData,userName) {
     let response;
     if (enableDebug) {
