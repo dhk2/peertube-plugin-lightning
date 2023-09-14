@@ -1,7 +1,0 @@
-{
-    "destination": "02b66d7caae1acb51a95e036fc12b1e6837d9143141fcff520876b04b9d82f36d1",
-    "amount": 0,
-    "customRecords": {
-        "7629169": "{\\"app_name\\":\\"PeerTube\\",\\"app_version\\":\\"5.0.4\\",\\"value_msat_total\\":69000,\\"value_msat\\":0,\\"podcast\\":\\"davejones@noagendatube.com\\",\\"action\\":\\"auto\\",\\"name\\":\\"BoostBot\\",\\"sender_name\\":\\"errhead-1\\",\\"message\\":\\"Patronage for davejones@noagendatube.com for 9/6/2023 to 9/7/2023\\"}"
-    }
-}

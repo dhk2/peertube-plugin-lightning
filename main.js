@@ -211,9 +211,6 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoChannelModel }
       const { videoChannel } = params
-      //dirtyHack = params;
-      //console.log("⚡️⚡️⚡️⚡️ initial channel values ⚡️⚡️⚡️⚡️",params.videoChannel.dataValues.Actor.dataValues.Banners,params.videoChannel.dataValues.Actor.dataValues.Avatars, params);
-      console.log("⚡️⚡️⚡️⚡️ initial channel values ⚡️⚡️⚡️⚡️",params);
       var channel = params.videoChannel.dataValues.Actor.dataValues.preferredUsername;
       var storedSplitData = await getSavedSplit(channel);
       var blocks = []
@@ -255,36 +252,6 @@ async function register({
           value: blocks,
         }
       ];
-      let channelGuid;
-      apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + channel;
-      try {
-        let guidData = await axios.get(apiUrl);
-        if (guidData && guidData.data) {
-          console.log("⚡️⚡️channel guid", guidData.data,apiUrl);
-          channelGuid = guidData.data;
-        }
-      } catch {
-        console.log("⚡️⚡️unable to load channel guid", apiUrl);
-      }
-      if (channelGuid){
-        podreturn.push({
-          name: "podcast:guid",
-          value: channelGuid,
-        });
-      }
-      console.log("⚡️⚡️unable to load channel guid", apiUrl);
-      let podData;
-      try {
-        podData = await storageManager.getData("pod-" + channel.replace(/\./g, "-"));
-      } catch (err) {
-        console.log("⚡️⚡️error getting pod data for ", channel);
-      }
-      if (podData && Array.isArray(podData.text)){
-        podreturn.push({
-          name: "podcast:txt",
-          value: podData.text[0],
-        });
-      }
       return result.concat(podreturn)
     }
   })
@@ -337,140 +304,7 @@ async function register({
         }
         customObjects.push(valueBlock);
       }
-      //console.log("⚡️⚡️\nCustom Blocks 1",customObjects);
-      let captionApi = base + "/api/v1/videos/" + videoUuid + "/captions";
-      let captionResult;
-      try {
-        captionResult = await axios.get(captionApi);
-      } catch (err) {
-        console.log("⚡️⚡️failed requesting transcript data", err);
-      }
-      let captionPath, captionLanguage, captionItem;
-      //if (captionResult && captionResult.data && captionResult.data.total > 0) {
-      //console.log("⚡️⚡️\ncaption result", captionResult.data);
-      for (var captionEntry in captionResult.data.data) {
-        captionPath = base + captionEntry.captionPath
-        if (captionEntry.language) {
-          captionLanguage = captionEntry.language.id;
-        }
-        if (captionPath.indexOf("vtt") > 1) {
-          type = "text/vtt"
-        } else {
-          type = "text/plain"
-          //fixed = fixed + "\n" + spacer + `<podcast:transcript url="` + captionPath + `" language="` + captionLanguage + `" type="text/plain" rel="captions"/>`;
-        }
-        captionItem = {
-          name: "podcast:transcript",
-          attributes: {
-            "url": captionPath,
-            "language": captionLanguage,
-            "type": type,
-            "rel": "captions"
-          }
-        };
-        customObjects.push(captionItem);
-      }
-      /*let hackItem = {
-        name: "enclosure",
-        attributes: {
-          "url": "https://google.com?",
-          "language": "explicit",
-          "type": "hornypost",
-          "rel": "testes"
-        }
-      };
-      console.log("⚡️⚡️\n\n\n\n\n\nfailed to pull information for provided video id", hackItem);
-      customObjects.push(hackItem);
-      */
-      var apiCall = base + "/api/v1/videos/" + videoUuid;
-      let videoData;
-      try {
-        videoData = await axios.get(apiCall);
-      } catch {
-        console.log("⚡️⚡️\n\n\n\n\n\nfailed to pull information for provided video id", apiCall);
-      }
-      if (videoData && videoData.data) {
-        let duration = videoData.data.duration;
-        let customData = videoData.data.pluginData;
-        let filename;
-        let smallest = 999999999
-        if (videoData.data.streamingPlaylists[0]){
-          let videoFiles = videoData.data.streamingPlaylists[0].files;
-          if (videoFiles) {
-            for (var fileOption of videoFiles) {
-              //console.log(fileOption);
-              if (fileOption.size < smallest) {
-                smallest = fileOption.size;
-                filename = fileOption.fileUrl
-              }
-            }
-          }
-        }
-        var enclosure;
-        //console.log("\n⚡️⚡️\n\n\nsmallest??",filename,smallest);
-        if (filename) {
-          enclosure = {
-            name: "audioenclosure",
-            attributes: {
-              "url": filename,
-              type: "video/mp4",
-              length: duration
-            }
-          }
-        } 
-        if (enclosure) {
-          customObjects.push(enclosure);
-        }
-        console.log("⚡️⚡️\nplugin data", customData);
-        
-        if (customData && customData.seasonnode){
-          let seasonItem = {
-            name: "podcast:season",
-            value: await customData.seasonnode.toString()
-          };
-          if (customData.seasonname){
-            seasonItem.attributes={
-              "name": customData.seasonname
-            }
-          }
-          customObjects.push(seasonItem);
-        }
-        
-        if (customData && customData.episodenode){
-          episodeItem = {
-            name: "podcast:episode",
-            value: await customData.episodenode.toString()
-          };
-          if (customData.episodename){
-            episodeItem.attributes={
-              "display": customData.episodename
-            }
-          }
-          customObjects.push(episodeItem);
-        }
-        
-        if (customData && customData.chapters){
-          chaptersItem = {
-            name: "podcast:chapters",
-            attributes: {
-              "url": customData.chapters,
-              type: "application/json+chapters"
-            }
-          };
-          customObjects.push(chaptersItem);
-        }
-       
-        if (customData && customData.itemtxt){
-         // let txtValue=[].push(customData.itemtxt);
-          let txtItem = {
-            name: "podcast:txt",
-            value: customData.itemtxt
-          }
-          customObjects.push(txtItem);
-        }
-        
-      }
-      console.log("custom objects to add to video",customObjects);
+
       return result.concat(customObjects);
     }
   })
@@ -611,168 +445,7 @@ async function register({
       }
     }
   })
-  router.use('/podcast2', async (req, res) => {
-    if (enableDebug) {
-      console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️ podcast2 request ⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️", req.query);
-    }
-    if (!enableRss) {
-      console.log("⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️⚡️RSS disabled");
-      return res.status(403).send();
-    }
-    if (req.query.channel == undefined) {
-      console.log("⚡️⚡️no channel requested", req.query);
-      return res.status(404).send();
-    }
-    let channel = req.query.channel
-    let apiUrl = base + "/api/v1/video-channels/" + channel;
-    let channelData;
-    try {
-      channelData = await axios.get(apiUrl);
-    } catch {
-      console.log("⚡️⚡️⚡️⚡️unable to load channel info", apiUrl);
-      return res.status(400).send();
-    }
-    let smallChannelAvatar, largeChannelAvatar, smallPersonAvatar, largePersonAvatar
-    if (channelData && channelData.data && channelData.data.avatars && channelData.data.avatars[1]) {
-      smallChannelAvatar = channelData.data.avatars[0].path;
-      largeChannelAvatar = channelData.data.avatars[1].path;
-    }
-    if (channelData && channelData.data && channelData.data.ownerAccount && channelData.data.ownerAccount.avatars && channelData.data.ownerAccount.avatars[1]) {
-      smallPersonAvatar = channelData.data.ownerAccount.avatars[0].path;
-      largePersonAvatar = channelData.data.ownerAccount.avatars[1].path;
-    }
-    //console.log("⚡️⚡️⚡️⚡️channel info", channelData.data);
-    
-    let rssUrl = base + "/feeds/podcast/videos.xml?videoChannelId=" + channelData.data.id;
-    let rssData;
-    try {
-      rssData = await axios.get(rssUrl)
-    } catch {
-      console.log("⚡️⚡️unable to load rss feed for", channel, rssUrl);
-      return res.status(400).send();
-    }
-    //console.log("⚡️⚡️loaded rss feed from", rssUrl);
-    let channelGuid;
-    apiUrl = base + "/plugins/lightning/router/getchannelguid?channel=" + channel;
-    try {
-      let guidData = await axios.get(apiUrl);
-      if (guidData && guidData.data) {
-        //console.log("⚡️⚡️channel guid", guidData.data);
-        channelGuid = guidData.data;
-      }
-    } catch {
-      console.log("⚡️⚡️unable to load channel guid", apiUrl);
-    }
-    //TODO figure out how to get info for livechat plugin as well
-    let podData
-    try {
-      podData = await axios.get(base + "/plugins/lightning/router/getpoddata?channel=" + channel);
-    } catch {
-      console.log("unable to load PODCAST data");
-    }
-    if (podData) {
-      console.log("⚡️⚡️\n\n\n\n pod dta \n", podData.data);
-    }
-    let counter = 0;
-    let fixed = "";
-    let spacer = "";
-    let rss = rssData.data;
-    let lines = rss.split('\n');
-      console.log("⚡️⚡️\n\n\n\n starting linbe loop \n", lines.length,lines[33]);
-    //for (const line of lines) {
-    let totalSize = lines.length;
-    while (counter<totalSize){
-      let line = lines[counter];
-      //console.log(`⚡️line${counter}:`,line)
-      counter++;
-      spacer = line.split("<")[0];
-      if (line.includes("Toraifōsu") && podData && podData.data) {
 
-        if (podData.data.text) {
-          line = line + `\n${spacer}<podcast:txt>${podData.data.text[0]}</podcast:txt>`;
-        }
-        if (podData.data.feedguid) {
-          line = line + `\n${spacer}<podcast:guid>${podData.data.feedguid}</podcast:guid>`;
-        }
-      }
-      if (line.includes("<atom:link")) {
-        line = `${spacer}<atom:link href="https://${req.get('host')}${req.originalUrl}" rel="self" type="application/rss+xml" />`;
-      }
-      var customData = {};
-      if (line.includes('<guid')) {
-        let shortUuid = line.split(">")[1].split("<")[0].split("/")[4]
-        try {
-          var videoData = await axios.get(base + "/api/v1/videos/" + shortUuid);
-          if (videoData && videoData.data) {
-            customData = videoData.data.pluginData;
-          }
-        } catch (err) {
-          console.log("⚡️⚡️⚡️⚡️hard error trying to get video data for RSS feed", err);
-        }
-        if (enableDebug) {
-          console.log("⚡️⚡️⚡️⚡️item plugin data", shortUuid, customData);
-        }
-        /* moved to shared code 
-        if (customData.seasonnode) {
-          if (customData.seasonname) {
-            line = line + `\n${spacer}<podcast:season name ="${customData.seasonname}">${customData.seasonnode}</podcast:season>`;
-          } else {
-            line = line + `\n${spacer}<podcast:season>${customData.seasonnode}</podcast:season>`;
-          }
-        }
-        if (customData.episodenode) {
-          if (customData.episodename) {
-            line = line + `\n${spacer}<podcast:episode display ="${customData.episodename}">${customData.episodenode}</podcast:episode>`;
-          } else {
-            line = line + `\n${spacer}<podcast:episode>${customData.episodenode}</podcast:episode>`;
-          }
-        }
-        if (customData.chapters) {
-          line = line + `\n${spacer}<podcast:chapters url="${customData.chapters}" type="application/json+chapters" />`
-        }
-        if (customData.itemtxt) {
-          line = line + `\n${spacer}<podcast:txt>${customData.itemtxt}</podcast:txt>`;
-        }
-        */
-      }
-      if (line.includes("<enclosure") > 0) {
-        continue;
-      }
-      if (line.includes("audioenclosure") > 0) {
-        line = line.replace("audioenclosure", "enclosure");
-      }
-      if (line.includes(`title="HLS"`) && !line.includes(`length="`)) {
-        console.log("fixing length");
-        line = line.replace(`title="HLS"`, `title="HLS" length ="69"`);
-      }
-      if (line.includes(`title="HLS"`) && !line.includes(`type="`)) {
-        console.log("fixing type");
-        line = line.replace(`title="HLS"`, `title="HLS" type="application/x-mpegURL"`);
-      }
-      if (line.includes(`title="Audio"`) && !line.includes(`type="`)) {
-        console.log("fixing type");
-        line = line.replace(`title="Audio"`, `title="Audio" type="video/mp4"`);
-      }
-      if (largeChannelAvatar) {
-        line = line.replace(smallChannelAvatar, largeChannelAvatar);
-      }
-      if (largePersonAvatar) {
-        line = line.replace(smallPersonAvatar, largePersonAvatar);
-      }
-      if (podData && podData.data && podData.data.medium) {
-        line = line.replace(`<podcast:medium>video</podcast:medium>`, `<podcast:medium>${podData.data.medium}</podcast:medium>`);
-      }
-      if (counter > 1) {
-        fixed = fixed + '\n' + line;
-      } else {
-        fixed = line;
-      }
-    }
-    res.setHeader('content-type', 'application/rss+xml');
-    console.log("⚡️⚡️\n\n\n\n ending line loop \n",fixed.length);
-    return  res.status(200).send(fixed);
-    
-  })
   router.use('/dirtyhack', async (req, res) => {
     console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack,req.query);
     if (req.query.cp){
@@ -937,66 +610,6 @@ async function register({
         return res.status(400).send();
       }
     }
-  })
-  router.use('/getchatroom', async (req, res) => {
-    if (enableDebug) {
-      console.log("⚡️⚡️getting chat room", req.query);
-    }
-    if (!enableChat) {
-      return res.status(503).send();
-    }
-    let channel = req.query.channel;
-    let parts = channel.split('@');
-    let customChat;
-    if (parts.length > 1) {
-      let chatApi = "https://" + parts[1] + "/plugins/lightning/router/getchatroom?channel=" + parts[0];
-      try {
-        customChat = await axios.get(chatApi);
-      } catch {
-        console.log("⚡️⚡️hard error getting custom chat room for ", channel, "from", parts[1], chatApi);
-      }
-      if (customChat) {
-        //console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
-        return res.status(200).send(customChat.data);
-      }
-    }
-    let chatRoom;
-    if (channel) {
-      try {
-        chatRoom = await storageManager.getData("irc" + "-" + channel)
-      } catch (err) {
-        console.log("⚡️⚡️error getting chatroom for ", channel);
-      }
-    }
-    //console.log("⚡️⚡️ Irc chat room", chatRoom);
-    if (chatRoom) {
-      return res.status(200).send(chatRoom);
-    } else {
-      return res.status(400).send();
-    }
-  })
-  router.use('/setchatroom', async (req, res) => {
-    if (enableDebug) {
-      console.log("⚡️⚡️setting chatroom", req.query);
-    }
-    if (!enableChat) {
-      return res.status(503).send();
-    }
-    let channel = req.query.channel;
-    let chatroom = req.query.chatroom;
-    let parts = channel.split('@');
-    if (parts.length > 1) {
-      return res.status(503).send();
-    }
-    if (channel) {
-      try {
-        await storageManager.storeData("irc" + "-" + channel, chatroom);
-        return res.status(200).send(chatroom);
-      } catch (err) {
-        console.log("⚡️⚡️ error getting chatroom", channel, chatroom);
-      }
-    }
-    return res.status(400).send();
   })
   router.use('/getitemid', async (req, res) => {
     if (enableDebug) {
@@ -2338,67 +1951,6 @@ async function register({
     }
     return res.status(420).send();
   })
-  router.use('/getpoddata', async (req, res) => {
-    if (enableDebug) {
-      console.log("⚡️⚡️getting pod data", req.query);
-    }
-    let channel = req.query.channel;
-    if (!channel) {
-      console.log("⚡️⚡️ no channel in query", channel, req.query);
-      return res.status(400).send("⚡️⚡️ no channel value in request " + req.query);
-    }
-    let parts = channel.split('@');
-    let remotePodData;
-    if (parts.length > 1) {
-      let remotePodApi = "https://" + parts[1] + "/plugins/lightning/router/getpoddata?channel=" + parts[0];
-      try {
-        remotePodData = await axios.get(remotePodApi);
-      } catch (err) {
-        console.log("⚡️⚡️hard error getting custom remote pod data for ", channel, "from", parts[1], remotePodApi, err);
-        return res.status(400).send("⚡️⚡️hard error getting custom remote pod data for " + channel + " from " + parts[1] + " using " + remotePodApi + " error " + err);
-      }
-      if (remotePodData) {
-        //console.log("⚡️⚡️ returning", customChat.toString(), "for", channel);
-        return res.status(200).send(remotePodData.data);
-      }
-      console.log("⚡️⚡️ no remote pod data found for", channel);
-      return res.status(404).send("⚡️⚡️ no podcast data for " + channel + " on remote system");
-    }
-    let podData;
-    try {
-      podData = await storageManager.getData("pod-" + channel.replace(/\./g, "-"));
-    } catch (err) {
-      console.log("⚡️⚡️error getting pod data for ", channel);
-      return res.status(404).send("⚡️⚡️ no podcast data for " + req.query.channel + err);
-    }
-    if (podData) {
-      return res.status(200).send(podData);
-    } else {
-      console.log("⚡️⚡️ no pod data found for", channel);
-      return res.status(404).send("⚡️⚡️ no pod data found for " + channel);
-    }
-  })
-  router.use('/setpoddata', async (req, res) => {
-    if (enableDebug) {
-      console.log("⚡️⚡️setting podcast data", req.query, req.body);
-    }
-    //TODO verify authorized user is actual owner of room
-    let user = await peertubeHelpers.user.getAuthUser(res);
-    if (user && user.dataValues && req.body) {
-      let userName = user.dataValues.username;
-      if (enableDebug) {
-        console.log("⚡️⚡️⚡️ got authorized peertube user to set pod data ", user.dataValues.username);
-      }
-      if (enableDebug) {
-        console.log("⚡️⚡️⚡️⚡️ user", userName);
-      }
-      let channel = req.body.channel;
-      storageManager.storeData("pod-" + channel.replace(/\./g, "-"), req.body);
-      pingPI(channel);
-      return res.status(200).send();
-    }
-    return res.status(420).send();
-  })
   router.use('/getwebhooks', async (req, res) => {
     let albyHook = "https://api.getalby.com/webhook_endpoints"
     let body = {};
@@ -2475,7 +2027,6 @@ async function register({
       return res.status(420).send("unable to patronize");
     }
   })
-
   router.use('/clearconfetti', async (req,res) => {
     let channel=req.query.channel;
     let user = await peertubeHelpers.user.getAuthUser(res);
@@ -2497,7 +2048,6 @@ async function register({
       return res.status(200).send("confetti cleared");
     }
   })
-
   router.use('/deletesubscription', async (req, res) => {
     if (!req.query.channel || !req.query.user) {
       return res.status(420).send("malformed request");
@@ -2600,6 +2150,9 @@ async function register({
     } catch {
       console.log("⚡️⚡️ hard failed to get lightning split", uuid);
     }
+    if (enableDebug){
+      console.log("⚡️ Got saved split ", uuid, storedSplitData);
+    }
     var splitTotal = 0;
     let missing = 0;
     if (storedSplitData) {
@@ -2627,7 +2180,7 @@ async function register({
       }
     }
     if (enableDebug) {
-      //console.log("⚡️ returned stored split ", storedSplitData);
+      console.log("⚡️ returned saved split ", storedSplitData);
     }
     return storedSplitData;
   }
@@ -2768,7 +2321,6 @@ async function register({
       console.error("⚡️⚡️ trouble saving the keysend info to peertube folder", err, account);
     }
   }
-
   async function saveWellKnownLnurl(account, lnurl) {
     //return;
     const folderName = '/var/www/peertube/storage/well-known/lnurlp/';
@@ -2856,7 +2408,6 @@ async function register({
     }
     return;
   }
-
   async function sendPatronPayment(user,channel,amount, message,days) {
     if (enableDebug) {
       console.log("⚡️⚡️sending patron payment", user, channel,amount,message);
@@ -3088,7 +2639,6 @@ async function register({
     } 
   }
   async function doSubscriptions() {
-    
     let subscriptions = await storageManager.getData('subscriptions');
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     if (subscriptions){
