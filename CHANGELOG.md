@@ -1,5 +1,23 @@
-v 5.0.3
+v 5.0.5
+- fixed bugs with saved remote splits not saving and reading properly due to illegal characters
+- removed podcast2 features from lightning plugin
+- removed rss chat option which will be moved to podcasting 2 plugin
+- refined diagnostics reporting
 
+v 5.0.4
+- fixed bug with video custom fields reinitializing when editting
+- fixed problm with Podcast:txt field not showing up
+- fixed issue with clearing out video custom fields
+- fixed date issue in patronage message
+- added split info to boost dialog
+- fixed logic for less than 1 day subscription pending
+
+v 5.0.3
+- added support for 66 char pubkey reply to address
+- replaced crypto library with uuidv5 library
+- updated new podcast guid generation to v5
+- fixed new guid to use rss feed url instead of random guid
+ 
 v 5.0.2
 - re-arranged hook code on client side to fix refreshed pages not having plugin buttons
 - fixed account and address differences in walletinfo route

@@ -1,47 +1,7 @@
-[
-    {
-        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-        "amount": 65,
-        "customRecords": {
-            "696969": "7AIrKi4oNyO6ndZUWIEo",
-            "7629169": "{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":65000,\"podcast\":\"clipshow@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"clipshow@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"
-        }
-    },
-    {
-        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-        "amount": 3,
-        "customRecords": {
-            "696969": "ukPtJhg4rq1RaSdQlrYs",
-            "7629169": "{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":3000,\"podcast\":\"clipshow@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"clipshow@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"
-        }
+{
+    "destination": "02b66d7caae1acb51a95e036fc12b1e6837d9143141fcff520876b04b9d82f36d1",
+    "amount": 0,
+    "customRecords": {
+        "7629169": "{\\"app_name\\":\\"PeerTube\\",\\"app_version\\":\\"5.0.4\\",\\"value_msat_total\\":69000,\\"value_msat\\":0,\\"podcast\\":\\"davejones@noagendatube.com\\",\\"action\\":\\"auto\\",\\"name\\":\\"BoostBot\\",\\"sender_name\\":\\"errhead-1\\",\\"message\\":\\"Patronage for davejones@noagendatube.com for 9/6/2023 to 9/7/2023\\"}"
     }
-]
-
-    {
-        "destination": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-        "amount": 3,
-        "customRecords": {
-            "696969": "ukPtJhg4rq1RaSdQlrYs",
-            "7629169": "{\"action\":\"boost\",\"value_msat\":3000,\"value_msat_total\":69000,\"app_name\":\"PeerTube\",\"app_version\":\"4.4.6\",\"name\":\"Matt Christiansen Media\",\"sender_name\":\"marc\",\"message\":\"for the horde\\n\",\"ts\":8,\"podcast\":\"marc_duquesne\",\"episode\":\"Breitbart - WAR -- _Language Warning_-1138p-hls\",\"episode_guid\":\"635e8082-93c7-4be3-b037-e7298d7344eb\",\"boost_link\":\"https://tv.mattchristiansenmedia.com/w/dgG3ThLwwDCZDHLcHx5A1T?start=8\",\"url\":\"https://tv.mattchristiansenmedia.com/feeds/podcast/videos.xml?videoChannelId=19\",\"guid\":\"d3b12e67-9350-4e78-a1e3-5fccf5d01145\",\"reply_address\":\"mcduquesne@getalby.com\"}"
-        }
-    }
-
-
-    {
-        "destination":"030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-        "amount":3,
-        "customRecords":{
-            "696969":"ukPtJhg4rq1RaSdQlrYs",
-            "7629169":"{\"action\":\"boost\",\"value_msat\":3000,\"value_msat_total\":69000,\"app_name\":\"PeerTube\",\"app_version\":\"4.4.6\",\"name\":\"Matt Christiansen Media\",\"sender_name\":\"marc\",\"ts\":18,\"podcast\":\"marc_duquesne\",\"episode\":\"Breitbart - WAR -- _Language Warning_-1138p-hls\",\"episode_guid\":\"635e8082-93c7-4be3-b037-e7298d7344eb\",\"boost_link\":\"https://tv.mattchristiansenmedia.com/w/dgG3ThLwwDCZDHLcHx5A1T?start=18\",\"url\":\"https://tv.mattchristiansenmedia.com/feeds/podcast/videos.xml?videoChannelId=19\",\"guid\":\"d3b12e67-9350-4e78-a1e3-5fccf5d01145\",\"reply_address\":\"mcduquesne@getalby.com\"}"
-        }
-    }
-
-    [
-        {"destination":"030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
-        "amount":65,
-        "customRecords":{
-            "696969":"LiPQ3WVvdeEFnuhcWNLy",
-            "7629169":"{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":65000,\"podcast\":\"marc_duquesne@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"marc_duquesne@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"
-            }
-        },
-        {"destination":"030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3","amount":3,"customRecords":{"696969":"ukPtJhg4rq1RaSdQlrYs","7629169":"{\"app_name\":\"PeerTube\",\"value_msat_total\":69000,\"value_msat\":3000,\"podcast\":\"marc_duquesne@tv.mattchristiansenmedia.com\",\"action\":\"auto\",\"name\":\"marc_duquesne@tv.mattchristiansenmedia.com\",\"sender_name\":\"marc\",\"message\":\"first patron payment\"}"}}]
+}

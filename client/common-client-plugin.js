@@ -10,7 +10,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   const jsConfetti = new JSConfetti()
 
   let tipVerb = "tip";
-  let chatEnabled, keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
+  let keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
   let streamAmount = 69;   
   let lastTip = 69;
   let convertRate = .0002;
@@ -27,6 +27,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
+      if (debugEnabled){
+        console.log(`⚡️⚡️ video`,video);
+      }
       let buttonBlock = document.getElementsByClassName('tip-buttons-block');
       if (buttonBlock.length > 0) {
         buttonBlock[0].remove();
@@ -37,6 +40,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       let videoEl;
       if (player.el()) {
         videoEl = player.el().getElementsByTagName('video')[0]
+        if (debugEnabled){
+          console.log(`⚡️⚡️videoEl`,videoEl);
+        }
       } else {
         //weird error condition avoidance
         videoEl - { time: 0 };
@@ -50,7 +56,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       } else {
         videoUuid = video.uuid;
       }
-      channelId=video.channel.id
+      channelId=video.channel.id;
       accountName = video.byAccount;
       channelName = video.byVideoChannel;
       videoName = video.uuid;
@@ -172,69 +178,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           }
         }, 1000);
       }
-      if (chatEnabled) {
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "bigchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▼" + `</button>`
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "smallchat" type="button" class="peertube-button orange-button ng-star-inserted" hidden="true">` + "▲" + `</button>`
-        buttonHTML = buttonHTML + ` <button _ngcontent-vww-c178="" id = "closechat" type="button" class="peertube-button orange-button ng-star-inserted" title="open chat panel">` + "Chat" + `</button>`
-      }
       if (v4vButtonHTML) {
         //  console.log("⚡️--------------button hmtl",v4vButtonHTML)
         elem.innerHTML = v4vButtonHTML;
         addSpot4.appendChild(elem);
 
-      }
-      if (chatEnabled) {
-        let newContainer = document.createElement('div');
-        newContainer.setAttribute('id', 'peertube-plugin-irc-container')
-        newContainer.setAttribute('hidden', 'true');
-        addSpot.append(newContainer)
-        //addSpot.append()
-
-        var container = document.getElementById('peertube-plugin-irc-container')
-
-        if (!container) {
-          logger.error('Cant found the irc chat container.')
-        }
-        let chatRoom = await getChatRoom(channelName);
-        if (debugEnabled) {
-          console.log("⚡️found chat room", chatRoom);
-        }
-        if (!chatRoom) {
-          let shortInstance = instanceName.split(".")[0];
-          shortInstance = shortInstance.split(" ")[0];
-          let shortChannel = channelName.split("@")[0];
-          chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
-          await setChatRoom(channelName, chatRoom);
-        }
-        let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName + '&autoconnect=true&startupscreen=welcome';
-        //let chatLink = "https://kiwiirc.com/nextclient/#" + chatRoom + '?nick=' + userName;
-        if (userName === 'PeerTuber') {
-          chatLink = chatLink + "???";
-        }
-        container.setAttribute("style", "display:flex");
-        container.setAttribute('style', 'height:100%;width:100%;resize:both;display:flex;flex-direction:column;overflow:auto')
-        const iframe = document.createElement('iframe')
-        iframe.setAttribute('src', chatLink);
-        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-        iframe.setAttribute('frameborder', '0')
-        iframe.setAttribute('id', "peertube-plugin-irc-iframe");
-        container.append(iframe)
-        let docIframe = document.getElementById('peertube-plugin-irc-iframe');
-        docIframe.setAttribute('style', 'height:100%')
-        docIframe.style.height = "100%";
-        docIframe.style.width = "100%";
-        docIframe.style.display = "flex";
-        docIframe.style.flexDirection = "column";
-        docIframe.style.resize = "both";
-        docIframe.style.overflow = "auto";
-        docIframe.contentWindow.kiwiconfig = () => { console.log("⚡️███kiwi config called ") }
-        let idoc = docIframe.contentWindow.document;
-        let ibody = idoc.getElementsByTagName('body');
-        let configScript = document.createElement(`div`);
-        configScript.innerHTML = `<script name="kiwiconfig">{"startupScreen": "welcome", "startupOptions": { "server": "irc.freenode.net", "port": 6697, "tls": true, "direct": false, "nick": "specialk" "autoConnect": true }}</script>`;
-        //console.log("⚡️before",ibody,configScript);
-        ibody[0].appendChild(configScript)
-        //console.log("⚡️after",ibody,configScript);
       }
       if (splitData) {
         let addSpot2Find = document.getElementsByClassName("video-actions");
@@ -274,7 +222,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             close: true,
             // confirm: { value: 'X', action: () => { } },
           })
-          await makeTipDialog(displayName);
+          await makeTipDialog(displayName, splitData);
           let tipButton = document.getElementById('modal-satbutton');
           let oldValue;
           if (tipButton) {
@@ -319,72 +267,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           window.open(tipeeeLink, 'popup', 'width=1100,height=700');
         }
       }
-      const bigChat = document.getElementById("bigchat");
-      if (bigChat) {
-        bigChat.title = "increase chat window height";
-        bigChat.onclick = async function () {
-          container.style.height = container.offsetHeight + 512 + 'px';
-        }
-      }
-      const smallChat = document.getElementById("smallchat");
-      if (smallChat) {
-        smallChat.title = "Decrease chat window height";
-        smallChat.onclick = async function () {
-          container.style.height = container.offsetHeight - 512 + 'px';
-        }
-      }
-      const closeChat = document.getElementById("closechat");
       let videoDisplay = document.getElementById("videojs-wrapper");
       let fullVideo = document.getElementById("video-wrapper");
-      var oldVideo, oldChat
-      if (closeChat) {
+      var oldVideo
 
-        closeChat.onclick = async function () {
-          if (debugEnabled) {
-            console.log("⚡️clicked", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
-            console.log("⚡️width", container.clientWidth, videoDisplay.clientWidth, fullVideo.clientWidth);
-            console.log("⚡️height", container.clientheight, videoDisplay.clientHeight);
-          }
-          if (closeChat.innerHTML === "Full Chat") {
-            closeChat.title = "Close chat window";
-            container.hidden = false;
-            oldVideo = videoDisplay.clientWidth;
-            videoDisplay.hidden = true;
-            closeChat.innerHTML = "X";
-            container.style.flexGrow = "1";
-            container.style.flex = "wrap";
-            //container.style.width = "2000px";
-            //container.width = "2000px"
-            //container.width = fullVideo.clientWidth;
-            bigChat.hidden = false;
-            smallChat.hidden = false;
-          }
-          else if (closeChat.innerHTML === "Chat") {
-            closeChat.title = "make chat full screen"
-            container.hidden = false;
-            videoDisplay.hidden = false;
-            closeChat.innerHTML = "Full Chat";
-            bigChat.hidden = false;
-            smallChat.hidden = false;
-            if (container.clientHeight < 640) {
-              container.style.height = "640px";
-            }
-          }
-          else if (closeChat.innerHTML === "X") {
-            container.hidden = true;
-            videoDisplay.hidden = false;
-            closeChat.innerHTML = "Chat";
-
-            bigChat.hidden = true;
-            smallChat.hidden = true;
-            closeChat.title = "open chat panel";
-          }
-          if (debugEnabled) {
-            console.log("⚡️after click", closeChat.innerHTML, videoDisplay.hidden, container.hidden);
-            console.log(container, videoDisplay);
-          }
-        }
-      }
       const donationalertsButton = document.getElementById("donationalerts")
       if (donationalertsButton) {
         donationalertsButton.onclick = async function () {
@@ -455,6 +341,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         unsubscribeButton.style.visibility="hidden";
       }
       subscribeButton.onclick = async function () {
+        subscribeButton.innerHTML="patronizing";
         console.log("!! subscribo !!");
         let body={
           user: userName,
@@ -469,6 +356,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
           if (subscribe && subscribe.data) {
             console.log("⚡️subscribe ",subscribe.data);
+            subscribeButton.innerHTML="Patronize";
             subscribeButton.style.visibility="hidden";
             unsubscribeButton.style.visibility="visible";
             doConfetti(69);
@@ -484,7 +372,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
              notifier.error("unable to create subscription");
           }
         }
-
+        subscribeButton.innerHTML="Patronize";
       }
       unsubscribeButton.onclick = async function () {
         console.log("!! un~subscribo !!");
@@ -562,12 +450,22 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   })
 
   registerHook({
+    target: 'action:video-edit.init',
+    handler: async ({ type, updateForm }) => {
+      let podData
+      let itemTxt = document.getElementById("itemtxt");
+      console.log('⚡️type and update form!', type,updateForm,itemTxt);
+    }
+  })
+
+
+  registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
       if (debugEnabled) {
         console.log("⚡️channel update loaded", params);
       }
-      // why?
+      
       videoName = undefined;
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
@@ -576,8 +474,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       //let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
       let feedGuid = await getChannelGuid(channel);
-      let feedTxt = ["txt"];
-      podData = await getPodData(channel);
+      let feedTxt = [""];
+      let podData = await getPodData(channel);
       if (debugEnabled) {
         console.log("⚡️pod data", podData);
       }
@@ -594,6 +492,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
         podData.text = feedTxt;
       }
       let newPodData = podData
+
       let panel = await getConfigPanel(splitData, channel);
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
@@ -608,97 +507,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
           }
         }
       }
-      let chatRoom = document.getElementById("chatroom");
-      let chatButton = document.getElementById("update-chat");
-      if (chatButton) {
-        chatButton.onclick = async function () {
-          setChatRoom(channel, chatRoom.value);
-          chatButton.innerText = "Saved!";
-        }
-      }
       //console.log("⚡️checking for rss settings button");
-      let rssSettingsButton = document.getElementById("rss-settings");
-      let changeMonitor;
-      if (rssSettingsButton) {
-        rssSettingsButton.onclick = async function () {
-          //console.log("⚡️rss settings button clicked");
-          //let podData= {medium:podcast}
-          let html;
-          if (!feedID) {
-            html = `<a href="https://podcastindex.org/add?feed=` + encodeURIComponent("https://" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel) + `"<button id="button-register-feed" class="peertube-button orange-button ng-star-inserted" title = "For full Boostagram functionality on sites like saturn.fly.dev and conshax.app you will need to register your channel">register with Podcast Index</button></a>`
-          } else {
-            html = "Podcast Index Feed ID: " + feedID;
-            //html = html + `<br><button type="button" id="register-feed" name="register-feed" class="peertube-button orange-button ng-star-inserted">Register Feed to Podcast Index</button>`
-          }
-          html = html + `<br>Podcast Guid: `;
-          html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="channel-guid" width="40" value="` + feedGuid + `">`
-          // html = html + `<button id="update-guid" class="peertube-button orange-button ng-star-inserted">Save</button>`
-          html = html + `<br>Podcast Medium <select id="feed-medium"><option value="podcast">podcast </option><option value="music">music </option><option value="video">video </option><option value="film">film </option><option value="audiobook">audiobook </option></select>`
-
-          for (var i = 0; i < podData.text.length; i++) {
-            html = html + `<br>Podcast txt value ` + i + `: `;
-            html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="feed-txt-` + i + `" width="40" value="` + podData.text[i] + `">`
-          }
-          html = html + `<br><button id="rss-link" class="peertube-button orange-button ng-star-inserted">RSS Feed</button>`
-          let rssEditSettings = await peertubeHelpers.showModal({
-            title: 'RSS settings ' + channel,
-            content: "",
-            close: true,
-            confirm: {
-              value: 'save', action: async () => {
-                clearInterval(changeMonitor);
-                try {
-                  await axios.post(basePath + "/setpoddata", newPodData, { headers: await peertubeHelpers.getAuthHeader() });
-                } catch (err) {
-                  console.log("⚡️ hard error attempting to update pod data", newPodData,)
-                }
-              }
-            },
-
-          });
-          let modal = (document.getElementsByClassName('modal-body'))
-          if (modal) {
-            modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-            modal[0].innerHTML = html;
-            switch (podData.medium) {
-              case "podcast": document.getElementById("feed-medium").selectedIndex = 0; break;
-              case "music": document.getElementById("feed-medium").selectedIndex = 1; break;
-              case "film": document.getElementById("feed-medium").selectedIndex = 2; break;
-              case "video": document.getElementById("feed-medium").selectedIndex = 3; break;
-              case "audiobook": document.getElementById("feed-medium").selectedIndex = 4; break;
-              default: console.log("⚡️unable to find a match for podData.medium");
-            }
-          }
-
-          let rssLinkButton = document.getElementById('rss-link');
-          if (rssLinkButton) {
-            rssLinkButton.onclick = async function () {
-              let rssFeedUrl = window.location.protocol + "//" + window.location.hostname + "/plugins/lightning/router/podcast2?channel=" + channel
-              window.open(rssFeedUrl);
-            }
-          }
-
-          changeMonitor = setInterval(async function () {
-            try {
-              newPodData.feedguid = document.getElementById("channel-guid").value;
-              newPodData.medium = document.getElementById("feed-medium").value;
-              for (var i = 0; i < feedTxt.length; i++) {
-                podData.text[i] = document.getElementById("feed-txt-" + i).value;
-              }
-            } catch {
-              clearInterval(changeMonitor);
-            }
-          }, 500);
-          let registerFeedButton = document.getElementById('register-feed');
-          if (registerFeedButton) {
-            registerFeedButton.onclick = async function () {
-              let registerFeedUrl = "https://podcastindex.org/add?feed=" + feedID;
-              window.open(registerFeedUrl);
-            }
-          }
-        }
-      }
-
       let createButton = document.getElementById('create-split');
       if (createButton) {
         createButton.onclick = async function () {
@@ -765,72 +574,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
   })
   
-  const videoFormOptions = { tab: 'plugin-settings' };
-  let commonOptions = {
-    name: 'seasonnode',
-    label: 'Season number',
-    descriptionHTML: 'which season this episode belongs to',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-  commonOptions = {
-    name: 'seasonname',
-    label: 'Season descriptive name',
-    descriptionHTML: 'Display name of this season',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-  commonOptions = {
-    name: 'episodenode',
-    label: 'Episode number',
-    descriptionHTML: 'episode number in season',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-  commonOptions = {
-    name: 'episodename',
-    label: 'Episode descriptive name',
-    descriptionHTML: 'Display name of this episode',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-  commonOptions = {
-    name: 'chapters',
-    label: 'Chapter file',
-    descriptionHTML: 'URL for chapter file',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-  commonOptions = {
-    name: 'itemtxt',
-    label: 'arbitrary text',
-    descriptionHTML: 'arbitrary text string for item',
-    type: 'input',
-    default: ''
-  }
-  for (const type of ['upload', 'import-url', 'import-torrent', 'update', 'go-live']) {
-    registerVideoField(commonOptions, { type, ...videoFormOptions })
-  }
-
+  
   await peertubeHelpers.getSettings()
     .then(s => {
       tipVerb = s['lightning-tipVerb'];
-      chatEnabled = s['irc-enable'];
       keysendEnabled = s['keysend-enable'];
       legacyEnabled = s['legacy-enable'];
       lnurlEnabled = s['lnurl-enable'];
@@ -1597,30 +1344,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     return paymentInfo;
   }
-
-  async function getChatRoom(channel) {
-    if (debugEnabled) {
-      console.log("⚡️getting chat room", channel, basePath)
-    }
-    let chatApi = basePath + "/getchatroom?channel=" + channel;
-    try {
-      let chatRoom = await axios.get(chatApi);
-      if (chatRoom) {
-        //console.log("⚡️chatroom returned", chatRoom, "data", chatRoom.data);
-        return chatRoom.data;
-      }
-    } catch (err) {
-      return;
-    }
-  }
-  async function setChatRoom(channel, chatRoom) {
-    let chatApi = basePath + "/setchatroom?channel=" + channel + "&chatroom=" + encodeURIComponent(chatRoom);
-    try {
-      await axios.get(chatApi);
-    } catch (err) {
-      console.log("⚡️error attempting to set chatroom", err, channel, chatRoom);
-    }
-  }
   async function getFeedID(channel) {
     let feedApi = basePath + "/getfeedid?channel=" + channel;
     try {
@@ -1712,10 +1435,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     for (var split of splitData.data) {
       if (debugEnabled) {
         console.log("⚡️ split math ", splitTotal, split.split, split);
-        if (split.keysend.cache){
-          var lastsync=new Date(split.keysend.cache);
+        if (split.keysend && split.keysend.retrieved){
+          var lastsync=new Date(split.keysend.retrieved);
           var syncdate = lastsync.toLocaleDateString;
-          console.log("⚡️ cache date:",split.keysend.cache,lastsync,syncdate);
+          console.log("⚡️ cache date:",split.keysend.retrieved,lastsync,syncdate);
         }
       }
       if (!Number.isInteger(split.split)) {
@@ -1774,15 +1497,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   }
   async function getConfigPanel(splitInfo, channel) {
     let feedID = await getFeedID(channel);
-    let chatRoom = await getChatRoom(channel);
-    if (!chatRoom) {
-      let shortInstance = instanceName.split(".")[0];
-      let shortChannel = channel.split("@")[0];
-      chatRoom = "irc://irc.rizon.net/" + shortInstance + "-" + shortChannel;
-      await setChatRoom(channelName, chatRoom);
-    }
     if (debugEnabled) {
-      console.log("⚡️getting config panel", splitInfo, feedID, chatRoom, channel);
+      console.log("⚡️getting config panel", splitInfo, feedID, channel);
     }
     let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Lightning Splits</label><br>`
     if (splitInfo && (keysendEnabled || lnurlEnabled)) {
@@ -1825,11 +1541,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     html = html + "<hr>"
 
     //html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
-    if (chatEnabled) {
-      html = html + "<br> Channel Chatroom URL:";
-      html = html + `<input STYLE="color: #000000; background-color: #ffffff;"type="text" id="chatroom" name="chatroom" value="` + chatRoom + `">`
-      html = html + `<button type="button" id="update-chat" name="update-chat" class="peertube-button orange-button ng-star-inserted">Save</button>`
-    }
     const panel = document.createElement('div');
     panel.setAttribute('class', 'lightning-button');
     panel.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
@@ -1942,7 +1653,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
     }
   }
-  async function makeTipDialog() {
+  async function makeTipDialog(DisplayName,splitData) {
     if (debugEnabled) {
       console.log("⚡️making tip dialog", channelName);
     }
@@ -1960,7 +1671,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     </td></tr></table>
     <br><button _ngcontent-vww-c178=""  id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</button>
     </center>`;
-
+    for (var split of splitData){
+      html=html+`<br> ${split.split}% ${split.name} `;
+    }
     let modal = (document.getElementsByClassName('modal-body'))
     modal[0].innerHTML = html;
     let modalHack = document.getElementsByClassName("modal-dialog");
@@ -2564,9 +2277,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       { name: "Dave Jones (Pod Sage)",
         address: "dave@getalby.com" },
       { name: "Steven Crader (Podcastindex Dev)",
-        address: "(stevencrader@getalby.com" },
+        address: "stevencrader@getalby.com" },
       { name: "Steven Bell (LNBeats Sovereign Feeds Music Side Project CurioCaster Dev)",
-        address: "steven@getalby.com" },  
+        address: "steven@getalby.com" }, 
+      { name: "Martin Mouritzen (Podfriend Dev)",
+        address: "podfriend@getalby.com" }, 
     ]
     if (name){
       for (var dude of directory){
