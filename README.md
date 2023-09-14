@@ -1,29 +1,22 @@
 # A plugin to allow creator monetization over the Bitcoin Lightning Network
 
+Boostagrams: Allows a message to be sent along with 
 
 Creators
 --------------
-Creators can put their lightning address in the description or support section of the channel channel configuraton.
-use the format:
-    ⚡user@wallet 
-such as ⚡viralsurgeon76@walletofsatoshi.com
-Creators that don't have a wallet can get an [Alby Podcaster Wallet](https://getalby.com/podcast-wallet) which is preferred for their enhanced creator support at [SATurn](https://saturn.fly.dev/).
-
-That's all it takes to start receiving payments from viewers.
+[How to setup a value block](https://github.com/dhk2/peertube-plugin-lightning/wiki/How-to-setup-a-Channel's-Value-Block-Splits) You can add yourself and your team to allow viewers to send you Bitcoin Satoshis.
 
 Viewers
 ----------------
-Viewers will need a lightning wallet with some bitcoin. Having a WebLN compatible browser extension such as [Alby](https://getalby.com) linked to the wallet is the easiest way, but they can scan QR codes each time.
+Viewers will need a lightning wallet with some bitcoin. Direct integration with an [Alby](https://getalby.com) wallet is the easiest way. Alternatively you can use a browser extension to add WebLN support. Some Bitcoin wallets have built in WebLN supported browsers
 
 PeerTube operators
 ----------------
 Simply install the lightning plug in from the PeerTube plug in menu.  
-
-Optionally they can configure a system wallet with a Lightning Address, and choose a verb (tip, superchat, boost, rant, bit, spell, whatever the audience will find appopriate).
+[Instructions](https://github.com/dhk2/peertube-plugin-lightning/wiki/Setting-up-Lightning-Plug-In-on-a-PeerTube-instance) and details
 
 See it in action:
-[Beta Test Site](https://p2ptube.us)
+[Beta Test Site](https://freediverse.com)
 
-[How To Videos](https://p2ptube.us/c/lighning_plugin/videos?s=1)
 
 
