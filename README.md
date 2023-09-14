@@ -1,6 +1,9 @@
 # A plugin to allow creator monetization over the Bitcoin Lightning Network
 
-Boostagrams: Allows a message to be sent along with 
+- Boostagram: a message to be sent along with an amount of Sats over the lightning network. similar to how it's done
+- Streaming: viewers can choose to send Sats for every minute of viewing
+- Patronage: Regular payment to the artist to be sent from an integrated wallet to incentivize and subsidize content creation.
+- Cross app comment zap: A direct transfer to the creator of a comment on a video
 
 Creators
 --------------
