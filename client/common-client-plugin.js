@@ -765,7 +765,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
     }
   })
-
   registerHook({
     target: 'action:video-watch.video-thread-replies.loaded',
     handler: async () => {
@@ -880,8 +879,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return result;
     }
   })
-
-
   registerHook({
     target: 'action:embed.player.loaded',
     handler: async ({ player, videojs, video }) => {

@@ -978,7 +978,7 @@ async function register({
           console.log("⚡️⚡️ searching channel data for lightning address",apiCall,channelData.data);
         }
         //console.log("channeldata",channelData);
-        let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support);
+        let foundLightningAddress = await findLightningAddress(channelData.data.description + " " + channelData.data.support+channelData.data.ownerAccount.description);
         if (foundLightningAddress) {
           let keysendData, lnurlData;
           if (enableKeysend) {
