@@ -1240,7 +1240,7 @@ async function register({
     var customValue = req.query.customvalue;
     var node = req.query.node;
     var customKeysend = req.query.customkeysend;
-    if (node == undefined && newAddress.length == 66){
+    if (node == undefined && newAddress && newAddress.length == 66){
       node=newAddress
       customKeysend=true;
     }
@@ -1983,7 +1983,10 @@ async function register({
     return res.status(404).send(response);
   })
   router.use('/createsubscription',async(req,res) => {
-    if (!req.body.channel || !req.body.amount || !req.body.type){
+    if (enableDebug) {
+      console.log("⚡️⚡️⚡️⚡️ creqting subscription", req.query,req.body);
+    }
+    if (!req.body.channel){
       return res.status(420).send ("malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
@@ -2000,28 +2003,49 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️ user", userName);
       }
     }
-    
+    let replyTo;
+    let walletApi = base+`/plugins/lightning/router/walletinfo?account=${userName}`;
+    let walletData;
+    try {
+      walletData = await axios.get(walletApi);
+    } catch {
+      console.log("⚡️⚡️⚡️⚡️ failed to get reply to address for user", userName,walletApi);
+    }
+    if (walletData && walletData.data && walletData.data.address){
+      replyTo = walletData.data.address;
+    }
+
     let newSubscription = {
       user: userName,
+      name: userName,
       channel: req.body.channel,
-      amount: req.body.amount,
-      type: req.body.type,
+      amount: (req.body.amount) ? req.body.amount :69 ,
+      type: (req.body.type) ? req.body.type : "Daily",
       startdate: Date.now(),
       paiddays: 0,
-      public: req.body.public,
+      public: (req.body.public) ? req.body.public : true,
       pendingconfetti: 0,
+      confirmedSats: 0,
+      paused: false,
+      address: (replyTo) ? replyTo : "",
+    }
+    if (enableDebug){
+      console.log("⚡️⚡️⚡️⚡️ new subscription",newSubscription);
     }
     let subscriptions = await storageManager.getData('subscriptions');
     if (!subscriptions){
+      if (enableDebug){
+        console.log("⚡️⚡️⚡️⚡️ no subscriptions, initializing empty array");
+      }
       subscriptions = [];
     }
     //console.log("⚡️⚡️⚡️⚡️ subscriptions plus new one",subscriptions,newSubscription);
     subscriptions.push(newSubscription);
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     await storageManager.storeData("subscriptions", subscriptions);
-    if (await sendPatronPayment(userName,req.body.channel,req.body.amount, "first patron payment",1)){
+    if (await sendPatronPayment(userName,req.body.channel,newSubscription.amount, "first patron payment",1)){
       console.log("⚡️⚡️⚡️⚡️ made first subscription payment");
-      return res.status(200).send("subscription created");
+      return res.status(200).send(newSubscription);
     } else {
       console.log("⚡️⚡️⚡️⚡️ Failed to make first subscription payment");
       return res.status(420).send("unable to patronize");
@@ -2075,7 +2099,7 @@ async function register({
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     if (subscriptions){
       for (var sub of subscriptions){
-        //console.log("⚡️⚡️⚡️⚡️ subscription",sub);
+        console.log("⚡️⚡️⚡️⚡️ subscription",sub.user,sub.channel);
         if (userName != sub.user || channel != sub.channel){
           list.push(sub);
           subs.push(sub.channel)
@@ -2089,8 +2113,44 @@ async function register({
     }
     console.log("⚡️⚡️⚡️⚡️ found subscriptions", list,list.length);
   })
-  router.use('/editsubscription', async (req, res) => {
-
+  router.use('/updateSubscription', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️ updating subscription ", req.query, req.body);
+    }
+    if (!req.body || !req.query.channel){
+      return res.status(420).send("⚡️⚡️malformed request");
+    }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (!user || !user.dataValues){
+      return res.status(420).send("⚡️⚡️ unable to confirm authorized user making request");
+    }
+    let userName;
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+      if (enableDebug) {
+        console.log("⚡️⚡️⚡️⚡️ user", userName);
+      }
+    }
+    let subscriptions = await storageManager.getData('subscriptions');
+    if (!subscriptions){
+      console.log ("⚡️⚡️ no subscriptions to update");
+      return res.status(420).send("subscription data not foud");
+    }
+    console.log ("⚡️⚡️ trying to match",userName,req.query.channel);
+    let list = [];
+    if (subscriptions){
+      for (var sub of subscriptions){
+        console.log("⚡️⚡️⚡️⚡️ subscription",sub.user,sub.channel);
+        if (userName != sub.user || req.query.channel != sub.channel){
+          list.push(sub);
+        } else {
+          list.push(req.body);
+          console.log("⚡️⚡️⚡️⚡️ updated subscription",sub,req.body);
+        }
+      }
+      storageManager.storeData("subscriptions", list);
+      return res.status(200).send("subscription updated");
+    }
   })
   router.use('/getsubscriptions', async (req, res) => {
     if (enableDebug){
@@ -2100,34 +2160,36 @@ async function register({
     //  return res.status(420).send("malformed request");
     //}
     let user = await peertubeHelpers.user.getAuthUser(res);
-    let userName = req.query.user;
-    if (userName == 'PeerTuber'){
-      userName=user.dataValues.username;
-    }
-    if (user && user.dataValues && (user.dataValues.username == req.query.user)) {
-      userName = user.dataValues.username;
-      if (enableDebug) {
-        console.log("███ got authorized peertube user", user.dataValues.username);
-      }
+    let userName;
+    if (user && user.dataValues){
+      userName  = user.dataValues.username;
     }
     if (enableDebug) {
-      console.log("⚡️⚡️⚡️⚡️ user", userName);
+      console.log("⚡️⚡️⚡️⚡️ verified user", userName);
     }
     let subscriptions = await storageManager.getData('subscriptions');
     let list = [];
-    //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
+    console.log("⚡️⚡️⚡️⚡️ trying to match ",req.query.channel,req.query.user,userName);
     if (subscriptions){
       for (var sub of subscriptions){
-        //console.log("⚡️⚡️⚡️⚡️ sub",sub);
-        if (!req.query.channel && req.query.user && (req.query.user == sub.user) && (sub.public || userName)){
-          list.push(sub);
-        } 
-        if (!req.query.user && req.query.channel && (req.query.channel == sub.channel) && (sub.public)) {
-          list.push(sub);
-        } 
-        if ((req.query.user && req.query.channel) && req.query.user == sub.user && req.query.channel == sub.channel && (sub.public || userName)){
+        console.log("⚡️⚡️⚡️⚡️ sub",sub.user,sub.channel,sub.name,sub.public,sub.address,sub.type);
+        // public subscriptions of a user 
+        if (!req.query.channel && req.query.user && (req.query.user == sub.user) && (sub.public || userName == req.query.user)){
           list.push(sub);
         }
+        // public subscribers to channel
+        else if (!req.query.user && req.query.channel && (req.query.channel == sub.channel) && (sub.public || sub.user == userName)) {
+          list.push(sub);
+        } 
+        // public subscription of a user for a channel
+        else if ((req.query.user && req.query.channel) && req.query.user == sub.user && req.query.channel == sub.channel && (sub.public || sub.user == userName)){
+          list.push(sub);
+        }
+        // user request for list of their subscribed channels
+        else if (userName == sub.user) {
+          list.push
+        } 
+        
       }
     }
     console.log("⚡️⚡️⚡️⚡️ found subscriptions", list,list.length);
@@ -2408,7 +2470,7 @@ async function register({
     }
     return;
   }
-  async function sendPatronPayment(user,channel,amount, message,days) {
+  async function sendPatronPayment(user,channel,amount, message,days,name, public, replyTo,) {
     if (enableDebug) {
       console.log("⚡️⚡️sending patron payment", user, channel,amount,message);
     }
@@ -2481,10 +2543,23 @@ async function register({
         if (!payee.split){
           payee.split=1;
         }
-        //console.log("payee",payee);
+        console.log("⚡️⚡️ wtfff ",payee);
+
         let splitAmount = Math.trunc(amount*payee.split/100)
         let msat = splitAmount*1000;
         let totalAmount= amount*1000;
+        let boostName
+        if (public){
+          if (name){
+            boostName = name;
+          } else {
+            boostName = user;
+          }
+          
+        } else {
+          boostName="Anonymous";
+          replyTo=null
+        }
         let boost = {
           "app_name": "PeerTube",
           "app_version": version,
@@ -2493,9 +2568,14 @@ async function register({
           "podcast": channel,
           "action": "auto",
           "name": payee.name,
-          "sender_name": user,
+          "sender_name": boostName,
           "message": message
         }
+        if (replyTo && replyTo != ''){
+          boost.reply_address = replyTo;
+        }
+        console.log("⚡️⚡️ wtfff ",boost,totalAmount, amount, splitAmount,payee.split);
+
         let keysend;
         if (payee.keysend && Array.isArray(payee.keysend.customData) && payee.keysend.customData[0] && payee.keysend.customData[0].customKey){
           //console.log("⚡️⚡️ customData found", payee.keysend.customData[0]);
@@ -2525,7 +2605,7 @@ async function register({
           let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
           let walletApiUrl = "https://api.getalby.com/payments/keysend"
           if (enableDebug) {
-            console.log("⚡️⚡️ attempting to pay", walletApiUrl);
+            console.log("⚡️⚡️ attempting to pay", walletApiUrl,keysend);
           }
           try {
             albyWalletData = await axios.post(walletApiUrl, keysend, headers);
@@ -2584,6 +2664,9 @@ async function register({
                 list.push(sub);
                 //subs.push(sub.channel)
               } else {
+                if (enableDebug) {
+                  console.log("⚡️⚡️ updating subscription paid days", days,sub);
+                }
                 sub.paiddays = sub.paiddays+days;
                 sub.pendingconfetti = sub.pendingconfetti+days;
                 list.push(sub);
@@ -2592,9 +2675,6 @@ async function register({
               }
             }
             storageManager.storeData("subscriptions", list);
-            if (enableDebug){
-              console.log("⚡️⚡️⚡️⚡️ Saving updated subscription", subs);
-            }
             return true ;
           }
         } else {
@@ -2653,11 +2733,26 @@ async function register({
           let payDays = parseInt(Math.floor(unPaidTime / milliday));
           //console.log("⚡️⚡️⚡️⚡️what the hell man",payDays,unPaidTime,milliday,unPaidTime/milliday)
           if (payDays>0){
-            console.log(`⚡️⚡️ ${payDays} to be paid for ${sub.channel}`);
-            let payAmount = payDays*69;
-            let payStart = new Date(paidDate+milliday);
-            let mess = `Patronage for ${sub.channel} for ${payStart.toLocaleDateString()} to `+date.toLocaleDateString()
-            let paid = await sendPatronPayment(sub.user,sub.channel,payAmount, mess,payDays);
+            console.log(`⚡️⚡️ ${payDays} behind on ${sub.channel}`);
+            let payAmount = payDays*sub.amount;
+            switch(sub.type){
+              case "Weekly":
+                payAmount = payAmount*7;
+                payDays = 7
+                break;
+              case "Monthly":
+                payAmount = payAmount*30;
+                payDays = 30
+                break;
+              case "Yearly":
+                payAmount = payAmount*365;
+                payDays = 365
+                break;
+            }
+            let payStart = date;
+            let payEnd = new Date(date+(milliday*paydays));
+            let mess = `Patronage for ${sub.channel} for ${payStart.toLocaleDateString()} to `+payEnd.toLocaleDateString()
+            let paid = await sendPatronPayment(sub.user,sub.channel,payAmount, mess,payDays,sub.name,sub.public,sub.address);
             if (paid){
               console.log(`${sub.user} patronized ${sub.channel}`);
             } else {

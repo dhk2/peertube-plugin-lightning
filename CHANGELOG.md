@@ -1,7 +1,9 @@
 v 5.0.6
 - added account description to lightning address search
 - fixed handling auto split creation for channels with lightning address in description.
-
+- added patronage managemement.
+- moved de-patronize button to management 
+- fixed anonymous patronage
 
 v 5.0.5
 - fixed bugs with saved remote splits not saving and reading properly due to illegal characters

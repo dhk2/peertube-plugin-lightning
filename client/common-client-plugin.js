@@ -23,7 +23,47 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let podData;
   let hostPath;
   let authorizationChecked = false;
+  registerHook({
+    target: 'action:auth-user.information-loaded',
+    handler: async ({ user }) => {
+      if (user) {
+        if (debugEnabled) {
+          console.log("⚡️user", user);
+        }
+        userName = user.username
+        hostPath = user.account.host;
+        let accountWalletApi = basePath + "/walletinfo?account=" + user.username;
+        if (debugEnabled) {
+          console.log("⚡️wallet api call", accountWalletApi, user.username);
+        }
+        try {
+          authorizationChecked = true;
+          let accountWallet = await axios.get(accountWalletApi);
+          if (accountWallet) {
+            accountAddress = accountWallet.data.address;
+            //console.log("⚡️account wallet info",accountAddress);
+            let authorizedWalletApi = basePath + "/checkauthorizedwallet";
+            //console.log("⚡️authorized wallet api:",authorizedWalletApi);
+            let headers = { headers: await peertubeHelpers.getAuthHeader() }
+            //console.log("⚡️headers",headers)
+            let authorized = await axios.get(authorizedWalletApi, headers);
+            //console.log("⚡️authorized result",authorized);
+            if (authorized.data) {
 
+              walletAuthorized = true;
+            }
+          } else {
+            console.log("⚡️no wallet data found for", user.username);
+          }
+        } catch (err) {
+          console.log("⚡️no wallet data", err);
+        }
+      }
+
+      //let what = document.getElementById("plugin-selector-menu-user-dropdown-language-item");
+      //console.log(what);
+    }
+  })
   registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ player, video }) => {
@@ -306,12 +346,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       let buttonSpot= document.getElementsByClassName("channel-buttons");
       let buttonHtml = document.createElement("div");
       let subscribed,subApi;
+      let channel = result.videoChannel.nameWithHostForced
       try {
-        subApi=basePath + `/getsubscriptions?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`;
-        console.log("trying to get subscription",subApi);
+        subApi=basePath + `/getsubscriptions?channel=${channel}`;
+        console.log("trying to get subscription",channel, subApi);
         subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
-        console.log("subscription result",subscribed);
-        if (subscribed && subscribed.data) {
+        if (debugEnabled){
+          console.log("subscription result",channel, subscribed);
+        }
+        if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
           console.log("⚡️subscribed ",subscribed.data);
           let pend = subscribed.data[0].pendingconfetti;
           if (pend>0){
@@ -319,76 +362,175 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             notifier.success(`patronized for ${pend} days of ${subscribed.data[0].paiddays}`)
             let ccApi=basePath + `/clearconfetti?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`;
             console.log("trying to clear confetti pending",ccApi);
-            subscribed = await axios.get( ccApi, { headers: await peertubeHelpers.getAuthHeader() });
-            console.log("confetti clearing result",subscribed);
+            await axios.get( ccApi, { headers: await peertubeHelpers.getAuthHeader() });
           }
         } else {
           console.log("⚡️didn't get good subscription data");
         }
-        console.log("subscription result",subscribed,buttonHtml.innerHTML);
+        console.log("subscription result",subscribed,subscribed.data,buttonHtml.innerHTML);
       } catch (err) {
          console.log("⚡️error attempting to get subscribed status", subApi, err);
       }
-      buttonHtml.innerHTML=`<button id='depatronize-channel' class="peertube-button-link orange-button ng-star-inserted"'>De-Patronize</button><button id='patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Patronize</button>`;
+      buttonHtml.innerHTML=`<button id='patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Patronize</button>
+                            <button id='manage-patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Manage Patronage</button>`;
       buttonSpot[0].appendChild(buttonHtml);
       let subscribeButton = document.getElementById("patronize-channel");
-      let unsubscribeButton = document.getElementById("depatronize-channel");
-      if (subscribed && subscribed.data){
-        subscribeButton.style.visibility="hidden";
-        unsubscribeButton.style.visibility="visible";
-      } else {
-        subscribeButton.style.visibility="visible";
-        unsubscribeButton.style.visibility="hidden";
-      }
-      subscribeButton.onclick = async function () {
-        subscribeButton.innerHTML="patronizing";
-        console.log("!! subscribo !!");
-        let body={
-          user: userName,
-          channel: result.videoChannel.nameWithHostForced,
-          amount: 69,
-          public: true,
-          type: 'daily'
-        }
-        let subscribe;
-        try {
-          subApi=basePath + `/createsubscription`
-          subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
-          if (subscribe && subscribe.data) {
-            console.log("⚡️subscribe ",subscribe.data);
-            subscribeButton.innerHTML="Patronize";
-            subscribeButton.style.visibility="hidden";
-            unsubscribeButton.style.visibility="visible";
-            doConfetti(69);
-            notifier.success(`Automatic patron support for ${result.videoChannel.name} enabled`)
-          } else {
-            console.log("⚡️ unable to subscribe");
-          }
-        } catch (err) {
-          console.log("⚡️error attempting to subscribe", subApi, err);
-          if (err && err.response && err.response.data){
-            notifier.error(err.response.data);
-          } else {
-             notifier.error("unable to create subscription");
-          }
-        }
-        subscribeButton.innerHTML="Patronize";
-      }
-      unsubscribeButton.onclick = async function () {
-        console.log("!! un~subscribo !!");
-        try {
-          subApi=`${basePath}/deletesubscription?user=${userName}&channel=${result.videoChannel.nameWithHostForced}`;
-          console.log("attempting to delete subscription",subApi)
-          await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
-          console.log("unsubscribed");
-          subscribeButton.style.visibility="visible";
-          unsubscribeButton.style.visibility="hidden";
-        } catch (err) {
-          console.log("⚡️error attempting to unsubscribe", subApi, err);
-        }
+      
+      let manageButton = document.getElementById("manage-patronize-channel");
+      if (manageButton) {
+        manageButton.onclick = async function () {
+          await peertubeHelpers.showModal({
+            title: 'Configure Patronage for ' + channel,
+            content: ` `,
+            close: true,
+            confirm: { value: 'X', action: () => { } },
 
+          })
+          let suggestedAmount = subscribed.data[0].amount;
+          if (!suggestedAmount){
+            suggestedAmount = "69";
+          }
+          
+          let patronName= subscribed.data[0].name;
+          let replyAddress = subscribed.data[0].address
+          let modal = (document.getElementsByClassName('modal-body'))
+          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+          modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels()+`<br><label for="amount">Daily Patronage:</label><input style="color: #000000; background-color: #ffffff;"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
+          <input type="checkbox" id="modal-patronage-private" name="private-patron"> <label for="private">Anonymous Patronage:</label><br>
+          <label for="name">Patron Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-patronage-name" value="${patronName}"><br>          <label for="address">Boost Back Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-patronage-address" value="${replyAddress}"><br>
+          <button class="peertube-button orange-button ng-star-inserted" id="modal-patronage-update">update patronage</button>
+          <button id='modal-patronage-depatronize' class="peertube-button-link orange-button ng-star-inserted"'>De-Patronize</button>`;
+          console.log("yeah",wallet);
+          let managedFrequency =  document.getElementById("times");
+          let managedLevel =  document.getElementById("patron-level");
+          let managedAmount =  document.getElementById("modal-patronage-amount");
+          let managedName =  document.getElementById("modal-patronage-name");
+          let managedAddress =  document.getElementById("modal-patronage-address");
+          let managedPrivate =  document.getElementById("modal-patronage-private");
+          let unsubscribeButton = document.getElementById("modal-patronage-depatronize");
+          let updateButton = document.getElementById("modal-patronage-update")
+          managedPrivate.checked =!subscribed.data[0].public
+          managedPrivate.onchange = async function(){
+            if (managedPrivate.checked){
+              managedName.disabled=true;
+              managedAddress.disabled=true;
+            } else {
+              managedName.disabled=false;
+              managedAddress.disabled=false;              
+            }
+          }
+          if (managedPrivate.checked){
+            managedName.disabled=true;
+            managedAddress.disabled=true;
+          }
+          managedFrequency.value = subscribed.data[0].type;
+          managedLevel.value = subscribed.data[0].amount;
+          managedLevel.onchange = async function() {
+            managedAmount.value = managedLevel.value;
+          }
+          unsubscribeButton.onclick = async function () {
+            console.log("!! un~subscribo !!");
+            try {
+              closeModal();
+              subApi=`${basePath}/deletesubscription?user=${userName}&channel=${result.videoChannel.nameWithHostForced}`;
+              if (debugEnabled){
+                console.log("⚡️attempting to delete subscription",subApi)
+              }
+              await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
+              console.log("⚡️unsubscribed");
+              subscribeButton.style.visibility="visible";
+              manageButton.style.visibility="hidden";
+            } catch (err) {
+              console.log("⚡️error attempting to unsubscribe", subApi, err);
+              subscribeButton.style.visibility="hidden";
+            }
+          }
+          updateButton.onclick = async function () {
+            console.log("subscribed",subscribed)
+            let newSub = subscribed.data[0];
+            if (debugEnabled){
+              console.log("⚡️old subscription", userName,channel,newSub);
+            }
+            let newAmount = managedAmount.value;
+            if (typeof newAmount == 'string'){
+              newAmount = Number(newAmount);
+            }
+            if (newAmount !=newSub.amount){
+              newSub.amount = newAmount;
+            }
+            if (managedFrequency.value != newSub.type){
+              newSub.type = managedFrequency.value;
+            }
+            if (managedName.value !=newSub.name){
+              newSub.name = managedName.value;
+            }
+            if (managedAddress.value !=newSub.address){
+              newSub.address = managedAddress.value;
+            }
+            if (managedPrivate.checked == newSub.public){
+              newSub.public = !newSub.public;
+            }
+            if (debugEnabled){
+              console.log("⚡️new subscription", userName,channel,newSub);
+            }
+            let updateApi = basePath + `/updatesubscription?channel=` + channel;
+            let updateResult;
+            try {
+              updateResult = await axios.post(updateApi, newSub,{ headers: await peertubeHelpers.getAuthHeader() });
+            } catch (e) {
+              console.log("⚡️unable to update split\n", updateApi, e);
+              notifier.error(e, updateApi, newAddress, );
+              return;
+            }
+            closeModal();
+          }
+
+        }
+        if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
+          manageButton.style.visibility="visible";
+        } else {
+          manageButton.style.visibility="hidden";
+        }
       }
-      //result.data[0].account.displayName=`<a href="https://google.com">zap</a>`;
+      if (subscribeButton){
+        subscribeButton.onclick = async function () {
+          subscribeButton.innerHTML="patronizing";
+          console.log("!! subscribo !!");
+          let body={
+            user: userName,
+            channel: result.videoChannel.nameWithHostForced,
+            type: 'Daily',
+          }
+          let subscribe;
+          try {
+            subApi=basePath + `/createsubscription`
+            subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
+            if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
+              console.log("⚡️subscribe ",subscribe.data[0]);
+              subscribeButton.innerHTML="Patronize";
+              subscribeButton.style.visibility="hidden";
+              manageButton.style.visibility="visible";
+              doConfetti(69);
+              notifier.success(`Automatic patron support for ${result.videoChannel.name} enabled`)
+            } else {
+              console.log("⚡️ unable to subscribe");
+            }
+          } catch (err) {
+            console.log("⚡️error attempting to subscribe", subApi, err);
+            if (err && err.response && err.response.data){
+              notifier.error(err.response.data);
+            } else {
+              notifier.error("unable to create subscription");
+            }
+          }
+          subscribeButton.innerHTML="Patronize";
+        }
+        if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
+          subscribeButton.style.visibility="hidden";
+        } else {
+          subscribeButton.style.visibility="visible";
+        }
+      }
       return result;
     }
   })
@@ -533,7 +675,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
               createResult = await axios.get(createApi);
             } catch (e) {
               console.log("⚡️unable to create split\n", createApi, createResult);
-              notifier.error(e, createResult, newAddress, newAddress.length);
+              notifier.error(e, createApi, newAddress, newAddress.length);
               return;
             }
             if (createResult) {
@@ -625,47 +767,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
   })
 
-  registerHook({
-    target: 'action:auth-user.information-loaded',
-    handler: async ({ user }) => {
-      if (user) {
-        if (debugEnabled) {
-          console.log("⚡️user", user);
-        }
-        userName = user.username
-        hostPath = user.account.host;
-        let accountWalletApi = basePath + "/walletinfo?account=" + user.username;
-        if (debugEnabled) {
-          console.log("⚡️wallet api call", accountWalletApi, user.username);
-        }
-        try {
-          authorizationChecked = true;
-          let accountWallet = await axios.get(accountWalletApi);
-          if (accountWallet) {
-            accountAddress = accountWallet.data.address;
-            //console.log("⚡️account wallet info",accountAddress);
-            let authorizedWalletApi = basePath + "/checkauthorizedwallet";
-            //console.log("⚡️authorized wallet api:",authorizedWalletApi);
-            let headers = { headers: await peertubeHelpers.getAuthHeader() }
-            //console.log("⚡️headers",headers)
-            let authorized = await axios.get(authorizedWalletApi, headers);
-            //console.log("⚡️authorized result",authorized);
-            if (authorized.data) {
 
-              walletAuthorized = true;
-            }
-          } else {
-            console.log("⚡️no wallet data found for", user.username);
-          }
-        } catch (err) {
-          console.log("⚡️no wallet data", err);
-        }
-      }
-
-      //let what = document.getElementById("plugin-selector-menu-user-dropdown-language-item");
-      //console.log(what);
-    }
-  })
 
   registerHook({
     target: 'action:video-watch.video-threads.loaded',
@@ -1739,7 +1841,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     / $
     <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-cashamount" name="modal-cashamount" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>`;
-    let subApi=basePath + `/getsubscriptions?user=`+userName;
+    let subApi=basePath + `/getsubscriptions`;
     try {
       
       console.log("⚡️trying to get subscription",subApi);
@@ -2255,6 +2357,30 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     let html = `<label for="Support V4V">Select Splitter:</label><select id="names" name="names">`;
     for (var dude of await getLightningAddress() ){
       html = html + `<option value="${dude.name}">${dude.name}</option>`;
+    }
+    html = html + `</select>`;
+    return html;
+  }
+  async function getTimePeriodsHtml(){
+    let html = `<label for="times">Patronage frequency:</label><select id="times" name="times">`;
+    let times = ["Daily","Weekly","Monthly","Yearly"]
+    for (var time of times){
+      html = html + `<option value="${time}">${time}</option>`;
+    }
+    html = html + `</select>`;
+    return html;
+  }
+    async function getPatronLevels(){
+    let html = `<label for="patronage-level">Patronage level:</label><select id="patron-level" name="patron-level">`;
+    let levels = [
+      {"name" :"Basic Patron","sats":69},
+      {"name":"Freedon Patron","sats":1776},
+      {"name":"BooB Patron","sats":8008},
+      {"name":"Meme Patron","sats":42069},
+      {"name":"Big Baller Patron","sats":100000}
+    ]
+    for (var level of levels){
+      html = html + `<option value="${level.sats}">${level.name}</option>`;
     }
     html = html + `</select>`;
     return html;
