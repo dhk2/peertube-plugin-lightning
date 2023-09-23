@@ -6,8 +6,7 @@ const fs = require('fs');
 const { Console } = require('console');
 const { waitForDebugger } = require('inspector');
 var v5 = require('uuidv5');
-//const { v5: uuidv5 } = require('uuid');
-//const podcastIndexApi = require('podcast-index-api')("UGZJEWXUJARKCBAGPRRF", "EmS3h8yCAWjMMAH5wqEPqUyMKDTDA6tDk5qNPLgn")
+const io = require("socket.io-client");
 async function register({
   registerHook,
   registerSetting,
@@ -255,6 +254,43 @@ async function register({
       return result.concat(podreturn)
     }
   })
+  registerHook({
+    target:  'action:live.video.state.updated',
+    handler: async (video) => {
+      if (enableDebug){
+        if (video && video.video){
+          console.log("⚡️⚡️ live video updated",video.video.uuid,video.video.state);
+        } else {
+          console.log("⚡️⚡️ video.video missing from action",video.dataValues,video.DataModel,video.video);
+          return;
+        }
+      }
+      if (video.video.state !=1){
+         console.log("⚡️⚡️ live stream ended");
+        return;
+      }
+      let liveValue;
+      try {
+        liveValue = await storageManager.getData("livevalue-" + video.video.uuid);
+        console.log("⚡️⚡️got live value", liveValue, "for",video.video.uuid);
+      } catch {
+        console.log("⚡️⚡️ hard failed getting lightning live value",video, video.video.uuid);
+      }
+      if (liveValue){
+        const socket = io(liveValue);
+        socket.on("connect", () => {
+          console.log("⚡️⚡️\n⚡️⚡️Connected to socket!\n⚡️⚡️");
+        });
+        socket.on('remoteValue', (data) => {
+          console.log(`⚡️⚡️\n⚡️⚡️message from socket to socket! \n⚡️⚡️`);
+          console.log(data.value);
+          storageManager.storeData("liveremotesplit-"+video.video.uuid,data);
+        });
+      }
+      return;
+    }
+  })
+
   // For item level value tags
   registerHook({
     target: 'filter:feed.podcast.video.create-custom-tags.result',
@@ -303,8 +339,26 @@ async function register({
           value: blocks,
         }
         customObjects.push(valueBlock);
-      }
 
+      }
+      if (liveItem){
+        let liveValue;
+        try {
+          liveValue = await storageManager.getData("livevalue-" + videoUuid);
+        } catch {
+          console.log("⚡️⚡️ hard failed getting lightning live value");
+        }
+        if (liveValue){
+          let liveValueTag = {
+              name: "podcast:liveValue",
+              attributes: {
+                "uri": liveValue,
+                protocol: "socket.io",
+              }
+          }
+          customObjects.push(liveValueTag);
+        }
+      }
       return result.concat(customObjects);
     }
   })
@@ -537,6 +591,12 @@ async function register({
     return res.status(200).send(lightning);
     */
   })
+  router.use(`/podcast2`, async (req,res) => {
+    let original = `${req.protocol}://${req.get('host')}${req.originalUrl}`
+    let redirect = original.replace("lightning","podcast2");
+    res.set('location', podData.data.redirectUrl);
+    return res.status(301).send()
+  })
   router.use('/getinvoice', async (req, res) => {
     //  console.log(req);
     if (enableDebug) {
@@ -767,6 +827,36 @@ async function register({
     }
     var storedSplitData;
     if (req.query.video) {
+      let liveRemoteSplit=await storageManager.getData("liveremotesplit-"+req.query.video);
+      if (liveRemoteSplit && liveRemoteSplit.value){
+        console.log("⚡️⚡️ found remote video split",liveRemoteSplit)
+        let splits=[];
+        for (var cut of liveRemoteSplit.value.destinations){
+          let split = {
+            "name": cut.name,
+            "split": cut.split
+          };
+          let keysend={
+            "tag": "keysend",
+            "pubkey": cut.address,
+          }
+          split.keysend = keysend;
+          if (cut.customKey){
+            let custom = [{
+              "customKey": cut.customKey,
+              "customValue": cut.customValue
+            }];
+            split.keysend.customData=custom;
+          }  
+          splits.push(split);
+          splits[0].title=liveRemoteSplit.title;
+          splits[0].image=liveRemoteSplit.image;
+          splits[0].feedguid=liveRemoteSplit.feedguid;
+          splits[0].itemguid=liveRemoteSplit.itemguid;
+        }
+        console.log("⚡️⚡️ converted steve's split to alby split",splits);
+        return res.status(200).send(splits);
+      } 
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       if (enableDebug){
         console.log("⚡️⚡️ found stored video split",storedSplitData);
@@ -2176,19 +2266,23 @@ async function register({
         // public subscriptions of a user 
         if (!req.query.channel && req.query.user && (req.query.user == sub.user) && (sub.public || userName == req.query.user)){
           list.push(sub);
+          console.log("⚡️ found as user's subscription",sub.user,sub.channel,sub.name,sub.public,sub.address,sub.type);
         }
-        // public subscribers to channel
-        else if (!req.query.user && req.query.channel && (req.query.channel == sub.channel) && (sub.public || sub.user == userName)) {
-          list.push(sub);
-        } 
+        // public subscribers to channel, not used currently and had some issues with "peertuber" overwriting user
+        //else if (!req.query.user && req.query.channel && (req.query.channel == sub.channel) && (sub.public || sub.user == userName)) {
+        //  list.push(sub);
+        //  console.log("⚡️ found as a channel's subscriber",sub.user,sub.channel,sub.name,sub.public,sub.address,sub.type);
+        //} 
         // public subscription of a user for a channel
-        else if ((req.query.user && req.query.channel) && req.query.user == sub.user && req.query.channel == sub.channel && (sub.public || sub.user == userName)){
+        else if ((req.query.user && req.query.channel) && userName == sub.user && req.query.channel == sub.channel && (sub.public || sub.user == userName)){
           list.push(sub);
+          console.log("⚡️ found exact subscription",sub.user,sub.channel,sub.name,sub.public,sub.address,sub.type);
         }
         // user request for list of their subscribed channels
-        else if (userName == sub.user) {
-          list.push
-        } 
+        else if (!req.query.user && !req.query.channel && userName == sub.user) {
+          list.push(sub);
+          console.log("⚡️ authorized user's subscriptions",sub.user,sub.channel,sub.name,sub.public,sub.address,sub.type);
+         } 
         
       }
     }
@@ -2198,6 +2292,32 @@ async function register({
     } else {
       return res.status(200).send();
     }
+  })
+  router.use('/setlivevalue', async (req,res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting livevalue tag", req.query);
+    }
+    if (req.query.video && req.query.url){
+      storageManager.storeData("livevalue-"+req.query.video, req.query.url);
+      console.log("⚡️⚡️set live value", req.query.video,req.query.url);
+      return res.status(200).send();
+    }
+    return res.status(420).send();
+  })
+  router.use('/getlivevalue', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting live value", req.query);
+    }
+    let liveValue;
+    try {
+      liveValue = await storageManager.getData("livevalue-" + req.query.video);
+       console.log("⚡️⚡️got live value", liveValue);
+    } catch {
+      console.log("⚡️⚡️ hard failed getting lightning live value",req.query);
+      return res.status(420)(`failed getting lightning live value from ${req.query}`);
+    }
+    console.log("⚡️⚡️returning live value", liveValue);
+    return res.status(200).send(liveValue)
   })
   async function saveSplit(uuid, split) {
     try {
@@ -2750,7 +2870,7 @@ async function register({
                 break;
             }
             let payStart = date;
-            let payEnd = new Date(date+(milliday*paydays));
+            let payEnd = new Date(date+(milliday*payDays));
             let mess = `Patronage for ${sub.channel} for ${payStart.toLocaleDateString()} to `+payEnd.toLocaleDateString()
             let paid = await sendPatronPayment(sub.user,sub.channel,payAmount, mess,payDays,sub.name,sub.public,sub.address);
             if (paid){

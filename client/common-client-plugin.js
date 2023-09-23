@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import QRious from 'qrious';
 import JSConfetti from 'js-confetti'
 //import tsParticles from 'tsParticles'
@@ -20,7 +21,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   let streamEnabled = false;
   let menuTimer, streamTimer, wallet, currentTime;
   let panelHack;
-  let podData;
   let hostPath;
   let authorizationChecked = false;
   registerHook({
@@ -256,8 +256,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
         document.getElementById("boostagram").onclick = async function () {
+          splitData = await getSplit();
+          let title = channelName;
+          if (splitData[0].title){
+            title= splitData[0].title;
+          }
           await peertubeHelpers.showModal({
-            title: 'Support ' + channelName,
+            title: 'Support ' + title,
             content: ` `,
             close: true,
             // confirm: { value: 'X', action: () => { } },
@@ -348,7 +353,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       let subscribed,subApi;
       let channel = result.videoChannel.nameWithHostForced
       try {
-        subApi=basePath + `/getsubscriptions?channel=${channel}`;
+        subApi=basePath + `/getsubscriptions?channel=${channel}&user=${userName}`;
         console.log("trying to get subscription",channel, subApi);
         subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
         if (debugEnabled){
@@ -501,12 +506,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
             channel: result.videoChannel.nameWithHostForced,
             type: 'Daily',
           }
-          let subscribe;
+          let subscribed;
           try {
             subApi=basePath + `/createsubscription`
-            subscribe = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
+            subscribed = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
             if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
-              console.log("⚡️subscribe ",subscribe.data[0]);
+              console.log("⚡️subscribe ",subscribed.data[0]);
               subscribeButton.innerHTML="Patronize";
               subscribeButton.style.visibility="hidden";
               manageButton.style.visibility="visible";
@@ -766,8 +771,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       wallet = undefined;
     }
   })
-
-
 
   registerHook({
     target: 'action:video-watch.video-threads.loaded',
@@ -1529,6 +1532,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
 
       return;
     }
+    /*
     var splitTotal = 0;
     let missing = 0;
     for (var split of splitData.data) {
@@ -1559,6 +1563,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       }
 
     }
+    */
     if (debugEnabled) {
       console.log("⚡️final split", splitData.data);
     }
@@ -1757,6 +1762,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       console.log("⚡️making tip dialog", channelName);
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
+    if (splitData[0].title){
+      buttonText = '⚡️' + tipVerb + " " + splitData[0].title + '⚡️';
+    }
     let html = ` <center><table><tr><td>From:</td>
    <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ userName + `" autocomplete="on" maxLength="28"></td></tr>
    <tr><td>Sats:</td>
@@ -1770,6 +1778,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     </td></tr></table>
     <br><button _ngcontent-vww-c178=""  id = "modal-satbutton" class="peertube-button orange-button ng-star-inserted"  data-alli-title-id="24507269" title="satbutton">`+ buttonText + `</button>
     </center>`;
+    //if (splitData[0].title){
+    //  html=html+`<h3>${splitData[0].title}</h3>`
+    //}
+    if (splitData[0].image){
+      html=html+`<center><img src="${splitData[0].image}" width="200" height="200"></center>`;
+    }
     for (var split of splitData){
       html=html+`<br> ${split.split}% ${split.name} `;
     }

@@ -1,3 +1,18 @@
+v 5.0.8
+- added 301 redirect of deprecated podcast rss route to podcast2 plugin route.
+- added livevalue to update episode
+- added routes for livevalue
+- added livevalue tag for rss feed liveitems
+- added sockets-io-client library
+- fixed typo in calculating patronage
+- added liveremotesplit to db
+- added conversion of splitkit wallet data to getalby format
+
+v 5.0.7
+- cleaned up logic issues in /getsubscriptions
+- fixed failure of /createsubscriptions to return new subscription.
+- added lightning address to package.json
+
 v 5.0.6
 - added account description to lightning address search
 - fixed handling auto split creation for channels with lightning address in description.

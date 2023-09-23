@@ -8,11 +8,39 @@ function register({ registerHook, peertubeHelpers }) {
             let uuidFromUrl = (window.location.href).split("/").pop();
             let splitInfo = await getSplit();
             console.log("split info",splitInfo);
-            let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
+            let liveValue;
+            let liveValueApi = basePath + `/getlivevalue?video=` + uuidFromUrl;
+            try {
+              let liveValueData = await axios.get(liveValueApi);
+              liveValue = liveValueData.data;
+              console.log("wtfbbq",liveValue,liveValueData);
+            } catch (e) {
+              console.log("⚡️⚡️ error getting livevalue", liveValueApi);
+              notifier.error(liveValueApi,e);
+              return;
+            }
+            let html;
             if (splitInfo && splitInfo.length > 0) {
-                
-                html = await makePanelHtml(await getSplit());
-                await addPanel(html);
+                html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
+                html = html + await makePanelHtml(splitInfo,html);
+            }
+            html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" id="livevalue" value="${liveValue}"><br>`;
+            html = html +`<button id="update-live-value">update Live Value</button>`;
+            await addPanel(html);
+            let updateButton = document.getElementById("update-live-value");
+            updateButton.onclick = async function () {
+                liveValue = document.getElementById('livevalue').value;
+                let liveValueApi = basePath + `/setlivevalue?video=${uuidFromUrl}&url=${liveValue}`;
+                console.log("⚡️⚡️updating live value", liveValue,liveValueApi );
+                let result;
+                if (liveValue){
+                    try {
+                        result = axios.get(liveValueApi);
+                    } catch {
+                        console.log("⚡️⚡️ error setting livevalue", liveValueApi); 
+                    }
+                }
+                console.log(result);
             }
             async function makeKeysendHtml(splitData, slot, ks) {
                 let html;
@@ -79,10 +107,9 @@ function register({ registerHook, peertubeHelpers }) {
             async function sleep (ms) {
                 await new Promise(resolve => setTimeout(resolve, ms))
             }
-            async function makePanelHtml (splitInfo){
-            let html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
+            async function makePanelHtml (splitInfo,html){
             if (splitInfo && splitInfo.length > 0) {
-                html = html + "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
+                html = "<table><th>Split %</th><th><center>Lighting Address</center></th><th>Address Type</th></tr>";
                 for (var split in splitInfo) {
                     let displayName = splitInfo[split].name;
                     if (!displayName) {
