@@ -297,12 +297,16 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
-      //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video);
+      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video.dataValues);
+      console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
       if (liveItem) {
-       //dirtyHack = params;
       }
       var videoUuid = params.video.dataValues.uuid;
       var storedSplitData = await getSavedSplit(videoUuid);
+      let remoteSplitData = await getRemoteSplit(videoUuid);
+      if (remoteSplitData && ! storedSplitData){
+        console.log(console.log("⚡️⚡️⚡️⚡️ param data",params,params.video.dataValues));
+      }
       var blocks = []
       //var videoJSON = await peertubeHelpers.videos.loadByIdOrUUID(videoUuid);
       //console.log("⚡️⚡️⚡️⚡️ video helper json",videoJSON)
@@ -326,6 +330,35 @@ async function register({
           blocks.push(blockWrap);
         }
       }
+      let remoteSplitBlock= [];
+      if (remoteSplitData){
+        console.log("⚡️⚡️⚡️⚡️ remote split data",remoteSplitData);
+        for (var valueSplit of remoteSplitData.blocks){
+          console.log("⚡️⚡️⚡️⚡️ remote split ",valueSplit.title,valueSplit.feedGuid,valueSplit.itemGuid,valueSplit.duration,valueSplit.startTime)
+          if (valueSplit.startTime && valueSplit.duration){
+            let remoteSplit ={};
+            remoteSplit.name = "podcast:valueTimeSplit"
+            remoteSplit.attributes={
+              "startTime": valueSplit.startTime,
+              "remotePercentage": valueSplit.settings.split,
+              "duration": valueSplit.duration,
+            }
+            if (valueSplit.feedGuid && valueSplit.itemGuid){
+              let remoteItem={};
+              remoteItem.name="podcast:remoteItem"
+              remoteItem.attributes={
+                "feedGuid": valueSplit.feedGuid,
+                "itemGuid": valueSplit.itemGuid
+              }
+              let hack = [];
+              hack.push(remoteItem);
+              remoteSplit.value = hack;
+            }
+            blocks.push(remoteSplit);
+          }
+        }
+        console.log("⚡️⚡️⚡️⚡️ remote split",blocks);
+      }
       let customObjects = [];
       let valueBlock;
       if (blocks.length > 0) {
@@ -338,8 +371,10 @@ async function register({
           },
           value: blocks,
         }
+        console.log("⚡️⚡️ value block",JSON.stringify(valueBlock, null, 4));
+        console.log("⚡️⚡️ blocks",JSON.stringify(blocks, null, 4));
         customObjects.push(valueBlock);
-
+        dirtyHack=valueBlock;
       }
       if (liveItem){
         let liveValue;
@@ -514,7 +549,65 @@ async function register({
         return res.status(200).send(subscriptions);
       }
     }
-    doSubscriptions();
+    if (req.query.sub){
+      console.log("⚡️⚡️⚡️⚡️ patronage list");
+      let subscriptions = await storageManager.getData('subscriptions');
+      let list = [];
+      if (subscriptions){
+        for (var sub of subscriptions){
+          console.log(sub);
+          if (sub.public){
+            list.push(sub);
+          }
+          let startDate=new Date(sub.startdate);
+          let paidDate = sub.startdate+(sub.paiddays*milliday);
+          let today = Date.now();  
+          let unPaidTime = today-paidDate;
+          let payDays = parseInt(Math.floor(unPaidTime / milliday));
+          let payStart = new Date(paidDate);
+          let payEnd = new Date(paidDate+(milliday*payDays));
+          console.log("⚡️payStart",payStart.toLocaleDateString(),"⚡️pay end",payEnd.toLocaleDateString(),"⚡️pay days",payDays);
+          console.log("⚡️paidDate",paidDate,"⚡️today",today,"⚡️unpaidTime",unPaidTime);   
+          console.log("⚡️start date",startDate,"⚡️paid days",sub.paiddays,"⚡️confetti",sub.pendingconfetti); 
+        }
+        //storageManager.storeData("subscriptions", subscriptions);
+        return res.status(200).send(list);
+      }
+    }
+    if (req.query.dosub){
+      doSubscriptions();
+    }
+    if (req.query.splitkit){
+      let remoteSplitData = await getRemoteSplit(req.query.splitkit);
+
+      let remoteSplitBlock= [];
+      if (remoteSplitData){
+        console.log("⚡️⚡️⚡️⚡️ remote split data",remoteSplitData);
+        for (var valueSplit of remoteSplitData.blocks){
+          console.log("⚡️⚡️⚡️⚡️ remote split ",valueSplit.title,valueSplit.feedGuid,valueSplit.itemGuid,valueSplit.duration,valueSplit.startTime)
+          if (valueSplit.startTime && valueSplit.duration){
+            let remoteSplit ={};
+            remoteSplit.name ="podcast:valueTimeSplit"
+            remoteSplit.startTime=valueSplit.startTime;
+            remoteSplit.remotePercentage= valueSplit.settings.split;
+            remoteSplit.duration=valueSplit.duration;
+            if (valueSplit.feedGuid && valueSplit.itemGuid){
+              let remoteItem={};
+              remoteItem.name = "podcast:remoteItem";
+              remoteItem.feedGuid = valueSplit.feedGuid;
+              remoteItem.itemGuid = valueSplit.itemGuid;
+              remoteSplit.remoteItem = remoteItem;
+            }
+            remoteSplitBlock.push(remoteSplit);
+          }
+        }
+        dirtyHack =remoteSplitData;
+        let split = dirtyHack.blocks[1];
+        console.log("remotesplit",remoteSplitData);
+        console.log("split",split);
+        console.log("⚡️⚡️⚡️⚡️ remote split",remoteSplitBlock);
+      }
+    }
     return res.status(200).send(dirtyHack);
   });
   router.use('/setWallet', async (req, res) => {
@@ -594,7 +687,7 @@ async function register({
   router.use(`/podcast2`, async (req,res) => {
     let original = `${req.protocol}://${req.get('host')}${req.originalUrl}`
     let redirect = original.replace("lightning","podcast2");
-    res.set('location', podData.data.redirectUrl);
+    res.set('location', redirect);
     return res.status(301).send()
   })
   router.use('/getinvoice', async (req, res) => {
@@ -831,10 +924,14 @@ async function register({
       if (liveRemoteSplit && liveRemoteSplit.value){
         console.log("⚡️⚡️ found remote video split",liveRemoteSplit)
         let splits=[];
+        let total=0;
         for (var cut of liveRemoteSplit.value.destinations){
+          let fixedSplit = eval(cut.split)
+          total = total+fixedSplit;
+          console.log(total,fixedSplit);
           let split = {
             "name": cut.name,
-            "split": cut.split
+            "split": fixedSplit
           };
           let keysend={
             "tag": "keysend",
@@ -847,13 +944,24 @@ async function register({
               "customValue": cut.customValue
             }];
             split.keysend.customData=custom;
-          }  
+          }
+          //TODO do splits and fees properly
+
           splits.push(split);
-          splits[0].title=liveRemoteSplit.title;
-          splits[0].image=liveRemoteSplit.image;
-          splits[0].feedguid=liveRemoteSplit.feedguid;
-          splits[0].itemguid=liveRemoteSplit.itemguid;
         }
+        splits.sort((a,b) => (a.split < b.split) ? 1 : -1);
+        if (enableDebug){
+          console.log("total",total,"highest",splits[0].split);
+        }
+        if (total != 100){
+          let xFactor = total -100;
+          splits[0].split = splits[0].split - xFactor;
+          
+        }  
+        splits[0].title=liveRemoteSplit.title;
+        splits[0].image=liveRemoteSplit.image;
+        splits[0].feedguid=liveRemoteSplit.feedGuid;
+        splits[0].itemguid=liveRemoteSplit.itemGuid;
         console.log("⚡️⚡️ converted steve's split to alby split",splits);
         return res.status(200).send(splits);
       } 
@@ -2314,11 +2422,38 @@ async function register({
        console.log("⚡️⚡️got live value", liveValue);
     } catch {
       console.log("⚡️⚡️ hard failed getting lightning live value",req.query);
-      return res.status(420)(`failed getting lightning live value from ${req.query}`);
+      return res.status(420).send(`failed getting lightning live value from ${req.query}`);
     }
     console.log("⚡️⚡️returning live value", liveValue);
     return res.status(200).send(liveValue)
   })
+  router.use('/setsplitkitid', async (req,res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting split kit import id", req.query);
+    }
+    if (req.query.video && req.query.id){
+      storageManager.storeData("splitkitid-"+req.query.video, req.query.id);
+      console.log("⚡️⚡️set split kit", req.query.video,req.query.id);
+      return res.status(200).send();
+    }
+    return res.status(420).send();
+  })
+  router.use('/getsplitkitid', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting split kit import id", req.query);
+    }
+    let splitKitId;
+    try {
+      splitKitId = await storageManager.getData("splitkitid-" + req.query.video);
+       console.log("⚡️⚡️got split kit import id", splitKitId);
+    } catch {
+      console.log("⚡️⚡️ hard failed getting split kit import id",req.query);
+      return res.status(420).send(`failed getting split kit id from ${req.query}`);
+    }
+    console.log("⚡️⚡️returning split kti id", splitKitId);
+    return res.status(200).send(splitKitId)
+  })
+
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
@@ -2365,6 +2500,28 @@ async function register({
       console.log("⚡️ returned saved split ", storedSplitData);
     }
     return storedSplitData;
+  }
+  async function getRemoteSplit(uuid) {
+    let splitKitId;
+    try {
+      splitKitId = await storageManager.getData("splitkitid-" + uuid);
+    } catch {
+      console.log("⚡️⚡️ hard failed to get splitkit id", uuid);
+    }
+    if (enableDebug){
+      console.log("⚡️ Got saved splitkit id ", uuid, splitKitId);
+    }
+    if (!splitKitId){
+      return splitKitId;
+    }
+    let remoteSplitData;
+    let remoteApi = `https://curiohoster.com/api/sk/getblocks?guid=${splitKitId}`
+    try {
+      remoteSplitData = await axios.get(remoteApi);
+    } catch {
+      console.log("⚡️⚡️failed to get remote splits", remoteApi);
+    }
+    return remoteSplitData.data;
   }
   async function pingPI(pingChannel) {
     let feedApi = base + "/plugins/lightning/router/getfeedid?channel=" + pingChannel;
@@ -2709,7 +2866,7 @@ async function register({
               [customKeyHack]: customValue,
             }
           };
-        } else {
+        } else if (payee && payee.keysend) {
           keysend = {
             'destination': payee.keysend.pubkey,
             'amount': splitAmount,
@@ -2791,7 +2948,7 @@ async function register({
                 sub.pendingconfetti = sub.pendingconfetti+days;
                 list.push(sub);
                 subs.push(sub);
-                //console.log("⚡️⚡️⚡️⚡️ updated subscription",sub)
+                console.log("⚡️⚡️⚡️⚡️ updated subscription",sub)
               }
             }
             storageManager.storeData("subscriptions", list);
@@ -2869,8 +3026,9 @@ async function register({
                 payDays = 365
                 break;
             }
-            let payStart = date;
-            let payEnd = new Date(date+(milliday*payDays));
+            let payStart = new Date(paidDate);
+            let payEnd = new Date(paidDate+(milliday*payDays));
+            console.log("payStart",payStart,"pay end",payEnd,"pay days",payDays,"what",(milliday*payDays),"days",(milliday*payDays)/milliday)
             let mess = `Patronage for ${sub.channel} for ${payStart.toLocaleDateString()} to `+payEnd.toLocaleDateString()
             let paid = await sendPatronPayment(sub.user,sub.channel,payAmount, mess,payDays,sub.name,sub.public,sub.address);
             if (paid){

@@ -1,3 +1,19 @@
+v 5.1.2
+- fixed redirect issue for old lightning plugin to new podcast2 plugin
+
+v 5.1.1
+- redid pay range calclations
+- added debug module to hopefully fix npm install errors
+
+v 5.1.0
+- attempt to fix install error
+- add some diagnostics to determine why patronage message pay dates aren't right
+
+v 5.0.9
+- updated TLV with remote_feed_guid and remote_item_guid for remote item boosts
+- added boostagram dialog customization for remote boosts
+- normalized remote boost splits
+
 v 5.0.8
 - added 301 redirect of deprecated podcast rss route to podcast2 plugin route.
 - added livevalue to update episode

@@ -197,11 +197,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
                 }
                 return;
               }
+              let remoteFeed = splitData[0].feedguid;
+              let remoteItem = splitData[0].itemguid;
               for (var wallet of splitData) {
                 var amount = streamAmount * (wallet.split / 100);
                 let result;
                 if ((wallet.keysend && keysendEnabled) || walletAuthorized) {
-                  result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress);
+                  result = await boost(wallet.keysend, amount, null, userName, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress,remoteFeed,remoteItem);
                 } else if (wallet.lnurl && lnurlEnabled) {
                   result = await sendSats(wallet.lnurl, amount, "Streaming Sats", userName);
                   //walletData = await refreshWalletInfo(walletData.address);
@@ -1092,7 +1094,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress,remoteFeed,remoteItem) {
     if (debugEnabled) {
       console.log("⚡️boost called\n Authorized", walletAuthorized,"\nwalletData", walletData, "\namount",amount ,"\nmessage", message, "\nfrom",from, "\nchannel",channel, episode, "\ntype",type, episodeGuid, "\n channel",channelName, "\n item id",itemID,"\n boost total",boostTotal,"\nsplit name",splitName,"\nreply address:",replyAddress)
     }
@@ -1250,6 +1252,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     }
     if (replyAddress) {
       boost.reply_address = replyAddress;
+    }
+    if (remoteFeed){
+      boost.remote_feed_guid = remoteFeed;
+    }
+    if (remoteItem){
+      boost.remote_item_guid = remoteItem;
     }
     if (debugEnabled) {
       console.log("⚡️**boost**", boost)
@@ -1667,13 +1675,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     lastTip = amount;
     //notifier.success(weblnSupport);
     let result;
+    let remoteFeed = splitData[0].feedguid;
+    let remoteItem = splitData[0].itemguid;
     for (var wallet of splitData) {
       var splitAmount = amount * (wallet.split / 100);
       if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
         if (debugEnabled) {
           console.log("⚡️sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
-        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress);
+        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress,remoteFeed,remoteItem);
       } else if (wallet.lnurl && lnurlEnabled) {
         if (debugEnabled) {
           console.log("⚡️sending lnurl boost", wallet.lnurl, splitAmount, message, from);
@@ -1781,6 +1791,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
     //if (splitData[0].title){
     //  html=html+`<h3>${splitData[0].title}</h3>`
     //}
+
     if (splitData[0].image){
       html=html+`<center><img src="${splitData[0].image}" width="200" height="200"></center>`;
     }

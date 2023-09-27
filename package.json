@@ -1,7 +1,7 @@
 {
   "name": "peertube-plugin-lightning",
   "description": "adds bitcoin lighting address micropayment integration, allows a variety of V4V support for creators and hosts using WebLN, more advanced support for Alby wallets. ",
-  "version": "5.0.8",
+  "version": "5.1.2",
   "author": "DHK2",
   "license": "AGPL-3.0",
   "bugs": "https://github.com/dhk2/peertube-plugin-lightning/issues",
@@ -59,11 +59,11 @@
   },
   "dependencies": {
     "axios": "^0.27.2",
+    "debug": "^4.3.4",
     "fs": "^0.0.1-security",
     "js-confetti": "^0.11.0",
     "podcast-index-api": "^1.1.10",
     "qrious": "^4.0.2",
-    "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
     "tsparticles-engine": "^2.10.1",
     "uuid": "^9.0.0",

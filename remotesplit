@@ -1,0 +1,112 @@
+{
+    "name": "podcast:value",
+    "attributes": {
+        "type": "lightning",
+        "method": "keysend",
+        "suggested": "0.00000005000"
+    },
+    "value": [
+        {
+            "name": "podcast:valueRecipient",
+            "attributes": {
+                "name": "errhead@getalby.com",
+                "type": "node",
+                "split": 94,
+                "address": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+                "customKey": "696969",
+                "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+        },
+        {
+            "name": "podcast:valueRecipient",
+            "attributes": {
+                "name": "Matt Christiansen Media",
+                "type": "node",
+                "split": 5,
+                "fee": true,
+                "address": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+                "customKey": "696969",
+                "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+        },
+        {
+            "name": "podcast:valueRecipient",
+            "attributes": {
+                "name": "test",
+                "type": "node",
+                "split": 1,
+                "address": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+                "customKey": "696969",
+                "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+        },
+        {
+            "name": "podcast:valueTimeSplit",
+            "attributes": {
+                "startTime": 600,
+                "remotePercentage": 95,
+                "duration": 242.091
+            },
+            "item": [
+                {
+                    "name": "podcast:remoteItem",
+                    "attributes": {
+                        "feedGuid": "d5f5de7c-41c8-535a-9143-20418ac19231",
+                        "itemGuid": "0de1e1bf-308c-48cf-9182-e14f281bc790"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "podcast:valueTimeSplit",
+            "attributes": {
+                "startTime": 900,
+                "remotePercentage": 95,
+                "duration": 269.617
+            },
+            "item": [
+                {
+                    "name": "podcast:remoteItem",
+                    "attributes": {
+                        "feedGuid": "d532facb-9327-5efa-b652-6c6f8de4b9a9",
+                        "itemGuid": "09d88cba-5fb1-4158-828f-9f188a33e8bb"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "podcast:valueTimeSplit",
+            "attributes": {
+                "startTime": 1200,
+                "remotePercentage": 95,
+                "duration": 261
+            },
+            "item": [
+                {
+                    "name": "podcast:remoteItem",
+                    "attributes": {
+                        "feedGuid": "6f7e0b97-ebfa-5dec-aa71-e8c30317edb5",
+                        "itemGuid": "8c2fcb58-cf99-4977-8327-11f976441f61"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "podcast:valueTimeSplit",
+            "attributes": {
+                "startTime": 1500,
+                "remotePercentage": 95,
+                "duration": 201.455
+            },
+            "item": [
+                {
+                    "name": "podcast:remoteItem",
+                    "attributes": {
+                        "feedGuid": "203e5583-5d90-5360-bf1d-aee49e1f8a85",
+                        "itemGuid": "255ec38c-6e8c-4d18-ad79-296519cf2a3c"
+                    }
+                }
+            ]
+        }
+    ]
+}

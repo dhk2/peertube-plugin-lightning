@@ -3,9 +3,18 @@ function register({ registerHook, peertubeHelpers }) {
     registerHook({
         target: 'action:video-edit.init',
         handler: async () => {
-            const { notifier } = peertubeHelpers
+            const { notifier } = peertubeHelpers;
             const basePath = await peertubeHelpers.getBaseRouterRoute();
             let uuidFromUrl = (window.location.href).split("/").pop();
+            console.log("url",window.location.href);
+            var apiCall = "/api/v1/videos/" + uuidFromUrl;
+            let videoData;
+            try {
+                videoData = await axios.get(apiCall);
+            } catch {
+                console.log("⚡️⚡️failed to pull information for provided video id", apiCall);
+            }
+            console.log("⚡️⚡️ video buggery", videoData);
             let splitInfo = await getSplit();
             console.log("split info",splitInfo);
             let liveValue;
@@ -17,31 +26,65 @@ function register({ registerHook, peertubeHelpers }) {
             } catch (e) {
               console.log("⚡️⚡️ error getting livevalue", liveValueApi);
               notifier.error(liveValueApi,e);
-              return;
             }
+            let splitKitId;
+            let splitKitApi = basePath + `/getsplitkitid?video=` + uuidFromUrl;
+            try {
+              let splitKitData = await axios.get(splitKitApi);
+              splitKitId = splitKitData.data;
+              console.log("wtfbbq",splitKitId,splitKitData);
+            } catch (e) {
+              console.log("⚡️⚡️ error getting value time", splitKitApi);
+              notifier.error(splitKitApi,e);
+            }
+            console.log("⚡️⚡️ split kit import id", splitKitId,"live value",liveValue);            
             let html;
             if (splitInfo && splitInfo.length > 0) {
                 html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
                 html = html + await makePanelHtml(splitInfo,html);
             }
-            html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" id="livevalue" value="${liveValue}"><br>`;
-            html = html +`<button id="update-live-value">update Live Value</button>`;
+            if (videoData.data.isLive){
+                html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" id="livevalue" value="${liveValue}">`;
+                html = html +`<button id="update-live-value">Update Live Value</button>`;
+            } else {
+                html = html+ `<br><label for="splitkit">Split kit import ID</label><input type="text" id="splitkit" value="${splitKitId}">`;
+                html = html +`<button id="update-split-kit">Update Split Kit Import ID</button>`;
+            }
             await addPanel(html);
             let updateButton = document.getElementById("update-live-value");
-            updateButton.onclick = async function () {
-                liveValue = document.getElementById('livevalue').value;
-                let liveValueApi = basePath + `/setlivevalue?video=${uuidFromUrl}&url=${liveValue}`;
-                console.log("⚡️⚡️updating live value", liveValue,liveValueApi );
-                let result;
-                if (liveValue){
-                    try {
-                        result = axios.get(liveValueApi);
-                    } catch {
-                        console.log("⚡️⚡️ error setting livevalue", liveValueApi); 
+            if (updateButton){
+                updateButton.onclick = async function () {
+                    liveValue = document.getElementById('livevalue').value;
+                    let liveValueApi = basePath + `/setlivevalue?video=${uuidFromUrl}&url=${liveValue}`;
+                    console.log("⚡️⚡️updating live value", liveValue,liveValueApi );
+                    let result;
+                    if (liveValue){
+                        try {
+                            result = axios.get(liveValueApi);
+                        } catch {
+                            console.log("⚡️⚡️ error setting livevalue", liveValueApi); 
+                        }
                     }
+                    console.log(result);
                 }
-                console.log(result);
             }
+            let updateSplitKitButton = document.getElementById("update-split-kit");
+            if (updateSplitKitButton){
+                updateSplitKitButton.onclick = async function () {
+                    splitKitId = document.getElementById('splitkit').value;
+                    let splitKitApi = basePath + `/setsplitkitid?video=${uuidFromUrl}&id=${splitKitId}`;
+                    console.log("⚡️⚡️updating split kit import id", splitKitId,splitKitApi );
+                    let result;
+                    if (splitKitId){
+                        try {
+                            result = axios.get(splitKitApi);
+                        } catch {
+                            console.log("⚡️⚡️ error setting split kit import api", splitKitApi,splitKitId); 
+                        }
+                }
+                    console.log(result);
+                }          
+            }  
             async function makeKeysendHtml(splitData, slot, ks) {
                 let html;
                 html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
