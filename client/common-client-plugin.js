@@ -1769,7 +1769,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField }) {
   }
   async function makeTipDialog(DisplayName,splitData) {
     if (debugEnabled) {
-      console.log("⚡️making tip dialog", channelName);
+      console.log("⚡️making tip dialog", channelName,currentTime);
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     if (splitData[0].title){

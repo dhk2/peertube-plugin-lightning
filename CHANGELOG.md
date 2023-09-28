@@ -1,5 +1,7 @@
 v 5.1.2
 - fixed redirect issue for old lightning plugin to new podcast2 plugin
+- added support for split kit import ID for recorded video
+- Added RSS feed support for value splits and remote items
 
 v 5.1.1
 - redid pay range calclations
