@@ -1,3 +1,18 @@
+v 5.1.5
+- worked out math for remote splits on non-live video
+- cleared up some logic flow issues with boosts
+- fixed hiding streaming info when not on video player
+
+v 5.1.4
+- fixed faulty error avoidance logic
+- returned upper right button to streaming indication
+- fixed incorrect variable setting with authorization disabled
+
+v 5.1.3
+- Fixed patronage UI bug
+- moved 4v4 button to left panel
+- changed v4v configuration settings to custom route instead of modal window
+
 v 5.1.2
 - fixed redirect issue for old lightning plugin to new podcast2 plugin
 - added support for split kit import ID for recorded video

@@ -16,6 +16,7 @@ async function register({
   storageManager,
   registerVideoField,
   registerExternalAuth,
+  registerClientRoute
 }) {
   const milliday = 24*60*60*1000;
   registerSetting({
@@ -210,7 +211,9 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoChannelModel }
       const { videoChannel } = params
-      var channel = params.videoChannel.dataValues.Actor.dataValues.preferredUsername;
+      if (params && params.videoChannel && params.videoChannel.dataValues && params.videoChannel.dataValues.Actor){
+        var channel = params.videoChannel.dataValues.Actor.dataValues.preferredUsername;
+      }
       var storedSplitData = await getSavedSplit(channel);
       var blocks = []
       if (storedSplitData) {
@@ -297,8 +300,8 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
-      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video.dataValues);
-      console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
+      //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video.dataValues);
+      //console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
       if (liveItem) {
       }
       var videoUuid = params.video.dataValues.uuid;
@@ -422,6 +425,7 @@ async function register({
       return;
     }
   })
+
   const router = getRouter();
   //TODO normalize behavior for account and address
   router.use('/walletinfo', async (req, res) => {
@@ -1833,7 +1837,7 @@ async function register({
       }
       if (response && response.data) {
         console.log("\n⚡️⚡️⚡️⚡️response to token request axios", response.data);
-        //storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
+        storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
         let albyToken = response.data.access_token
         
         let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
@@ -1845,6 +1849,7 @@ async function register({
           console.log("\n⚡️⚡️⚡️⚡️error attempting to get wallet data\n", walletApiUrl, headers, err);
         }
         console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData.data);
+        
       }
       if (req.query.state == 'peertube' && enableAlbyAuth){
         let userName = albyWalletData.data.email.split("@")[0];
@@ -2188,7 +2193,7 @@ async function register({
       return res.status(420).send ("malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
-    if (!user || !user.dataValues){
+    if (!(user && user.dataValues)){
       return res.status(420).send ("unable to confirm authorized user making request");
     }
     let userName;
@@ -2242,7 +2247,7 @@ async function register({
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     await storageManager.storeData("subscriptions", subscriptions);
     if (await sendPatronPayment(userName,req.body.channel,newSubscription.amount, "first patron payment",1)){
-      console.log("⚡️⚡️⚡️⚡️ made first subscription payment");
+      console.log("⚡️⚡️⚡️⚡️ made first subscription payment",newSubscription,subscriptions);
       return res.status(200).send(newSubscription);
     } else {
       console.log("⚡️⚡️⚡️⚡️ Failed to make first subscription payment");
@@ -2276,6 +2281,9 @@ async function register({
     }
     console.log(req.query);
     let user = await peertubeHelpers.user.getAuthUser(res);
+    if (!(user && user.dataValues)){
+      return res.status(420).send ("unable to confirm authorized user making request");
+    }
     /* need to add capability for mods or channel to delete sub
     let userName = req.query.user;
     if (user && user.dataValues && (user.dataValues.username == req.query.user)) {
@@ -2319,8 +2327,8 @@ async function register({
       return res.status(420).send("⚡️⚡️malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
-    if (!user || !user.dataValues){
-      return res.status(420).send("⚡️⚡️ unable to confirm authorized user making request");
+    if (!(user && user.dataValues)){
+      return res.status(420).send ("unable to confirm authorized user making request");
     }
     let userName;
     if (user && user.dataValues) {
@@ -2453,7 +2461,92 @@ async function register({
     console.log("⚡️⚡️returning split kti id", splitKitId);
     return res.status(200).send(splitKitId)
   })
-
+  router.use('/getsplitkitblock', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting split kit block", req.query);
+    }
+    let splitKitId;
+    if (req.query.splitkitid){
+      splitKitId = req.query.splitkitid;
+    }
+    if (!splitKitId && req.query.video){
+      try {
+        splitKitId = await storageManager.getData("splitkitid-" + req.query.video);
+        console.log("⚡️⚡️got stored split kit import id", splitKitId);
+      } catch {
+        console.log("⚡️⚡️ hard failed getting split kit import id",req.query);
+        return res.status(420).send(`failed getting split kit id from ${req.query}`);
+      } 
+    }
+    let splitKitBlock;
+    let splitkitBlockApi = `https://curiohoster.com/api/sk/getblocks?guid=${splitKitId}`;
+    try {
+      splitKitBlock = await axios.get(splitkitBlockApi);
+    } catch (err){
+      console.log("hard failure requesting split kit block",splitkitBlockApi);
+      return res.status(420).send(`failed getting split kit id from ${req.query}`);
+    }
+    if (splitKitBlock && splitKitBlock.data)
+    console.log("⚡️⚡️returning split kit block", splitKitId,splitKitBlock);
+    return res.status(200).send(splitKitBlock.data);
+  })
+  router.use('/updatev4v', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️ updating v4v", req.query, req.body);
+    }
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (!(user && user.dataValues)){
+      return res.status(420).send ("unable to confirm authorized user making request");
+    }
+    let userName;
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+      if (enableDebug) {
+        console.log("⚡️⚡️⚡️⚡️ user", userName);
+      }
+    }
+    if (!userName){
+      return res.status(420).send("⚡️⚡️ unable to confirm authorized user making request");
+    }
+    let v4vsettings = await storageManager.getData('v4vsettings-'+userName.replace(/\./g, "-"));
+    if (!v4vsettings){
+      console.log ("⚡️⚡️ no v4v settings to update",req.body);
+    } else {
+      console.log ("⚡️⚡️  settings",v4vsettings,"\n new v4v settings",req.body);
+    }
+    storageManager.storeData('v4vsettings-'+userName.replace(/\./g, "-"), req.body);
+    return res.status(200).send("v4v settings updated");
+  })
+  router.use('/getv4v', async (req, res) => {
+    if (enableDebug){
+      console.log("⚡️⚡️⚡️⚡️get v4v settings", req.query);
+    }
+    let v4vsettings;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    let userName;
+    if (user && user.dataValues){
+      userName  = user.dataValues.username;
+    }
+    if (enableDebug) {
+      console.log("⚡️⚡️⚡️⚡️ verified user", userName);
+    }
+    if (userName){
+      v4vsettings= await storageManager.getData('v4vsettings-'+userName.replace(/\./g, "-"));
+    }
+    if (!v4vsettings){
+      console.log("⚡️⚡️⚡️⚡️ no saved v4v settings");
+      v4vsettings = {
+        boostFrom: "PeerTuber",
+        boostAmount: 1000,
+        streamAuto: false,
+        streamAmount: 69,
+      }
+    } 
+    if (enableDebug){
+      console.log("⚡️⚡️⚡️⚡️ found v4v settings", v4vsettings);
+    }
+    return res.status(200).send(v4vsettings);
+  })
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
@@ -2820,7 +2913,7 @@ async function register({
         if (!payee.split){
           payee.split=1;
         }
-        console.log("⚡️⚡️ wtfff ",payee);
+        //console.log("⚡️⚡️ wtfff ",payee);
 
         let splitAmount = Math.trunc(amount*payee.split/100)
         let msat = splitAmount*1000;
@@ -3167,6 +3260,7 @@ async function register({
       },
     });
   }
+
 }
 
 async function unregister() {
