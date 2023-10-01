@@ -2,6 +2,8 @@ v 5.1.5
 - worked out math for remote splits on non-live video
 - cleared up some logic flow issues with boosts
 - fixed hiding streaming info when not on video player
+- fixed streaming payment metadata misalignment
+- fixed streaming to properly use remote splits
 
 v 5.1.4
 - fixed faulty error avoidance logic

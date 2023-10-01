@@ -220,6 +220,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               if (weblnSupported < 2) {
                 await alertUnsupported();
                 streamEnabled = false;
+               /*
                 let modalChecker = document.getElementById("v4v-stream-auto");
                 if (modalChecker) {
                   modalChecker.checked = false;
@@ -228,15 +229,46 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                 if (menuChecker) {
                   menuChecker.checked = false;
                 }
+               */
                 return;
               }
+              let finalSplit;
+              splitData=await getSplit();
+              console.log("split block at start",splitData)
+              if (remoteSplitBlock){
+                for (var block of remoteSplitBlock.blocks){
+                  if (block){
+                    console.log("block",block.settings,block.startTime,block.duration );
+                    let blockStart = block.startTime;
+                    let blockEnd = blockStart+block.duration;
+                    console.log("barf",blockStart,blockEnd, currentTime)
+                    if (blockStart<currentTime && (blockEnd > currentTime)){
+                      console.log("Remote block active!",block);
+                      finalSplit = await calculateSplit(splitData,block.value.destinations, block.settings.split);
+                      console.log("final split",finalSplit);
+                    }
+                    if (finalSplit){
+                      splitData=finalSplit;
+                      console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
+                      splitData[0].title = block.title;
+                      splitData[0].image = block.image;
+                      splitData[0].itemguid = block.itemGuid;
+                      splitData[0].feedguid = block.feedGuid;
+                      console.log("primary split",splitData[0])
+                    }
+                  }
+                }
+
+              }
+              console.log("split block at end",splitData)
               let remoteFeed = splitData[0].feedguid;
               let remoteItem = splitData[0].itemguid;
               for (var wallet of splitData) {
                 var amount = streamAmount * (wallet.split / 100);
                 let result;
                 if ((wallet.keysend && keysendEnabled) || walletAuthorized) {
-                  result = await boost(wallet.keysend, amount, null, boostFrom, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress,remoteFeed,remoteItem);
+ //                 result = await boost(wallet.keysend, amount, null, boostFrom, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress,remoteFeed,remoteItem);
+                  result = await boost(wallet.keysend,amount,"Streaming",userName,video.channel.dispayName,video.name,"stream",video.uuid,undefined,streamAmount,wallet.name,accountAddress,remoteFeed,remoteItem)
                 } else if (wallet.lnurl && lnurlEnabled) {
                   result = await sendSats(wallet.lnurl, amount, "Streaming Sats", boostFrom);
                   //walletData = await refreshWalletInfo(walletData.address);
