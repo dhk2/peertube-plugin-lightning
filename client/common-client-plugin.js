@@ -38,6 +38,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         }
         userName = user.username
         hostPath = user.account.host;
+        let authorized;
         let accountWalletApi = basePath + "/walletinfo?account=" + user.username;
         if (debugEnabled) {
           console.log("⚡️wallet api call", accountWalletApi, user.username);
@@ -49,33 +50,24 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         } catch (err) {
           console.log("⚡️no wallet data", err);
         }
-        if (debugEnabled){
-          console.log("account wallet found",accountWallet);
-        }
         if (accountWallet && accountWallet.data) {
           accountAddress = accountWallet.data.address;
           let authorizedWalletApi = basePath + "/checkauthorizedwallet";
           let headers = { headers: await peertubeHelpers.getAuthHeader() }
-          let authorized;
+          
           try {
             authorized = await axios.get(authorizedWalletApi, headers);
           } catch {
             console.log ("error attempting to verify wallet authoriztion",authorizedWalletApi);
           }
           if (authorized && authorized.data) {
-            if (debugEnabled) {
-              console.log("⚡️account wallet info",accountAddress,v4vSettings,authorized.data);
-            }
             walletAuthorized = true;
-          } else if (debugEnabled){
-            console.log("no authorized wallet",accountAddress,v4vSettings);
+          } else {
             walletAuthorized = false;
           }
-        } else if (debugEnabled) {
-          console.log("⚡️no wallet data found for", user.username,authorized);
-        }
-        if (debugEnabled){
-          console.log("⚡️ account address",accountAddress);
+        } 
+        if (debugEnabled) {
+          console.log(`⚡️ ${user.username} account wallet info, account address:${accountAddress} authorized:${authorized.data} v4v:${v4vSettings}`);
         }
       }
     }
@@ -107,7 +99,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (location.instance != video.originInstanceHost) {
         instanceName = video.originInstanceHost;
       }
-      console.log("⚡️⚡️looking for permanent live info",video.isLive);
       if (video.isLive){
         videoUuid = video.uuid+'_'+video.publishedAt.toISOString();
       } else {
@@ -123,7 +114,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (remoteSplitBlock){
         remoteSplitBlock = remoteSplitBlock.data
         if (debugEnabled){
-          console.log("⚡️remote block\n", remoteSplitBlock);
+          console.log("⚡️remote block\n", remoteSplitBlock.data);
         }
       }
       channelId=video.channel.id;
@@ -136,7 +127,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let displayName = video.channel.displayName;
       let addSpot = document.getElementById('plugin-placeholder-player-next');
       let addSpot4 = document.getElementsByClassName('root-header-right')[0];
-      //console.log("⚡️addspit section",addSpot4)
       const elem = document.createElement('div');
       elem.className = 'tip-buttons-block';
       let text = video.support + ' ' + video.channel.support + ' ' + video.channel.description + ' ' + video.account.description + ' ' + video.description;
@@ -234,33 +224,37 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               }
               let finalSplit;
               splitData=await getSplit();
-              console.log("split block at start",splitData)
+              if (debugEnabled){
+                console.log("split block at start",splitData)
+              }
               if (remoteSplitBlock){
                 for (var block of remoteSplitBlock.blocks){
                   if (block){
-                    console.log("block",block.settings,block.startTime,block.duration );
+                    //console.log("block",block.settings,block.startTime,block.duration );
                     let blockStart = block.startTime;
                     let blockEnd = blockStart+block.duration;
-                    console.log("barf",blockStart,blockEnd, currentTime)
+                    //console.log("barf",blockStart,blockEnd, currentTime)
                     if (blockStart<currentTime && (blockEnd > currentTime)){
                       console.log("Remote block active!",block);
                       finalSplit = await calculateSplit(splitData,block.value.destinations, block.settings.split);
-                      console.log("final split",finalSplit);
+                     // console.log("final split",finalSplit);
                     }
                     if (finalSplit){
                       splitData=finalSplit;
-                      console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
+                     // console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
                       splitData[0].title = block.title;
                       splitData[0].image = block.image;
                       splitData[0].itemguid = block.itemGuid;
                       splitData[0].feedguid = block.feedGuid;
-                      console.log("primary split",splitData[0])
+                      //console.log("primary split",splitData[0])
                     }
                   }
                 }
 
               }
-              console.log("split block at end",splitData)
+              if (debugEnabled){
+                console.log("split block at end",splitData)
+              }
               let remoteFeed = splitData[0].feedguid;
               let remoteItem = splitData[0].itemguid;
               for (var wallet of splitData) {
@@ -393,7 +387,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         console.log("⚡️ chanel loaded result ", result,"params:", params)
       }
       if (document.getElementById("patronize-channel")){
-        console.log("buttons already exist");
         return;
       }
       let buttonSpot= document.getElementsByClassName("channel-buttons");
@@ -402,25 +395,27 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let channel = result.videoChannel.nameWithHostForced
       try {
         subApi=basePath + `/getsubscriptions?channel=${channel}&user=${userName}`;
-        console.log("trying to get subscription",channel, subApi);
+        if (debugEnabled){
+          console.log("trying to get subscription",channel, subApi);
+        }
         subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
         if (debugEnabled){
           console.log("subscription result",channel, subscribed);
         }
         if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
-          console.log("⚡️subscribed ",subscribed.data);
+          //console.log("⚡️subscribed ",subscribed.data);
           let pend = subscribed.data[0].pendingconfetti;
           if (pend>0){
             doConfetti(pend*69)
             notifier.success(`patronized for ${pend} days of ${subscribed.data[0].paiddays}`)
             let ccApi=basePath + `/clearconfetti?channel=${result.videoChannel.nameWithHostForced}&user=${userName}`;
-            console.log("trying to clear confetti pending",ccApi);
+            //console.log("trying to clear confetti pending",ccApi);
             await axios.get( ccApi, { headers: await peertubeHelpers.getAuthHeader() });
           }
         } else {
-          console.log("⚡️didn't get good subscription data");
+          console.log("⚡️didn't get good subscription data",subscribed);
         }
-        console.log("subscription result",subscribed,subscribed.data,buttonHtml.innerHTML);
+        //console.log("subscription result",subscribed,subscribed.data,buttonHtml.innerHTML);
       } catch (err) {
          console.log("⚡️error attempting to get subscribed status", subApi, err);
       }
@@ -439,21 +434,33 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             confirm: { value: 'X', action: () => { } },
 
           })
-          let suggestedAmount = subscribed.data[0].amount;
+          let suggestedAmount;
+          let patronName;
+          let replyAddress;
+          if (subscribed && subscribed.data && subscribed.data[0]){
+            suggestedAmount = subscribed.data[0].amount;
+
+            patronName= subscribed.data[0].name;
+            replyAddress = subscribed.data[0].address
+          } else if (v4vSettings) {
+            patronName = v4vSettings.boostFrom;
+            replyAddress = v4vSettings.boostBack
+          } else {
+            patronName="";
+            replyAddress ="";
+          }
           if (!suggestedAmount){
             suggestedAmount = "69";
           }
-          
-          let patronName= subscribed.data[0].name;
-          let replyAddress = subscribed.data[0].address
+
           let modal = (document.getElementsByClassName('modal-body'))
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels()+`<br><label for="amount">Daily Patronage:</label><input style="color: #000000; background-color: #ffffff;"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
+          modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels()+`<br><label for="amount">Daily Patronage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
           <input type="checkbox" id="modal-patronage-private" name="private-patron"> <label for="private">Anonymous Patronage:</label><br>
-          <label for="name">Patron Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-patronage-name" value="${patronName}"><br>          <label for="address">Boost Back Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-patronage-address" value="${replyAddress}"><br>
+          <label for="name">Patron Name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-patronage-name" value="${patronName}"><br>          <label for="address">Boost Back Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="modal-patronage-address" value="${replyAddress}"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="modal-patronage-update">update patronage</button>
           <button id='modal-patronage-depatronize' class="peertube-button-link orange-button ng-star-inserted"'>De-Patronize</button>`;
-          console.log("yeah",wallet);
+          //console.log("yeah",wallet);
           let managedFrequency =  document.getElementById("times");
           let managedLevel =  document.getElementById("patron-level");
           let managedAmount =  document.getElementById("modal-patronage-amount");
@@ -462,22 +469,25 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let managedPrivate =  document.getElementById("modal-patronage-private");
           let unsubscribeButton = document.getElementById("modal-patronage-depatronize");
           let updateButton = document.getElementById("modal-patronage-update")
-          managedPrivate.checked =!subscribed.data[0].public
-          managedPrivate.onchange = async function(){
+          if (managedPrivate){
+            managedPrivate.onchange = async function(){
+              if (managedPrivate.checked){
+                managedName.disabled=true;
+                managedAddress.disabled=true;
+              } else {
+                managedName.disabled=false;
+                managedAddress.disabled=false;              
+              }
+            }
             if (managedPrivate.checked){
               managedName.disabled=true;
               managedAddress.disabled=true;
-            } else {
-              managedName.disabled=false;
-              managedAddress.disabled=false;              
+            }
+            if (subscribed && subscribed.data && subscribed.data[0]){
+              managedFrequency.value = subscribed.data[0].type;
+              managedLevel.value = subscribed.data[0].amount;
             }
           }
-          if (managedPrivate.checked){
-            managedName.disabled=true;
-            managedAddress.disabled=true;
-          }
-          managedFrequency.value = subscribed.data[0].type;
-          managedLevel.value = subscribed.data[0].amount;
           managedLevel.onchange = async function() {
             managedAmount.value = managedLevel.value;
           }
@@ -558,9 +568,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           try {
             subApi=basePath + `/createsubscription`
             subscribed = await axios.post( subApi, body, { headers: await peertubeHelpers.getAuthHeader() });
-            console.log("initial subscribed",subscribed);
-            if (subscribed && subscribed.data && subscribed.data) {
-              console.log("⚡️subscribe ",subscribed.data[0]);
+            //console.log("initial subscribed",subscribed);
+            if (subscribed && subscribed.data) {
+              //console.log("⚡️subscribe ",subscribed.data[0]);
               subscribeButton.innerHTML="Patronize";
               subscribeButton.style.visibility="hidden";
               manageButton.style.visibility="visible";
@@ -613,8 +623,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       rootEl.innerHTML = await makeValueSettings();
       let modalSatStream = document.getElementById("v4v-stream-amount");
       let modalCashStream = document.getElementById("v4v-stream-cash");
-      let modalSatTip = document.getElementById("modal-sats");
-      let modalCashTip = document.getElementById("modal-cashtip");
+      let modalSatBoost = document.getElementById("v4v-def-boost-amount");
+      let modalCashBoost = document.getElementById("v4v-def-boost-cash");
       let menuStreamAmount = document.getElementById('streamamount');
       let v4vSettingsUpdate = document.getElementById('v4v-settings-update');
       let userAddress = document.getElementById('v4v-boost-back');
@@ -622,7 +632,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let v4vStreamAuto = document.getElementById('v4v-stream-auto');
       let v4vBoostName = document.getElementById('v4v-boost-name');
       let modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
-      console.log("-----",wallet);
+      //console.log("-----",wallet);
       if (modalAddressAuthorize) {
         let authorizedWalletApi = basePath + "/checkauthorizedwallet";
         //console.log("⚡️authorized wallet api:",authorizedWalletApi);
@@ -632,7 +642,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         try {
           authorized = await axios.get(authorizedWalletApi, headers);
           walletAuthorized = true;
-          console.log("----",authorized);
+          //console.log("----",authorized);
         } catch (e){
           console.log("⚡️unable to confirm authorized",authorized,e);
           walletAuthorized = false;
@@ -686,7 +696,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             modalAddressAuthorize.textContent="De-Authorize";
           }
         }
-      } else {
+      } else if (debugEnabled) {
         console.log("⚡️no authorize button");
       }
       if (v4vSettings && v4vStreamAuto){
@@ -730,8 +740,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let v4vApi = basePath + "/updatev4v";
           let result;
           try {
+            if (debugEnabled){
+              console.log("trying to update v4v settings",result,v4vApi);
+            }
             result = await axios.post(v4vApi,newV4v,{ headers: await peertubeHelpers.getAuthHeader() })
-            console.log("trying to update v4v settings",result,v4vApi);
           } catch (err){
             console.log("⚡️error attempting to update v4v settings", v4vApi, err);
             notifier.error("Unable to update V4V settings");
@@ -746,6 +758,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           if (menuStreamAmount) {
             menuStreamAmount.value = streamAmount;
           }
+        }
+      }
+      if (modalSatBoost) {
+        modalSatBoost.onchange = async function () {
+          modalCashBoost.value = (modalSatBoost.value * convertRate).toFixed(2);
         }
       }
       if (modalCashStream) {
@@ -803,7 +820,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   registerHook({
     target: 'action:router.navigation-end',
     handler: async ({ params, user }) => {
-      console.log('⚡️navigation end!', params,user);
+      if (debugEnabled){
+        console.log('⚡️navigation end!', params,user);
+      }
       //console.log("⚡️wallet authorized",walletAuthorized,"pod data",podData);
       //console.log("⚡️instance name",instanceName,"host path",hostPath,"account address",accountAddress);
       //console.log("⚡️logged in",await peertubeHelpers.isLoggedIn(),"authorization checked",authorizationChecked);
@@ -811,19 +830,19 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         console.log("⚡️may need to load wallet data here ");
       }
       if (!peertubeHelpers.isLoggedIn()){
-        console.log("⚡️ user not logged in ");
+        console.log("⚡️ user not logged in, clearing  ");
         walletAuthorized=false;
         authorizationChecked=false;
         accountAddress=undefined;
-      }
-      if (!v4vSettings){
-        await loadV4vSettings();
+      } else {
+        if (!v4vSettings){
+          await loadV4vSettings();
+        }
       }
       streamButton = document.getElementById("stream");
       let autoplay = document.getElementById("autoplay-next-video");
-      
       if (streamButton) {
-        console.log("stream button found",streamEnabled);
+        //console.log("stream button found",streamEnabled);
         streamButton.title = "Stream Sats to " + channelName + " every minute of watching";
         if (streamEnabled && autoplay){
           streamButton.style.visibility="visible";
@@ -833,13 +852,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         streamButton.onclick = async function () {
           console.log("streamButton settings",streamEnabled,autoplay);
         }
-      } else {
-        console.log("no stream button found");
-      }
-
+      } 
     }
   })
-
+  /*
   registerHook({
     target: 'action:video-edit.init',
     handler: async ({ type, updateForm }) => {
@@ -848,6 +864,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log('⚡️type and update form!', type,updateForm,itemTxt);
     }
   })
+  */
   registerHook({
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
@@ -863,25 +880,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       //let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
       let feedGuid = await getChannelGuid(channel);
-      let feedTxt = [""];
-      let podData = await getPodData(channel);
-      if (debugEnabled) {
-        console.log("⚡️pod data", podData);
-      }
-      if (!podData) {
-        podData = {
-          "feedid": feedID,
-          "feedguid": feedGuid,
-          "medium": "podcast",
-          "channel": channel
-        }
-        podData.text = feedTxt;
-      }
-      if (!podData.text) {
-        podData.text = feedTxt;
-      }
-      let newPodData = podData
-
       let panel = await getConfigPanel(splitData, channel);
       panelHack = panel;
       channelUpdate[0].appendChild(panel);
@@ -910,8 +908,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name"><br>
-          Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-name"><br>
+          Enter a lightning address or a Lightning Node Pubkey <br> <label for="address">Lightning Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add Lightning Address</button>`;
           document.getElementById("add-split-final").onclick = async function () {
             let newAddress = document.getElementById("modal-split-address").value;
@@ -921,8 +919,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             try {
               createResult = await axios.get(createApi);
             } catch (e) {
-              console.log("⚡️unable to create split\n", createApi, createResult);
-              notifier.error(e, createApi, newAddress, newAddress.length);
+              console.log("⚡️unable to create split\n", createApi);
+              notifier.error("Unable to create split");
               return;
             }
             if (createResult) {
@@ -948,14 +946,18 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
           let optionBox = document.getElementById("names");
           if (optionBox){
-            optionBox.addEventListener('change', async                           function() {
-              console.log("⚡️ changed value",this.value);
+            optionBox.addEventListener('change', async function() {
+              if (debugEnabled){
+                console.log("⚡️ changed value",this.value);
+              }
               document.getElementById("modal-split-name").value = this.value;
               let dude = await getLightningAddress(this.value);
               document.getElementById("modal-split-address").value = dude.address;
             })
           } else {
-            console.log("⚡️ unable to link optionbox");
+            if (debugEnabled){
+              console.log("⚡️ unable to link optionbox");
+            }
           }
         }
       }
@@ -1026,7 +1028,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-          console.log("⚡️no thread id", date);
+          //console.log("⚡️no thread id", date);
           continue;
         }
         let walletApi, walletData, wallet;
@@ -1084,10 +1086,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                     walletApi = basePath + "/walletinfo?account=" + comment.innerText
                     walletData = await axios.get(walletApi);
                   } catch {
-                    console.log("⚡️error trying to get wallet info", walletApi);
+                    console.log("⚡️error trying to get wallet info for comment account", walletApi);
                   }
                 }
-                if (walletData) {
+                if (walletData && walletData.data) {
                   wallet = walletData.data;
                   let weblnSupport = await checkWebLnSupport();
                   if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
@@ -1127,11 +1129,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-          console.log("⚡️no thread id", date);
+         // console.log("⚡️no thread id", date);
           continue;
         }
         if (debugEnabled) {
-          console.log("⚡️whatup gee", com, comment.innerText, date.href);
+          console.log("⚡️comment data", com, comment.innerText, date.href);
         }
         let walletApi, walletData, wallet;
         if (comment.wallet) {
@@ -1152,7 +1154,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
             if (debugEnabled) {
-              console.log(walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+              console.log("⚡️zap compatibility matching",walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
             }
             let zap = document.createElement("span");
             zap.innerHTML = "⚡️";
@@ -1226,6 +1228,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       return result;
     }
   })
+  /*
   registerHook({
     target: 'action:embed.player.loaded',
     handler: async ({ player, videojs, video }) => {
@@ -1234,7 +1237,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log("⚡️menu", x.length);
     }
   })
- /*
+ 
   registerHook({
     target: 'filter:left-menu.links.create.result',
     handler: (result, params) => {
@@ -1444,7 +1447,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let parts = window.location.href.split('/');
       localHost = parts[2];
     }
-    console.log("Boost URL",boost.url,remoteHost,localHost);
+    //console.log("Boost URL",boost.url,remoteHost,localHost);
     boost.boost_link = window.location.href;
     if (currentTime) {
       boost.boost_link = boost.boost_link + "?start=" + currentTime.toFixed();
@@ -1465,7 +1468,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       }
       
     }
-    console.log("Boost URL",boost.url,remoteHost,localHost);
+    //console.log("Boost URL",boost.url,remoteHost,localHost);
     if (episodeGuid) {
       let itemApi = basePath + "/getitemid?uuid=" + episodeGuid;
       try {
@@ -1488,7 +1491,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         console.log("⚡️error getting feed id error", feedApi, err);
       }
       boost.guid = await getChannelGuid(channelName);
-      console.log("⚡️boost guid", boost.guid, typeof (boost.guid));
+      //console.log("⚡️boost guid", boost.guid, typeof (boost.guid));
     }
     if (replyAddress) {
       boost.reply_address = replyAddress;
@@ -2018,36 +2021,35 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     if (remoteSplitBlock){
       for (var block of remoteSplitBlock.blocks){
         if (block){
-          console.log("block",block.settings,block.startTime,block.duration );
+          //console.log("block",block.settings,block.startTime,block.duration );
           let blockStart = block.startTime;
           let blockEnd = blockStart+block.duration;
-          console.log("barf",blockStart,blockEnd, currentTime)
+          //console.log("barf",blockStart,blockEnd, currentTime)
           if (blockStart<currentTime && (blockEnd > currentTime)){
-            console.log("Remote block active!",block);
+            //console.log("Remote block active!",block);
             finalSplit = await calculateSplit(splitData,block.value.destinations, block.settings.split);
-            console.log("final split",finalSplit);
+            //console.log("final split",finalSplit);
           }
           if (finalSplit){
             splitData=finalSplit;
-            console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
+            //console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
             splitData[0].title = block.title;
             splitData[0].image = block.image;
             splitData[0].itemguid = block.itemGuid;
             splitData[0].feedguid = block.feedGuid;
-            console.log("primary split",splitData[0])
+            //console.log("primary split",splitData[0])
           }
         }
       }
-
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     if (splitData[0].title){
       buttonText = '⚡️' + tipVerb + " " + splitData[0].title + '⚡️';
     }
     let html = ` <center><table><tr><td>From:</td>
-   <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;" type="text" id="modal-from" name="modal-from" value="`+ boostFrom + `" autocomplete="on" maxLength="28"></td></tr>
+   <td style="text-align:right;"><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="modal-from" name="modal-from" value="`+ boostFrom + `" autocomplete="on" maxLength="28"></td></tr>
    <tr><td>Sats:</td>
-   <td style="text-align:right;"><input STYLE="color: #000000; background-color: #ffffff;"type="text" id="modal-sats" name="modal-sats" value="${v4vSettings.boostAmount}" size="6"></td></tr>
+   <td style="text-align:right;"><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="modal-sats" name="modal-sats" value="${v4vSettings.boostAmount}" size="6"></td></tr>
 
     <td>&nbsp;</td><td style="text-align:right;">~$ <label id="modal-cashtip" name="modal-cashtip">`+ (v4vSettings.boostAmount * convertRate).toFixed(3) + `</label></td></tr>
 
@@ -2095,14 +2097,16 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let newSplit = [];
     let feeSplit = 0;
     let nonFeeSplit =0;
-    console.log("time for math",localSplit,remoteSplit);
+    if (debugEnabled){
+      console.log("time for math",localSplit,remoteSplit);
+    }
     for (var local of localSplit){
       if (local.fee){
         newSplit.push(local);
         feeSplit=feeSplit+local.split;
       } 
     }
-    console.log("breakdown local",feeSplit,nonFeeSplit);
+    //console.log("breakdown local",feeSplit,nonFeeSplit);
     for (var remote of remoteSplit){
       if (remote.fee){
         let keysend = {
@@ -2120,20 +2124,20 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           split: remote.split,
           "keysend": keysend
         }
-        console.log("adding fee split",split,remote);
+        //console.log("adding fee split",split,remote);
         newSplit.push(split);
         feeSplit=feeSplit+remote.split;
       } else {
         nonFeeSplit=nonFeeSplit+remote.split;
       }
     }
-    console.log("breakdown of all fees",newSplit,feeSplit,nonFeeSplit,remoteCut);
+    //console.log("breakdown of all fees",newSplit,feeSplit,nonFeeSplit,remoteCut);
     if (remoteCut && remoteCut<100){
       let localCut = (100-remoteCut)/100;
-      console.log("cuts",localCut,remoteCut);
+      //console.log("cuts",localCut,remoteCut);
       for (var local of localSplit){
         let fixedSplit = Math.trunc(local.split*localCut);
-        console.log("percentage",fixedSplit,local.split,local.name);
+        //console.log("percentage",fixedSplit,local.split,local.name);
         if (!local.fee && (fixedSplit)>=1){
           local.split=fixedSplit;
           newSplit.push(local);
@@ -2155,7 +2159,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           keysend.customData = cd;
         }
         let fixedSplit = Math.trunc(remote.split*adjust);
-        console.log("doit ",adjust,remote.split,fixedSplit);
+        //console.log("doit ",adjust,remote.split,fixedSplit);
         let split = {
           name: remote.name,
           split: fixedSplit,
@@ -2164,7 +2168,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         newSplit.push(split);
       }
     }
-    console.log("final breakdown of all fees",newSplit,feeSplit,nonFeeSplit);
+    //console.log("final breakdown of all fees",newSplit,feeSplit,nonFeeSplit);
     return newSplit;
   }
   async function checkWebLnSupport() {
@@ -2198,27 +2202,27 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let buttonText = '⚡️V4V⚡️';
     let html = `<div id="modal-streamdialog">
     Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, <a href="http://signup.hive.io/" target="_blank" rel="noopener noreferrer">Hive</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a><br>
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="v4v-boost-back" name="v4v-boost-back" value="`+ accountAddress + `" size="42">
+    <input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="`+ accountAddress + `" size="42">
     <button id = "v4v-settings-update" class="peertube-button orange-button ng-star-inserted">Update</button>`;
     if (peertubeHelpers.isLoggedIn() && client_id) {
       html = html + `<br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
       <button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>`;
     }
     html = html + `<hr>
-    <input STYLE="color: #000000; background-color: #ffffff;" type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats">
+    <input class="form-control d-block ng-pristine ng-valid ng-touched" type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats">
     <label>Stream Sats per minute:</label>
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="v4v-stream-amount" name="v4v-stream-amount" value="`+ streamAmount + `" size="6">
+    <input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-stream-amount" name="v4v-stream-amount" value="`+ streamAmount + `" size="6">
     / $
-    <input STYLE="color: #000000; background-color: #ffffff;"type="text" id="v4v-stream-cash" name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
+    <input style="color: #16F529;" type="text" id="v4v-stream-cash" name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
     </div>`;
     let subApi=basePath + `/getsubscriptions`;
     try {
       
-      console.log("⚡️trying to get subscription",subApi);
+      //console.log("⚡️trying to get subscription",subApi);
       let subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
-      console.log("⚡️subscription result",subscribed);
+      //console.log("⚡️subscription result",subscribed);
       if (subscribed && subscribed.data) {
-        console.log("⚡️subscribed ",subscribed.data);
+        //console.log("⚡️subscribed ",subscribed.data);
         html = html + "<h2>Patronage</h2>"
         for (var sub of subscribed.data){
           let startDate= new Date(sub.startdate).toLocaleDateString()
@@ -2475,9 +2479,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let modal = (document.getElementsByClassName('modal-body'))
           //modal[0].setAttribute('class', 'lightning-button');
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value=""><br>
-          Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="1"><br>
-          <label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address"><br>
+          modal[0].innerHTML = await getDirectoryHtml()+`<br><label for="name">Display Name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-name" value=""><br>
+          Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br><label for="split">Split Percentage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-value" value="1"><br>
+          <label for="address">Lightning Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-address"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="add-split-final">Add New Split</button>`;
           let addFinalButton = document.getElementById("add-split-final")
           if (addFinalButton) {
@@ -2488,7 +2492,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let optionBox = document.getElementById("names");
           if (optionBox){
             optionBox.addEventListener('change', async function() {
-              console.log("⚡️ changed value",this.value);
+              //console.log("⚡️ changed value",this.value);
               document.getElementById("modal-split-name").value = this.value;
               let dude = await getLightningAddress(this.value);
               document.getElementById("modal-split-address").value = dude.address;
@@ -2644,18 +2648,18 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log("⚡️making keysend edit panel", slot, ks);
     }
     let html;
-    html = `<label for="name">Split Name:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
+    html = `<label for="name">Split Name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-name" value="` + splitData[slot].name + `"><br>`;
     if (slot == 0) {
-      html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
+      html = html + `<label for="split">Split Percentage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-value" readonly value="` + splitData[slot].split + `"><br>`;
     } else {
-      html = html + `<label for="split">Split Percentage:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-value" value="` + splitData[slot].split + `"><br>`;
+      html = html + `<label for="split">Split Percentage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-value" value="` + splitData[slot].split + `"><br>`;
     }
     // html = html + "Enter lightning address (i.e errhead@getalby.com) or the pubkey of a lightning node<br>";
 
     if (ks) {
-      html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" readonly value ="` + splitData[slot].address + `"><br>`;
+      html = html + `<label for="address">Lightning Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-address" readonly value ="` + splitData[slot].address + `"><br>`;
     } else {
-      html = html + `<label for="address">Lightning Address:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
+      html = html + `<label for="address">Lightning Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-address" value ="` + splitData[slot].address + `"><br>`;
     }
     let customKey, customValue, status, pubKey;
     html = html + `<hr>  <input type="checkbox" id="manualkeysend" name="manualkeysend">`;
@@ -2675,9 +2679,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       customValue = "";
     }
     if (ks) {
-      html = html + `<label for="address">Keysend pubkey:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
-      html = html + `<br><label for="address">Custom Key:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
-      html = html + `<br><label for="address">Custom Value:</label><input style="color: #000000; background-color: #ffffff;"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
+      html = html + `<label for="address">Keysend pubkey:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-pubkey" value ="` + pubKey + `">`;
+      html = html + `<br><label for="address">Custom Key:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-customkey" value ="` + customKey + `">`;
+      html = html + `<br><label for="address">Custom Value:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-split-customvalue" value ="` + customValue + `">`;
     } else {
       html = html + "Keysend: " + status;
       html = html + "<br> Keysend pubkey: " + pubKey;
@@ -2787,9 +2791,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
   }
   async function makeValueSettings(){
-    console.log("debug",accountAddress,);
     if (debugEnabled) {
-      console.log("⚡️making value settings",v4vSettings);
+      console.log("⚡️making value settings",v4vSettings,accountAddress);
     }
     if (!v4vSettings){
       await loadV4vSettings();
@@ -2804,38 +2807,40 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let streamAmountDescription = `Amount of sats to stream every minute of content. Dollar equivelency will change over time.`
     let boostAmountDescription = `Amount of SATS for ${tipVerb}`
     let fromDescription = `Name to use when sending SATs`
-    console.log("settings when making page",v4vSettings,accountAddress,boostFrom,boostAmount,streamEnabled,streamAmount);
+    if (debugEnabled){
+      console.log("settings when making page",v4vSettings,accountAddress,boostFrom,boostAmount,streamEnabled,streamAmount);
+    }
     let html = `<div id="v4v-settings"><center><h1>Value 4 Value Settings</h1></center><table>
       <tr><td><h4>Wallet</h4></td><td><b>Configure lightning wallets</b></td></tr><td>
-      <td>BoostBack:<input type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
+      <td>BoostBack:<input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
       <td>${replyDescription}
       </tr><tr></tr><tr>
       <td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
       <td>${authorizeDescription}</td></tr>
       </td><tr><td><h4>Boost</h4></td><td><b>Send sats to creators with a message</b></td></tr><td>
-      <td>From:<input type="text" id="v4v-boost-name" value="${boostFrom}">
+      <td>From:<input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-boost-name" value="${boostFrom}">
       <td>${fromDescription}
       </tr><tr></tr><tr>
-      <td><td><input type="text" id="v4v-def-boost-amount" value="${boostAmount}" size="6"> Sats currently 
-      $<input type="text" id="v4v-def-boost-cash" disabled value="`+ (boostAmount * convertRate).toFixed(3) + `" size="6">
+      <td><td><input type="text" class="form-control  ng-pristine ng-valid ng-touched" id="v4v-def-boost-amount" value="${boostAmount}" size="6"> Currently worth 
+      $<input type="text" class="ng-untouched ng-pristine ng-invalid" id="v4v-def-boost-cash" disabled value="`+ (boostAmount * convertRate).toFixed(3) + `" size="6">
       <td>${boostAmountDescription}
       </td><tr><td><h4>Streaming</h4></td><td><b>Stream sats for every minute watched</b></td></tr><td>
       <td><input type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats"> Stream Automatically
       <td>${streamStateDescription}
       </tr><tr>
-      <td><td><input type="text" id="v4v-stream-amount" name="v4v-stream-amount" value="${streamAmount}" size="6"> Sats currently  
-      $<input type="text" id="v4v-stream-cash" disabled name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
+      <td><td><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-stream-amount" name="v4v-stream-amount" value="${streamAmount}" size="6"> Currently worth  
+      $<input type="text" class="ng-untouched ng-pristine ng-invalid" disabled id="v4v-stream-cash" name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
       <td>${streamAmountDescription}
       </tr><tr>
 
     </td><tr><td><h4>Patronage</h4></td><td><b>Send recurring SATs to creators</b></td></tr><td><td>`;
     let subApi=basePath + `/getsubscriptions`;
     try {
-      console.log("⚡️trying to get subscription",subApi);
+      //console.log("⚡️trying to get subscription",subApi);
       let subscribed = await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
-      console.log("⚡️subscription result",subscribed);
+      //console.log("⚡️subscription result",subscribed);
       if (subscribed && subscribed.data) {
-        console.log("⚡️subscribed ",subscribed.data);
+        //console.log("⚡️subscribed ",subscribed.data);
         //html = html + "<h2>Patronage</h2>"
         for (var sub of subscribed.data){
           let startDate= new Date(sub.startdate).toLocaleDateString()
@@ -2858,7 +2863,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log("v4v initial settings",v4vSettings,accountAddress,streamAmount,boostAmount,boostFrom);
     }
     if (!v4vSettings){
-      console.log("⚡️ no v4v settings found, going to load ");
+      if (debugEnabled){
+        console.log("⚡️ no v4v settings found, going to load ");
+      }
       let settingsApi = basePath + `/getv4v`;
       try {
         v4vSettings = await axios.get(settingsApi,{ headers: await peertubeHelpers.getAuthHeader() });
@@ -2866,7 +2873,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       } catch (e){
         console.log("⚡️ Hard error gettings v4v settings ",settingsApi,e);
       }
-    } else {
+    } else if (debugEnabled) {
       console.log("⚡️ v4v settings found ",v4vSettings,accountAddress);
     }
     if (v4vSettings){

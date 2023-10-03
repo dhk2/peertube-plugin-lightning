@@ -4,6 +4,8 @@ v 5.1.5
 - fixed hiding streaming info when not on video player
 - fixed streaming payment metadata misalignment
 - fixed streaming to properly use remote splits
+- cleaned up console.log cals on client side
+- fixed errors managing new patronage
 
 v 5.1.4
 - fixed faulty error avoidance logic

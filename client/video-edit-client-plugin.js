@@ -44,10 +44,10 @@ function register({ registerHook, peertubeHelpers }) {
                 html = html + await makePanelHtml(splitInfo,html);
             }
             if (videoData.data.isLive){
-                html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" id="livevalue" value="${liveValue}">`;
+                html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="livevalue" value="${liveValue}">`;
                 html = html +`<button id="update-live-value">Update Live Value</button>`;
             } else {
-                html = html+ `<br><label for="splitkit">Split kit import ID</label><input type="text" id="splitkit" value="${splitKitId}">`;
+                html = html+ `<br><label for="splitkit">Split kit import ID</label><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="splitkit" value="${splitKitId}">`;
                 html = html +`<button id="update-split-kit">Update Split Kit Import ID</button>`;
             }
             await addPanel(html);

@@ -7,6 +7,7 @@ const { Console } = require('console');
 const { waitForDebugger } = require('inspector');
 var v5 = require('uuidv5');
 const io = require("socket.io-client");
+const { enabled } = require('debug/src/browser');
 async function register({
   registerHook,
   registerSetting,
@@ -197,10 +198,8 @@ async function register({
       var check=new Date().getDay();
       if (timeCheck != check) {
         timeCheck = check;
-        console.log ("⚡️⚡️ new day",timeCheck);
         await doSubscriptions();
       } else {
-        console.log ("⚡️⚡️ same day",timeCheck);
       }
       checking=false;
       return video
@@ -355,6 +354,7 @@ async function register({
               }
               let hack = [];
               hack.push(remoteItem);
+              console.log("hack",hack);
               remoteSplit.value = hack;
             }
             blocks.push(remoteSplit);
@@ -466,10 +466,15 @@ async function register({
           console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
         }
         let timePassed = (now - storedWallet.retrieved)/milliday;
+
+        if (enableDebug){
+          let cacheDate = new Date(storedWallet.retrieved);
+          console.log(`⚡️⚡️ saved wallet ${timePassed} days ago on ${cacheDate.toLocaleDateString()}`);
+        }
         if (timePassed < 7){
           return res.status(200).send(storedWallet);
         } else {
-          console.log(`⚡️⚡️ saved wallet data expired after ${timePassed}`);
+          console.log(`⚡️⚡️ saved wallet data expired after ${timePassed} days`);
         }
         if (storedWallet.address){
           let newWallet = await createWalletObject(storedWallet.address);
@@ -481,6 +486,8 @@ async function register({
           }
           await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
           return res.status(200).send(newWallet);
+        } else {
+          console.log("no stored address to update wallet");
         }
       } else {
         if (enableDebug) {
@@ -488,6 +495,21 @@ async function register({
         }
       }
       let parts = req.query.account.split("@")
+      if (parts.length >1){
+        remoteWalletInfoApi = `https://${parts[1]}/plugins/lightning/router/walletinfo?account=${parts[0]}`;
+        if (enableDebug){
+          console.log("⚡️⚡️checking for remote instance wallet info via plugin");
+        }
+        let remoteWalletInfo;
+        try {
+          remoteWalletInfo = await axios.get(remoteWalletInfoApi);
+        } catch (e){
+           console.log("⚡️⚡️ error requesting remote wallet info",e);
+        }
+        if (remoteWalletInfo){
+          return res.status(200).send(remoteWalletInfo.data);
+        }
+      }
       if (parts.length > 1) {
         apiCall = "https://" + parts[1] + "/api/v1/accounts/" + parts[0];
       } else {
@@ -2533,13 +2555,24 @@ async function register({
     if (userName){
       v4vsettings= await storageManager.getData('v4vsettings-'+userName.replace(/\./g, "-"));
     }
+    if (!v4vsettings && userName){
+      console.log("⚡️⚡️⚡️⚡️ no saved v4v settings, checking for wallet info");
+      storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
+    }
     if (!v4vsettings){
-      console.log("⚡️⚡️⚡️⚡️ no saved v4v settings");
+      console.log("⚡️⚡️⚡️⚡️ no saved v4v settings, checking for wallet info");
+      storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
       v4vsettings = {
         boostFrom: "PeerTuber",
         boostAmount: 1000,
         streamAuto: false,
         streamAmount: 69,
+      }
+      if (storedWallet.address){
+        v4vsettings.boostBack=storedWallet.address;
+      }
+      if (userName){
+        v4vsettings.boostFrom=userName;
       }
     } 
     if (enableDebug){
@@ -3196,7 +3229,6 @@ async function register({
           console.log("⚡️⚡️successfully retrieved lnurl data for ", address, lnurlData);
         }
       }
-      return walletData;
     }
     return walletData;
   }
