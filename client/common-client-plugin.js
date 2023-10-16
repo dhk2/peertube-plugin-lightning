@@ -105,7 +105,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         videoUuid = video.uuid;
       }
       remoteSplitBlock = undefined;
-      let remoteBlockApi = basePath +`/getsplitkitblock?video=${videoUuid}`
+      let remoteBlockApi = basePath +`/getsplitkitblock?video=${videoUuid}&instance=${instanceName}`;
       try {
         remoteSplitBlock = await axios.get(remoteBlockApi);
       } catch (e) {
@@ -317,9 +317,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       const boostButton = document.getElementById("boostagram");
       if (boostButton) {
         document.getElementById("boostagram").onclick = async function () {
-          splitData = await getSplit();
+          splitData = await getSplit(true);
           let title = displayName;
-          if (splitData[0].title){
+          if (splitData && splitData[0] &&splitData[0].title){
             title= splitData[0].title;
           }
           await peertubeHelpers.showModal({
@@ -1750,11 +1750,16 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
     return walletData.data;
   }
-  async function getSplit() {
+  async function getSplit(force) {
     if (debugEnabled) {
-      console.log("⚡️generating split request", videoName, accountName, channelName, instanceName, currentTime);
+      console.log("⚡️generating split request", videoName, accountName, channelName, instanceName, currentTime, hostPath,window.location.hostname);
     }
-    let splitApi = basePath + "/getsplit";
+    let splitApi;
+   // if (force && (instanceName != hostPath)){
+   //   splitApi = `https://${instanceName}/plugins/lightning/router/getsplit`;
+   // } else {
+    splitApi = basePath + "/getsplit";
+    let spot=Math.trunc(currentTime);
     if (videoName) {
       if (instanceName == "hack") {
         splitApi = splitApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
@@ -1765,9 +1770,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       //if (accountName) {
       //  splitApi = splitApi + "?account=" + accountName;
       //}
-      if (currentTime){
-        splitApi=splitApi+"?ts="+currentTime;
-      }
       if (channelName) {
         splitApi = splitApi + "?channel=" + channelName;
       }
@@ -1775,6 +1777,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         splitApi = splitApi + "@" + instanceName;
       }
     }
+    
+    splitApi=splitApi+"&ts="+spot;
     if (debugEnabled) {
       console.log("⚡️api call for split info", splitApi);
     }
@@ -2043,7 +2047,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       }
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
-    if (splitData[0].title){
+    if (splitData && splitData[0] && splitData[0].title){
       buttonText = '⚡️' + tipVerb + " " + splitData[0].title + '⚡️';
     }
     let html = ` <center><table><tr><td>From:</td>
@@ -2063,7 +2067,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     //  html=html+`<h3>${splitData[0].title}</h3>`
     //}
 
-    if (splitData[0].image){
+    if (splitData && splitData[0] && splitData[0].image){
       html=html+`<center><img src="${splitData[0].image}" width="200" height="200"></center>`;
     }
     for (var split of splitData){

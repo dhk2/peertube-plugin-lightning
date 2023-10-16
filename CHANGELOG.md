@@ -1,3 +1,14 @@
+v 5.1.8
+- fixed bug with with null split fix
+- fixed bug with undefined user name
+
+v 5.1.7
+- fixed problem with null remote value entry of a block breaking parsing.
+
+v 5.1.6
+- fixed grey text display issue with input elements
+- fixed boost fiat value calculation
+
 v 5.1.5
 - worked out math for remote splits on non-live video
 - cleared up some logic flow issues with boosts

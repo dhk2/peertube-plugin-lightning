@@ -306,8 +306,8 @@ async function register({
       var videoUuid = params.video.dataValues.uuid;
       var storedSplitData = await getSavedSplit(videoUuid);
       let remoteSplitData = await getRemoteSplit(videoUuid);
-      if (remoteSplitData && ! storedSplitData){
-        console.log(console.log("⚡️⚡️⚡️⚡️ param data",params,params.video.dataValues));
+      if (remoteSplitData && !storedSplitData){
+        console.log(console.log("⚡️⚡️⚡️⚡️ remote split without stored split, param data",params,params.video.dataValues));
       }
       var blocks = []
       //var videoJSON = await peertubeHelpers.videos.loadByIdOrUUID(videoUuid);
@@ -336,6 +336,9 @@ async function register({
       if (remoteSplitData){
         console.log("⚡️⚡️⚡️⚡️ remote split data",remoteSplitData);
         for (var valueSplit of remoteSplitData.blocks){
+          if (!valueSplit){
+            continue;
+          }
           console.log("⚡️⚡️⚡️⚡️ remote split ",valueSplit.title,valueSplit.feedGuid,valueSplit.itemGuid,valueSplit.duration,valueSplit.startTime)
           if (valueSplit.startTime && valueSplit.duration){
             let remoteSplit ={};
@@ -947,6 +950,25 @@ async function register({
     var storedSplitData;
     if (req.query.video) {
       let liveRemoteSplit=await storageManager.getData("liveremotesplit-"+req.query.video);
+      if (!liveRemoteSplit && req.query.channel){
+        let parts = req.query.channel.split("@");
+        if (parts.length>1 && parts[1] !=hostName){
+          console.log("mismatched domaines",parts[1],hostName);
+          let remoteSplitApi = `https://${parts[1]}/plugins/lightning/router/getsplit?video=${req.query.video}`;
+          console.log("remote split api",remoteSplitApi);
+          try {
+            let resultRemoteSplit = await axios.get(remoteSplitApi);
+            if (resultRemoteSplit && resultRemoteSplit.data){
+              liveRemoteSplit = resultRemoteSplit.data;
+            }
+            console.log("live remote split",liveRemoteSplit);
+          } catch (e){
+            console.log("erorred getting remote split from ",parts[1],e);
+          }
+        } else {
+          console.log("matched domaines",parts[1],hostName);
+        }
+      }
       if (liveRemoteSplit && liveRemoteSplit.value){
         console.log("⚡️⚡️ found remote video split",liveRemoteSplit)
         let splits=[];
@@ -2500,6 +2522,24 @@ async function register({
         return res.status(420).send(`failed getting split kit id from ${req.query}`);
       } 
     }
+    if (!splitKitId && req.query.instance){
+      let splitKitIdApi = `https://${req.query.instance}/plugins/lightning/router/getsplitkitid?video=${req.query.video}`
+      console.log("tryuing to get remote splitkit",splitKitIdApi)
+      try {
+        let remoteResult = axios.get(splitKitIdApi);
+        if (remoteResult && remoteResult.data){
+          splitKitId = remoteResult.data
+        }
+      } catch {
+        console.log("error getting remote split kit id",splitKitId);
+      }
+    }
+    if (!splitKitId){
+      console.log("failed to find any split kit id for video");
+      return res.status(420).send();
+    } else {
+      console.log("found split kit id",splitKitId);
+    }
     let splitKitBlock;
     let splitkitBlockApi = `https://curiohoster.com/api/sk/getblocks?guid=${splitKitId}`;
     try {
@@ -2559,16 +2599,15 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️ no saved v4v settings, checking for wallet info");
       storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
     }
-    if (!v4vsettings){
+    if (!v4vsettings && !userName){
       console.log("⚡️⚡️⚡️⚡️ no saved v4v settings, checking for wallet info");
-      storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
       v4vsettings = {
         boostFrom: "PeerTuber",
         boostAmount: 1000,
         streamAuto: false,
         streamAmount: 69,
       }
-      if (storedWallet.address){
+      if (storedWallet && storedWallet.address){
         v4vsettings.boostBack=storedWallet.address;
       }
       if (userName){
