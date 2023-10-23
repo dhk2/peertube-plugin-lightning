@@ -419,8 +419,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       } catch (err) {
          console.log("⚡️error attempting to get subscribed status", subApi, err);
       }
-      buttonHtml.innerHTML=`<button id='patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Patronize</button>
-                            <button id='manage-patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Manage Patronage</button>`;
+      buttonHtml.innerHTML=`<button id='manage-patronize-channel' class="peertube-button-link orange-button ng-star-inserted">Manage Patronage</button>`;
       buttonSpot[0].appendChild(buttonHtml);
       let subscribeButton = document.getElementById("patronize-channel");
       
@@ -434,12 +433,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             confirm: { value: 'X', action: () => { } },
 
           })
-          let suggestedAmount;
-          let patronName;
-          let replyAddress;
+          let suggestedAmount, patronName, replyAddress, updateButtonText;
+          updateButtonText = "Patronize";
           if (subscribed && subscribed.data && subscribed.data[0]){
             suggestedAmount = subscribed.data[0].amount;
-
+            updateButtonText = "Update Patronage"
             patronName= subscribed.data[0].name;
             replyAddress = subscribed.data[0].address
           } else if (v4vSettings) {
@@ -452,13 +450,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           if (!suggestedAmount){
             suggestedAmount = "69";
           }
-
           let modal = (document.getElementsByClassName('modal-body'))
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
           modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels()+`<br><label for="amount">Daily Patronage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
           <input type="checkbox" id="modal-patronage-private" name="private-patron"> <label for="private">Anonymous Patronage:</label><br>
           <label for="name">Patron Name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-patronage-name" value="${patronName}"><br>          <label for="address">Boost Back Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="modal-patronage-address" value="${replyAddress}"><br>
-          <button class="peertube-button orange-button ng-star-inserted" id="modal-patronage-update">update patronage</button>
+          <button class="peertube-button orange-button ng-star-inserted" id="modal-patronage-update">${updateButtonText}</button>
           <button id='modal-patronage-depatronize' class="peertube-button-link orange-button ng-star-inserted"'>De-Patronize</button>`;
           //console.log("yeah",wallet);
           let managedFrequency =  document.getElementById("times");
@@ -469,6 +466,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let managedPrivate =  document.getElementById("modal-patronage-private");
           let unsubscribeButton = document.getElementById("modal-patronage-depatronize");
           let updateButton = document.getElementById("modal-patronage-update")
+          if (updateButtonText == "Patronize"){
+            unsubscribeButton.style.visibility="hidden";
+          }
           if (managedPrivate){
             managedPrivate.onchange = async function(){
               if (managedPrivate.checked){
@@ -501,16 +501,24 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               }
               await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
               console.log("⚡️unsubscribed");
-              subscribeButton.style.visibility="visible";
-              manageButton.style.visibility="hidden";
+              //subscribeButton.style.visibility="visible";
+              //manageButton.style.visibility="hidden";
+              manageButton.innerText="Patronize"
             } catch (err) {
               console.log("⚡️error attempting to unsubscribe", subApi, err);
-              subscribeButton.style.visibility="hidden";
+              //subscribeButton.style.visibility="hidden";
             }
           }
           updateButton.onclick = async function () {
-            console.log("subscribed",subscribed)
-            let newSub = subscribed.data[0];
+            console.log("patronizing",subscribed)
+            let newSub,updateApi;
+            if (subscribed && subscribed.data && subscribed.data[0]) {
+              newSub = subscribed.data[0];
+              updateApi = basePath + `/updatesubscription?channel=` + channel;
+            } else {
+              newSub = {};
+              updateApi = basePath + `/createsubscription?channel=` + channel;
+            }
             if (debugEnabled){
               console.log("⚡️old subscription", userName,channel,newSub);
             }
@@ -520,6 +528,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             }
             if (newAmount !=newSub.amount){
               newSub.amount = newAmount;
+            }
+            if (newSub.channel !=channel){
+              newSub.channel=channel;
             }
             if (managedFrequency.value != newSub.type){
               newSub.type = managedFrequency.value;
@@ -536,13 +547,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             if (debugEnabled){
               console.log("⚡️new subscription", userName,channel,newSub);
             }
-            let updateApi = basePath + `/updatesubscription?channel=` + channel;
+            console.log("⚡️⚡️checking new patronage",newSub);
             let updateResult;
             try {
               updateResult = await axios.post(updateApi, newSub,{ headers: await peertubeHelpers.getAuthHeader() });
+              doConfetti();
+              manageButton.innerText="Manage Patronage"
             } catch (e) {
-              console.log("⚡️unable to update split\n", updateApi, e);
-              notifier.error(e, updateApi, newAddress, );
+              console.log("⚡️unable to update patronage\n", updateApi, e);
+              notifier.error(e, updateApi);
               return;
             }
             closeModal();
@@ -551,8 +564,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         }
         if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
           manageButton.style.visibility="visible";
+          manageButton.innerText="Manage Patronage"
         } else {
-          manageButton.style.visibility="hidden";
+          manageButton.innerText="Patronize"
+          manageButton.style.visibility="visible";
         }
       }
       if (subscribeButton){
@@ -592,7 +607,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (subscribed && subscribed.data && subscribed.data !="" && subscribed.data[0] && subscribed.data[0].user) {
           subscribeButton.style.visibility="hidden";
         } else {
-          subscribeButton.style.visibility="visible";
+          subscribeButton.style.visibility="hidden";
         }
       }
       return result;

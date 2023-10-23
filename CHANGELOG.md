@@ -1,3 +1,9 @@
+v 5.2.0
+- new channels autogenerate default split if user has boostback address defined
+
+v 5.1.9
+- improved patronize/manage patronage/deptronize ui flow
+
 v 5.1.8
 - fixed bug with with null split fix
 - fixed bug with undefined user name

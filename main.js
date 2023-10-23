@@ -206,6 +206,54 @@ async function register({
     }
   })
   registerHook({
+    target: 'action:api.video-channel.created',
+    handler: async (videoChannel) => {
+      let crap = videoChannel;
+      console.log("⚡️⚡️ channel created", videoChannel.videoChannel.dataValues,"oahahaha", videoChannel.videoChannel.dataValues.id);
+      console.log("⚡️⚡️ channel created 2",videoChannel.videoChannel);
+      console.log("⚡️⚡️ channel created 3",videoChannel.videoChannel.Actor);
+      console.log("⚡️⚡️ channel created 4",videoChannel.videoChannel.Actor.preferredUsername);
+      console
+      let accountId = videoChannel.videoChannel.dataValues.accountId;
+      let channelId = videoChannel.videoChannel.dataValues.id;
+      let channelName = videoChannel.videoChannel.Actor.preferredUsername;
+      console.log("⚡️⚡️ game for it",accountId,channelId,channelName)
+      let accountApi =base + `/api/v1/users/${accountId}`;
+      let channelApi =base + `/api/v1/video-channels/${channelName}`;
+      console.log("⚡️⚡️ down for it",accountApi,channelApi);
+      let channelInfo;
+      try {
+        channelInfo = await axios.get(channelApi);
+      } catch (e) {
+        console.log("⚡️⚡️ had error getting channel info for new channel")
+      }
+      if (channelInfo && channelInfo.data){
+        console.log("⚡️⚡️ got channel info for new channel",channelInfo.data);
+      }
+      let userName;
+      if (channelInfo && channelInfo.data && channelInfo.data.ownerAccount){
+        userName  = channelInfo.data.ownerAccount.name;
+      }
+      let v4vsettings,storedWallet;
+      if (userName){
+        v4vsettings= await storageManager.getData('v4vsettings-'+userName.replace(/\./g, "-"));
+      }
+      if (!v4vsettings && userName){
+      //if (userName){
+        console.log("⚡️⚡️⚡️⚡️ no saved v4v settings, checking for wallet info");
+        storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
+      }
+      console.log("⚡️⚡️⚡️⚡️v4v",v4vsettings,"wallet",storedWallet);
+      let createApi = base + `/plugins/lightning/router/createsplit?channel=` + channelName + `&splitaddress=` + v4vsettings.boostBack + `&name=` + userName;
+      let createResult;
+      try{
+        createResult = await axios.get(createApi);
+      } catch (e){
+        console.log("failed to create split for new channel",createApi);
+      }
+    }
+  })
+  registerHook({
     target: 'filter:feed.podcast.channel.create-custom-tags.result',
     handler: async (result, params) => {
       // { video: VideoChannelModel }
@@ -2233,7 +2281,7 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️⚡️⚡️ creqting subscription", req.query,req.body);
     }
-    if (!req.body.channel){
+    if (!req.query.channel){
       return res.status(420).send ("malformed request");
     }
     let user = await peertubeHelpers.user.getAuthUser(res);
@@ -2279,6 +2327,22 @@ async function register({
     if (enableDebug){
       console.log("⚡️⚡️⚡️⚡️ new subscription",newSubscription);
     }
+    let totalAmount = newSubscription.amount;
+    let days = 1;
+    switch(newSubscription.type){
+      case "Weekly":
+        totalAmount  = totalAmount*7;
+        days=7;
+        break;
+      case "Monthly":
+        totalAmount  = totalAmount*30;
+        days = 30;
+        break;
+      case "Yearly":
+        totalAmount  = totalAmount*365;
+        days = 365;
+        break;
+    }
     let subscriptions = await storageManager.getData('subscriptions');
     if (!subscriptions){
       if (enableDebug){
@@ -2290,7 +2354,7 @@ async function register({
     subscriptions.push(newSubscription);
     //console.log("⚡️⚡️⚡️⚡️ subscriptions",subscriptions);
     await storageManager.storeData("subscriptions", subscriptions);
-    if (await sendPatronPayment(userName,req.body.channel,newSubscription.amount, "first patron payment",1)){
+    if (await sendPatronPayment(userName,req.body.channel,totalAmount, "first patron payment",days)){
       console.log("⚡️⚡️⚡️⚡️ made first subscription payment",newSubscription,subscriptions);
       return res.status(200).send(newSubscription);
     } else {
