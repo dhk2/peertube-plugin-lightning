@@ -1,5 +1,14 @@
+v 5.2.1
+- fixed mismatch between host address and host name
+- fixed inadequate checking for undefineds
+- fixed federated patron levels
+
 v 5.2.0
 - new channels autogenerate default split if user has boostback address defined
+- fallback to wallet address of no boostback defined
+- fixed crash without customvalue configured
+- enabled channel configurable patron levels
+- enabled federated configurable patron levels
 
 v 5.1.9
 - improved patronize/manage patronage/deptronize ui flow

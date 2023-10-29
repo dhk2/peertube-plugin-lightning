@@ -160,8 +160,10 @@ async function register({
     }
   }
   console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
+  let hostParts= base.split('//');
+  let hostDomain = hostParts.pop();
   if (enableDebug) {
-    console.log("⚡️⚡️ server settings loaded", hostName, base, hostSplit, lightningAddress);
+    console.log("⚡️⚡️ server settings loaded", hostName, hostDomain, base, hostSplit, lightningAddress);
   }
   let hostWalletData = {};
   let dirtyHack;
@@ -244,7 +246,14 @@ async function register({
         storedWallet = await storageManager.getData("lightning-" + userName.replace(/\./g, "-"));
       }
       console.log("⚡️⚡️⚡️⚡️v4v",v4vsettings,"wallet",storedWallet);
-      let createApi = base + `/plugins/lightning/router/createsplit?channel=` + channelName + `&splitaddress=` + v4vsettings.boostBack + `&name=` + userName;
+      let lightningAddress;
+      if (v4vsettings && v4vsettings.boostBack){
+        lightningAddress = v4vsettings.boostBack;
+      }
+      if (!lightningAddress && storedWallet && storedWallet.address){
+        lightningAddress = storedWallet.address;
+      }
+      let createApi = base + `/plugins/lightning/router/createsplit?channel=` + channelName + `&splitaddress=` + lightningAddress + `&name=` + userName;
       let createResult;
       try{
         createResult = await axios.get(createApi);
@@ -1000,8 +1009,8 @@ async function register({
       let liveRemoteSplit=await storageManager.getData("liveremotesplit-"+req.query.video);
       if (!liveRemoteSplit && req.query.channel){
         let parts = req.query.channel.split("@");
-        if (parts.length>1 && parts[1] !=hostName){
-          console.log("mismatched domaines",parts[1],hostName);
+        if (parts.length>1 && parts[1] !=hostDomain``){
+          console.log("mismatched domaines",parts[1],hostDomain);
           let remoteSplitApi = `https://${parts[1]}/plugins/lightning/router/getsplit?video=${req.query.video}`;
           console.log("remote split api",remoteSplitApi);
           try {
@@ -1014,7 +1023,7 @@ async function register({
             console.log("erorred getting remote split from ",parts[1],e);
           }
         } else {
-          console.log("matched domaines",parts[1],hostName);
+          console.log("matched domaines",parts[1],hostDomain);
         }
       }
       if (liveRemoteSplit && liveRemoteSplit.value){
@@ -2087,6 +2096,20 @@ async function register({
     return res.status(420).send(false);
     
   })
+  router.use('/getboosts', async (req,res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️getting boosts", req.query, req.body);
+    }
+    let userName;
+    let user = await peertubeHelpers.user.getAuthUser(res);
+    if (user && user.dataValues) {
+      userName = user.dataValues.username;
+      console.log(`⚡️⚡️user ${userName} authorized from header`);
+    } else {
+      console.log("⚡️⚡️no user found in header");
+      return res.status(420).send(` user ${req}`);
+    }
+  })
   router.use('/enablewebhook', async (req, res) => {
     let albyHook = "https://api.getalby.com/webhook_endpoints"
     let body = {};
@@ -2683,6 +2706,58 @@ async function register({
     }
     return res.status(200).send(v4vsettings);
   })
+  router.use('/getpatronlevels', async (req,res) => {
+    if (enableDebug){
+      console.log("⚡️⚡️get patron settings", req.query);
+    }
+    let channel;
+    if (req.query.channel){
+      channel=req.query.channel;
+    } else {
+      return res.status(420).send("No channel found in request");  
+    }
+    let levels = await storageManager.getData("patronLevels-" + channel.replace(/\./g, "-"));
+    console.log("⚡️⚡️⚡️⚡️patron levels", levels);
+    if (levels){
+      return res.status(200).send(levels);
+    } else {
+      let parts=channel.split("@");
+        if (parts.length>1 && parts[1] != hostDomain){
+        let remotePatronLevelsApi = `https://${parts[1]}/plugins/lightning/router/getpatronlevels?channel=${channel}`
+        try {
+          console.log("⚡️⚡️⚡️⚡️",parts[0],parts[1],hostDomain,remotePatronLevelsApi);
+          let remoteData = await axios.get(remotePatronLevelsApi);
+          if (remoteData.data){
+            console.log("⚡️⚡️⚡️⚡️remote patron levels", remoteData.data); 
+            return res.status(200).send(remoteData.data);
+          }
+
+        } catch (e){
+          console.log("⚡️⚡️⚡️⚡️ error getting remote levels",e)
+        }
+      }
+      return res.status(404).send("No levels found for channel");
+    }
+  })
+  router.use('/setpatronlevels', async (req,res) => {
+    if (enableDebug){
+      console.log("⚡️⚡️⚡️⚡️set patron settings", req.query,req.body);
+    }
+    let channel;
+    if (req.query.channel){
+      channel=req.query.channel;
+    } else {
+      return res.status(420).send("No channel found in request");  
+    }
+    let levels;
+    if (req.body ){
+      levels = req.body
+      console.log("⚡️⚡️⚡️⚡️set patron settings", levels);
+      await storageManager.storeData("patronLevels-" + channel.replace(/\./g, "-"),levels);
+      return res.status(200).send();
+    }
+     return res.status(420).send("generic failure to set patron levels");
+  })
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
@@ -3044,7 +3119,7 @@ async function register({
       }
       // need to generate split blocks data her zoinks.
       let boosts=[];
-      let fullUser = user+"@" + hostName;
+      let fullUser = user+"@" + hostDomain;
       for (var payee of storedSplitData){
         if (!payee.split){
           payee.split=1;

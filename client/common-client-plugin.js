@@ -32,13 +32,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
+      let authorized;
       if (user) {
         if (debugEnabled) {
           console.log("⚡️user", user);
         }
         userName = user.username
         hostPath = user.account.host;
-        let authorized;
         let accountWalletApi = basePath + "/walletinfo?account=" + user.username;
         if (debugEnabled) {
           console.log("⚡️wallet api call", accountWalletApi, user.username);
@@ -58,7 +58,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           try {
             authorized = await axios.get(authorizedWalletApi, headers);
           } catch {
-            console.log ("error attempting to verify wallet authoriztion",authorizedWalletApi);
+            console.log ("error attempting to verify wallet authorization",authorizedWalletApi);
           }
           if (authorized && authorized.data) {
             walletAuthorized = true;
@@ -67,7 +67,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
         } 
         if (debugEnabled) {
-          console.log(`⚡️ ${user.username} account wallet info, account address:${accountAddress} authorized:${authorized.data} v4v:${v4vSettings}`);
+          // authorized undefined errors
+         //console.log(`⚡️ ${user.username} account wallet info, account address:${accountAddress} authorized:${authorized.data} v4v:${v4vSettings}`);
         }
       }
     }
@@ -452,7 +453,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
           let modal = (document.getElementsByClassName('modal-body'))
           modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
-          modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels()+`<br><label for="amount">Daily Patronage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
+          modal[0].innerHTML = await getTimePeriodsHtml()+`<br>`+await getPatronLevels(channel)+`<br><label for="amount">Daily Patronage:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="number" id="modal-patronage-amount" value="${suggestedAmount}"><br>
           <input type="checkbox" id="modal-patronage-private" name="private-patron"> <label for="private">Anonymous Patronage:</label><br>
           <label for="name">Patron Name:</label><input class="form-control d-block ng-pristine ng-valid ng-touched"  type="text" id="modal-patronage-name" value="${patronName}"><br>          <label for="address">Boost Back Address:</label><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="modal-patronage-address" value="${replyAddress}"><br>
           <button class="peertube-button orange-button ng-star-inserted" id="modal-patronage-update">${updateButtonText}</button>
@@ -884,8 +885,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     target: 'action:video-channel-update.video-channel.loaded',
     handler: async (params) => {
       if (debugEnabled) {
-        console.log("⚡️channel update loaded", params);
+        console.log("⚡️channel update loaded", params.videoChannel,params.data);
       }
+      let fullChannel=params.videoChannel.nameWithHostForced;
       
       videoName = undefined;
       let channelUpdate = document.getElementsByClassName("form-group");
@@ -909,7 +911,6 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
         }
       }
-      //console.log("⚡️checking for rss settings button");
       let createButton = document.getElementById('create-split');
       if (createButton) {
         createButton.onclick = async function () {
@@ -972,6 +973,75 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           } else {
             if (debugEnabled){
               console.log("⚡️ unable to link optionbox");
+            }
+          }
+        }
+      }
+      let editLevelButton = document.getElementById('edit-levels');
+      if (editLevelButton){
+        editLevelButton.onclick = async function () {
+          console.log("wtf",channel,channelName,channelId,instanceName,fullChannel);
+          await peertubeHelpers.showModal({
+            title: 'Edit Patronage levels for ' + channel,
+            content: ` `,
+            close: true,
+            confirm: { value: 'X', action: () => { } },
+
+          })
+          let levelsApi = basePath + `/getpatronlevels?channel=${fullChannel}`;
+          let levels,levelsData;
+          try {
+            levelsData = await axios.get(levelsApi);
+          } catch(e) {
+            console.log ("error getting patron rules for",fullChannel,e)
+          }
+          
+          if (levelsData && levelsData.data){
+            console.log("data",levelsData.data);
+            levels = levelsData.data;
+          } else {
+            console.log("loading default levels", )
+            levels = await getDefaultPatronLevels();
+          }
+          console.log("levels",levels)
+          let textList ="";
+          for (var level of levels){
+            textList = textList + `${level.name},${level.sats}\n`
+          }
+          let modal = (document.getElementsByClassName('modal-body'))
+          modal[0].setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms')
+          modal[0].innerHTML = `Patronage levels. patronage level,then comma, then daily sats for that level<br>
+          <textarea id="power-levels" name="Power Levels" rows="4" cols="50">${textList}</textarea><br>
+          <button class="peertube-button orange-button ng-star-inserted" id="update-levels">update patron levels</button>`;
+          let updateLevelsButton = document.getElementById("update-levels");
+          if (updateLevelsButton){
+            updateLevelsButton.onclick = async function () {
+              let newlist = document.getElementById("power-levels");
+              console.log(newlist,newlist.innerHTML,newlist.innerText,newlist.value);
+              let newLevels = newlist.value.split('\n');
+              let newArray =[];
+              //console.log("newList",newlist,"newLevels",newLevels,"new array",newArray);
+              let powerLevel;
+              for (var line of newLevels){
+                //console.log("line",line);
+                let parts=line.split(',');
+                powerLevel ={
+                  name: parts[0],
+                  sats: parts[1]
+                }
+                console.log(powerLevel);
+                if (powerLevel.sats){
+                  newArray.push(powerLevel);
+                } 
+              }
+              let powerLevelApi = basePath + `/setpatronlevels?channel=${fullChannel}`;
+              console.log(newArray,powerLevelApi);
+              try {
+                await axios.post(powerLevelApi,newArray);
+              } catch {
+                console.log("error updating patron levels",powerLevelApi);
+              }
+              closeModal();
             }
           }
         }
@@ -1909,12 +1979,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       html = html + `<button type="button" id="create-split" class="peertube-button orange-button ng-star-inserted">Add Lightning Address</button>`
 
     }
-    if (rssEnabled) {
-      html = html + "<hr>"
-      html = html + `<button type="button" id="rss-settings" name="ress-settings" class="peertube-button orange-button ng-star-inserted">Podcasting 2.0 RSS settings</button>`;
-    }
-
-
+    html = html + `<button type="button" id="edit-levels" class="peertube-button orange-button ng-star-inserted">Edit Patronage Levels</button>`
     html = html + "<hr>"
 
     //html = html + "<br>podcast 2.0 RSS feed URL: " + rssFeedUrl;
@@ -2686,10 +2751,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     if (splitData[slot].keysend) {
       status = splitData[slot].keysend.status;
       pubKey = splitData[slot].keysend.pubkey;
-      if (splitData[slot].keysend.customData) {
+      if (splitData[slot].keysend.customData && splitData[slot].keysend.customData[0]) {
         customKey = splitData[slot].keysend.customData[0].customKey;
         customValue = splitData[slot].keysend.customData[0].customValue;
-      }
+      } 
     }
     if (!customKey) {
       customKey = "";
@@ -2763,20 +2828,35 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     html = html + `</select>`;
     return html;
   }
-  async function getPatronLevels(){
+  async function getPatronLevels(fullChannel){
     let html = `<label for="patronage-level">Patronage level:</label><select id="patron-level" name="patron-level">`;
-    let levels = [
+    console.log("patronage",channelName,channelId,fullChannel);
+    let levelsApi = basePath + `/getpatronlevels?channel=${fullChannel}`;
+    let levels,levelsData;
+    try {
+      levelsData = await axios.get(levelsApi);
+    } catch(e) {
+      console.log ("error getting patron rules for",fullChannel,e)
+    }
+    if (levelsData && levelsData.data){
+      levels = levelsData.data;
+    } else {
+      levels = await getDefaultPatronLevels();
+    }
+    for (var level of levels){
+      html = html + `<option value="${level.sats}">${level.name}</option>`;
+    }
+    html = html + `</select>`;
+    return html;
+  }
+  async function getDefaultPatronLevels(){
+    return [
       {"name" :"Basic Patron","sats":69},
       {"name":"Freedon Patron","sats":1776},
       {"name":"BooB Patron","sats":8008},
       {"name":"Meme Patron","sats":42069},
       {"name":"Big Baller Patron","sats":100000}
     ]
-    for (var level of levels){
-      html = html + `<option value="${level.sats}">${level.name}</option>`;
-    }
-    html = html + `</select>`;
-    return html;
   }
   async function getLightningAddress(name){
     let directory=[{ name: "Services and developers",address: "" },
