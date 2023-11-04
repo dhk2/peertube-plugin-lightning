@@ -1,3 +1,13 @@
+v 5.2.4
+
+v 5.2.3 
+- fixed logic error in remote boost name/image
+- fixed axios error in requesting federated remoteboosts
+
+v 5.2.2
+- added route for getting paid invoices to track boosts
+- fixed typo in federated getsplit
+
 v 5.2.1
 - fixed mismatch between host address and host name
 - fixed inadequate checking for undefineds
@@ -11,7 +21,7 @@ v 5.2.0
 - enabled federated configurable patron levels
 
 v 5.1.9
-- improved patronize/manage patronage/deptronize ui flow
+- improved patronize/manage patronage/depatronize ui flow
 
 v 5.1.8
 - fixed bug with with null split fix

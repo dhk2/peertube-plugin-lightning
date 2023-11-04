@@ -648,6 +648,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let v4vStreamAuto = document.getElementById('v4v-stream-auto');
       let v4vBoostName = document.getElementById('v4v-boost-name');
       let modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
+      let v4vGetBoosts = document.getElementById('v4v-show-boosts')
       //console.log("-----",wallet);
       if (modalAddressAuthorize) {
         let authorizedWalletApi = basePath + "/checkauthorizedwallet";
@@ -678,6 +679,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             if (debugEnabled) {
               console.log("⚡️authorize button clicked", walletAuthorized);
             }
+            
             if (walletAuthorized) {
               try {
                 await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
@@ -717,6 +719,42 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       }
       if (v4vSettings && v4vStreamAuto){
         v4vStreamAuto.checked = v4vSettings.streamAuto;
+      }
+      if (v4vGetBoosts){
+        v4vGetBoosts.onclick = async function () {
+          let getBoostApi = basePath + "/getboosts";
+          let headers = { headers: await peertubeHelpers.getAuthHeader() }
+          let boosts;
+          let tableHtml = `<table>`;
+          try {
+            boosts = await axios.get(getBoostApi, headers);
+            if (boosts){
+              //console.log("----boosts",boosts.data);
+              for (var invoice of boosts.data){
+                let actionColor = `class="pt-badge badge-blue ng-star-inserted"` ;
+                if (invoice && invoice.boostagram){
+                  console.log(invoice);
+                  if (invoice.boostagram.action == 'stream'){
+                    actionColor = `class="pt-badge badge-purple ng-star-inserted"`
+                  }
+                  if (invoice.boostagram.action == 'auto'){
+                   actionColor = `class="pt-badge badge-yellow ng-star-inserted"`
+                  } 
+                  if (invoice.boostagram.action == 'boost'){
+                    actionColor = `class="pt-badge badge-green ng-star-inserted"`
+                  }  
+                  let row = `<tr><td ${actionColor}>${invoice.boostagram.value_msat_total/1000} ($ ${invoice.fiat_in_cents/100}) ${invoice.boostagram.action} From:${invoice.boostagram.sender_name}</tr>
+                            <tr><td><b>${invoice.boostagram.message}</b></td></tr>`
+                  tableHtml = tableHtml + row;
+                }
+              }
+              tableHtml = tableHtml + '</table>';
+              rootEl.innerHTML = tableHtml
+            }
+          } catch (e){
+            console.log("⚡️unable to get boosts",e);
+          }
+        }
       }
       if (v4vSettingsUpdate) {
         v4vSettingsUpdate.onclick = async function () {
@@ -1809,7 +1847,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     if (videoName) {
       if (instanceName) {
         walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "@" + instanceName + "&channel=" + channelName + "@" + instanceName;
-      } else {
+      } else {t
         walletApi = walletApi + "?video=" + videoName + "&account=" + accountName + "&channel=" + channelName;
       }
     } else {
@@ -1908,7 +1946,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
     */
     if (debugEnabled) {
-      console.log("⚡️final split", splitData.data);
+      console.log("⚡️returned split for video", splitData.data);
     }
     return splitData.data;
   }
@@ -2109,22 +2147,25 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let blockStart = block.startTime;
           let blockEnd = blockStart+block.duration;
           //console.log("barf",blockStart,blockEnd, currentTime)
-          if (blockStart<currentTime && (blockEnd > currentTime)){
-            //console.log("Remote block active!",block);
+          if (blockStart<=currentTime && (blockEnd >= currentTime)){
+            if (debugEnabled){
+            console.log("Remote block active!",block);
+            }
             finalSplit = await calculateSplit(splitData,block.value.destinations, block.settings.split);
-            //console.log("final split",finalSplit);
+            finalSplit[0].title = block.title;
+            finalSplit[0].image = block.image;
+            finalSplit[0].itemguid = block.itemGuid;
+            finalSplit[0].feedguid = block.feedGuid;
+            if (debugEnabled){
+              console.log("final split value of after calculating remote split",finalSplit);
+            }
           }
-          if (finalSplit){
-            splitData=finalSplit;
-            //console.log("whats wriong with remoteSplitBlock",remoteSplitBlock);
-            splitData[0].title = block.title;
-            splitData[0].image = block.image;
-            splitData[0].itemguid = block.itemGuid;
-            splitData[0].feedguid = block.feedGuid;
-            //console.log("primary split",splitData[0])
-          }
+
         }
       }
+    }
+    if (finalSplit){
+      splitData = finalSplit;
     }
     let buttonText = '⚡️' + tipVerb + " " + channelName + '⚡️';
     if (splitData && splitData[0] && splitData[0].title){
@@ -2910,10 +2951,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log("settings when making page",v4vSettings,accountAddress,boostFrom,boostAmount,streamEnabled,streamAmount);
     }
     let html = `<div id="v4v-settings"><center><h1>Value 4 Value Settings</h1></center><table>
-      <tr><td><h4>Wallet</h4></td><td><b>Configure lightning wallets</b></td></tr><td>
+      <tr><td><h4>Wallet</h4></td><td><b>Configure lightning wallets</b></td></tr>
+      <tr><td>  </td></tr>
       <td>BoostBack:<input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
       <td>${replyDescription}
-      </tr><tr></tr><tr>
+      </tr><tr><button id = "v4v-show-boosts" class="peertube-button orange-button ng-star-inserted">Show Boosts</button></tr><tr>
       <td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
       <td>${authorizeDescription}</td></tr>
       </td><tr><td><h4>Boost</h4></td><td><b>Send sats to creators with a message</b></td></tr><td>

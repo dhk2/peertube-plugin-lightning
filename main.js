@@ -1009,7 +1009,7 @@ async function register({
       let liveRemoteSplit=await storageManager.getData("liveremotesplit-"+req.query.video);
       if (!liveRemoteSplit && req.query.channel){
         let parts = req.query.channel.split("@");
-        if (parts.length>1 && parts[1] !=hostDomain``){
+        if (parts.length>1 && parts[1] != hostDomain){
           console.log("mismatched domaines",parts[1],hostDomain);
           let remoteSplitApi = `https://${parts[1]}/plugins/lightning/router/getsplit?video=${req.query.video}`;
           console.log("remote split api",remoteSplitApi);
@@ -1995,6 +1995,10 @@ async function register({
     if (enableDebug) {
       console.log("⚡️⚡️setting authorized wallet", req.query);
     }
+    if (!client_id){
+      console.log("⚡️⚡️ no client id configured, unable to authorize");
+      return res.status(420).send("This PeerTube instance has not configured an Alby API Key");
+    }
     let userName;
     let user = await peertubeHelpers.user.getAuthUser(res);
     if (user && user.dataValues) {
@@ -2108,6 +2112,49 @@ async function register({
     } else {
       console.log("⚡️⚡️no user found in header");
       return res.status(420).send(` user ${req}`);
+    }
+    let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
+    console.log("⚡️⚡️stored data", albyData);
+    if (albyData && albyData.access_token) {
+      let albyToken = albyData.access_token
+      let albyWalletData,response;
+      let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
+      let albyHook = `https://api.getalby.com/invoices/incoming?items=100`
+      console.log("⚡️⚡️⚡️⚡️", headers, albyHook)
+      try {
+        response = await axios.get(albyHook, headers);
+        if (response){
+          console.log("\n⚡️⚡️⚡️⚡️got incoming invoices", response)
+          return res.status(200).send(response.data);
+        }
+      } catch (err) {
+        console.log("\n⚡️⚡️⚡️⚡️error attempting to get incoming invoices\n", err);
+        albyWalletData = err.response.status;
+      }
+      console.log('⚡️⚡️⚡️⚡️ response', response, albyWalletData);
+      if (albyWalletData == 401) {
+        console.log('⚡️⚡️⚡️⚡️ attempting to refresh token');
+        response = await refreshAlbyToken(albyData,botAccount);
+        if (response) {
+          headers = { headers: { "Authorization": `Bearer ` + response.access_token } }
+          try {
+            response = await axios.get(albyHook, headers);
+            if (response){
+              console.log("\n⚡️⚡️⚡️⚡️got incoming invoices with refreshed token", response)
+              return res.status(200).send(response.data);
+            }
+          } catch (err) {
+            console.log("\n⚡️⚡️⚡️⚡️error attempting to get incoming invoices with refreshed token\n", err);
+            albyWalletData = err.response.status;
+            return res.status(420).send(err);
+          }
+        } else {
+
+        }
+
+      }
+    } else {
+      console.log('⚡️⚡️⚡️⚡️ no stored wallet data for bot', botAccount);
     }
   })
   router.use('/enablewebhook', async (req, res) => {
@@ -2611,21 +2658,22 @@ async function register({
     }
     if (!splitKitId && req.query.instance){
       let splitKitIdApi = `https://${req.query.instance}/plugins/lightning/router/getsplitkitid?video=${req.query.video}`
-      console.log("tryuing to get remote splitkit",splitKitIdApi)
+      console.log("⚡️⚡️tryuing to get remote splitkit",splitKitIdApi)
       try {
-        let remoteResult = axios.get(splitKitIdApi);
+        let remoteResult = await axios.get(splitKitIdApi);
+        console.log("⚡️⚡️ remote result getting split kit id",remoteResult.data);
         if (remoteResult && remoteResult.data){
           splitKitId = remoteResult.data
         }
       } catch {
-        console.log("error getting remote split kit id",splitKitId);
+        console.log("⚡️⚡️error getting remote split kit id",splitKitId);
       }
     }
     if (!splitKitId){
-      console.log("failed to find any split kit id for video");
+      console.log("⚡️⚡️failed to find any split kit id for video");
       return res.status(420).send();
     } else {
-      console.log("found split kit id",splitKitId);
+      console.log("⚡️⚡️ound split kit id",splitKitId);
     }
     let splitKitBlock;
     let splitkitBlockApi = `https://curiohoster.com/api/sk/getblocks?guid=${splitKitId}`;
