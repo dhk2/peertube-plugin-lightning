@@ -29,6 +29,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   let authorizationChecked = false;
   var streamButton;
   let remoteSplitBlock;
+  let boostData = new Set;
+  let boostSettings={ in: true,
+                      out: false,
+                      boost: true,
+                      auto: false,
+                      stream: false};
+  let boostPage=1;
   registerHook({
     target: 'action:auth-user.information-loaded',
     handler: async ({ user }) => {
@@ -636,7 +643,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   registerClientRoute({
     route: 'lightning/settings',
     onMount: async ({ rootEl }) => {
-      rootEl.innerHTML = await makeValueSettings();
+      let v4vPanel = await makeValueSettings();
+      rootEl.innerHTML = v4vPanel
       let modalSatStream = document.getElementById("v4v-stream-amount");
       let modalCashStream = document.getElementById("v4v-stream-cash");
       let modalSatBoost = document.getElementById("v4v-def-boost-amount");
@@ -649,226 +657,296 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let v4vBoostName = document.getElementById('v4v-boost-name');
       let modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
       let v4vGetBoosts = document.getElementById('v4v-show-boosts')
-      //console.log("-----",wallet);
-      if (modalAddressAuthorize) {
-        let authorizedWalletApi = basePath + "/checkauthorizedwallet";
-        //console.log("⚡️authorized wallet api:",authorizedWalletApi);
-        let headers = { headers: await peertubeHelpers.getAuthHeader() }
-        //console.log("⚡️headers",headers)
-        let authorized;
-        try {
-          authorized = await axios.get(authorizedWalletApi, headers);
-          walletAuthorized = true;
-          //console.log("----",authorized);
-        } catch (e){
-          console.log("⚡️unable to confirm authorized",authorized,e);
-          walletAuthorized = false;
-        }
-        //console.log("⚡️authorized result",authorized);
-        let newUserAddress = userAddress.value;
-        //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
-        modalAddressAuthorize.style.visible = false;
-        if (client_id && peertubeHelpers.isLoggedIn()) {
-          modalAddressAuthorize.style.visible = true;
-          if (!walletAuthorized) {
-            modalAddressAuthorize.textContent = "Authorize"
-          } else {
-            modalAddressAuthorize.textContent = "De-Authorize";
-          }
-          modalAddressAuthorize.onclick = async function () {
-            if (debugEnabled) {
-              console.log("⚡️authorize button clicked", walletAuthorized);
-            }
-            
-            if (walletAuthorized) {
-              try {
-                await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
-                notifier.success("De-Authorized getalby wallet");
-                walletAuthorized = false;
-                modalAddressAuthorize.textContent="Authorize";
-              } catch {
-                notifier.error("error trying to deauthorize wallet")
-              }
-              return;
-            }
-            let authorizeReturned;
-            let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value
-            let headers = { headers: await peertubeHelpers.getAuthHeader() }
-            if (debugEnabled) {
-              console.log("attempting to authorize", authorizationUrl, headers);
-            }
-            try {
-              authorizeReturned = await axios.get(authorizationUrl, headers);
-            } catch (err) {
-              notifier.error("error trying to inform peertube of incoming authorization");
-              console.log("error with authorization", err, authorizationUrl, headers);
-            }
-            let parts = basePath.split("/");
-            let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
-
-            let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=` + userName;
-            if (debugEnabled) {
-              console.log("callback", callbackPath, "\n alby url", albyUrl);
-            }
-            window.open(albyUrl, 'popup', 'width=600,height=800');
-            modalAddressAuthorize.textContent="De-Authorize";
-          }
-        }
-      } else if (debugEnabled) {
-        console.log("⚡️no authorize button");
-      }
-      if (v4vSettings && v4vStreamAuto){
-        v4vStreamAuto.checked = v4vSettings.streamAuto;
-      }
-      if (v4vGetBoosts){
-        v4vGetBoosts.onclick = async function () {
-          let getBoostApi = basePath + "/getboosts";
-          let headers = { headers: await peertubeHelpers.getAuthHeader() }
-          let boosts;
-          let tableHtml = `<table>`;
-          try {
-            boosts = await axios.get(getBoostApi, headers);
-            if (boosts){
-              //console.log("----boosts",boosts.data);
-              for (var invoice of boosts.data){
-                let actionColor = `class="pt-badge badge-blue ng-star-inserted"` ;
-                if (invoice && invoice.boostagram){
-                  console.log(invoice);
-                  if (invoice.boostagram.action == 'stream'){
-                    actionColor = `class="pt-badge badge-purple ng-star-inserted"`
-                  }
-                  if (invoice.boostagram.action == 'auto'){
-                   actionColor = `class="pt-badge badge-yellow ng-star-inserted"`
-                  } 
-                  if (invoice.boostagram.action == 'boost'){
-                    actionColor = `class="pt-badge badge-green ng-star-inserted"`
-                  }  
-                  let row = `<tr><td ${actionColor}>${invoice.boostagram.value_msat_total/1000} ($ ${invoice.fiat_in_cents/100}) ${invoice.boostagram.action} From:${invoice.boostagram.sender_name}</tr>
-                            <tr><td><b>${invoice.boostagram.message}</b></td></tr>`
-                  tableHtml = tableHtml + row;
-                }
-              }
-              tableHtml = tableHtml + '</table>';
-              rootEl.innerHTML = tableHtml
-            }
-          } catch (e){
-            console.log("⚡️unable to get boosts",e);
-          }
-        }
-      }
-      if (v4vSettingsUpdate) {
-        v4vSettingsUpdate.onclick = async function () {
-          //let setWalletApi = basePath + "/setwallet?address=" + userAddress.value;
-          //console.log("⚡️api call to update user lightningAddress",setWalletApi);
-          v4vSettingsUpdate.value = "updating";
-          /*
-          try {
-            let userData = await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
-            if (userData && userData.data) {
-              console.log("⚡️user lightning address",userData.data);
-              userAddress.value = userData.data.address;
-              accountAddress = userData.data.address;
-              v4vSettings.boostBack=accountAddress;
-              notifier.success("updated " + userName + "'s lighting address to " + accountAddress);
-            } else {
-              console.log("⚡️didn't get good user address");
-              notifier.error("failed to udate " + userName + "'s lighting address to " + userAddress.value);
-            }
-          } catch (err) {
-            console.log("⚡️error attempting to update user wallet", setWalletApi, err);
-          }
-          */
-          let newV4v={
-            boostBack: userAddress.value,
-            streamAmount: modalSatStream.value,
-            streamAuto: v4vStreamAuto.checked,
-            boostFrom: v4vBoostName.value,
-            boostAmount: v4vBoostAmount.value,
-          }
-          v4vSettings = newV4v;
-          boostAmount = v4vSettings.boostAmount;
-          streamAmount = v4vSettings.streamAmount;
-          boostFrom = v4vSettings.boostFrom;
-          streamEnabled = v4vSettings.streamAuto;
-          accountAddress = v4vSettings.boostBack;
-          let v4vApi = basePath + "/updatev4v";
-          let result;
-          try {
-            if (debugEnabled){
-              console.log("trying to update v4v settings",result,v4vApi);
-            }
-            result = await axios.post(v4vApi,newV4v,{ headers: await peertubeHelpers.getAuthHeader() })
-          } catch (err){
-            console.log("⚡️error attempting to update v4v settings", v4vApi, err);
-            notifier.error("Unable to update V4V settings");
-          }
-          notifier.success(result.data)
-        }
-      }
-      if (modalSatStream) {
-        modalSatStream.onchange = async function () {
-          modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);
-          streamAmount = modalSatStream.value
-          if (menuStreamAmount) {
-            menuStreamAmount.value = streamAmount;
-          }
-        }
-      }
-      if (modalSatBoost) {
-        modalSatBoost.onchange = async function () {
-          modalCashBoost.value = (modalSatBoost.value * convertRate).toFixed(2);
-        }
-      }
-      if (modalCashStream) {
-        modalCashStream.onchange = async function () {
-          modalSatStream.value = (modalCashStream.value / convertRate).toFixed();
-          streamAmount = modalSatStream.value;
-          if (menuStreamAmount) {
-            menuStreamAmount.value = streamAmount;
-          }
-        }
-      }
       let modalChecker = document.getElementById("v4v-stream-auto");
-      if (modalChecker) {
-        if (streamEnabled) {
-          modalChecker.checked = true;
-        }
-        modalChecker.onclick = async function () {
-          //let modalChecker = document.getElementById("v4v-stream-auto");
-          let menuChecker = document.getElementById("streamsats");
-          let butt = document.getElementById("stream");
-          var streamButtonText = "";
-          if (streamEnabled) {
-            streamButtonText = "⚡️" + streamAmount + "/min";
-          } else {
-            streamButtonText = "⚡️V4V";
+      let boostIn = document.getElementById("v4v-invoice-in");
+      let boostOut = document.getElementById("v4v-invoice-out");
+      let boostBoost = document.getElementById("v4v-invoice-boost");
+      let boostStream = document.getElementById("v4v-invoice-stream");
+      let boostAuto = document.getElementById("v4v-invoice-auto");
+      boostBoost.checked=true;
+      boostIn.checked=true;
+      async function activateHtml(){
+        modalSatStream = document.getElementById("v4v-stream-amount");
+        modalCashStream = document.getElementById("v4v-stream-cash");
+        modalSatBoost = document.getElementById("v4v-def-boost-amount");
+        modalCashBoost = document.getElementById("v4v-def-boost-cash");
+        menuStreamAmount = document.getElementById('streamamount');
+        v4vSettingsUpdate = document.getElementById('v4v-settings-update');
+        userAddress = document.getElementById('v4v-boost-back');
+        v4vBoostAmount = document.getElementById('v4v-def-boost-amount');
+        v4vStreamAuto = document.getElementById('v4v-stream-auto');
+        v4vBoostName = document.getElementById('v4v-boost-name');
+        modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
+        v4vGetBoosts = document.getElementById('v4v-show-boosts')
+        modalChecker = document.getElementById("v4v-stream-auto");
+        boostIn = document.getElementById("v4v-invoice-in");
+        boostOut = document.getElementById("v4v-invoice-out");
+        boostBoost = document.getElementById("v4v-invoice-boost");
+        boostStream = document.getElementById("v4v-invoice-stream");
+        boostAuto = document.getElementById("v4v-invoice-auto");
+        //console.log("-----",wallet);
+        if (modalAddressAuthorize) {
+          let authorizedWalletApi = basePath + "/checkauthorizedwallet";
+          //console.log("⚡️authorized wallet api:",authorizedWalletApi);
+          let headers = { headers: await peertubeHelpers.getAuthHeader() }
+          //console.log("⚡️headers",headers)
+          let authorized;
+          try {
+            authorized = await axios.get(authorizedWalletApi, headers);
+            walletAuthorized = true;
+            //console.log("----",authorized);
+          } catch (e){
+            console.log("⚡️unable to confirm authorized",authorized,e);
+            walletAuthorized = false;
           }
-          if (butt){
-            butt.textContent = streamButtonText;
-          }
-          if (menuChecker) {
-            menuChecker.checked = streamEnabled;
-          }
-          let currentStreamAmount = document.getElementById('v4v-stream-amount');
+          //console.log("⚡️authorized result",authorized);
+          let newUserAddress = userAddress.value;
+          //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
+          modalAddressAuthorize.style.visible = false;
+          if (client_id && peertubeHelpers.isLoggedIn()) {
+            modalAddressAuthorize.style.visible = true;
+            if (!walletAuthorized) {
+              modalAddressAuthorize.textContent = "Authorize"
+            } else {
+              modalAddressAuthorize.textContent = "De-Authorize";
+            }
+            modalAddressAuthorize.onclick = async function () {
+              if (debugEnabled) {
+                console.log("⚡️authorize button clicked", walletAuthorized);
+              }
+              
+              if (walletAuthorized) {
+                try {
+                  await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
+                  notifier.success("De-Authorized getalby wallet");
+                  walletAuthorized = false;
+                  modalAddressAuthorize.textContent="Authorize";
+                } catch {
+                  notifier.error("error trying to deauthorize wallet")
+                }
+                return;
+              }
+              let authorizeReturned;
+              let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value
+              let headers = { headers: await peertubeHelpers.getAuthHeader() }
+              if (debugEnabled) {
+                console.log("attempting to authorize", authorizationUrl, headers);
+              }
+              try {
+                authorizeReturned = await axios.get(authorizationUrl, headers);
+              } catch (err) {
+                notifier.error("error trying to inform peertube of incoming authorization");
+                console.log("error with authorization", err, authorizationUrl, headers);
+              }
+              let parts = basePath.split("/");
+              let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
 
-          if (currentStreamAmount) {
-            streamAmount = parseInt(currentStreamAmount.value);
+              let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=` + userName;
+              if (debugEnabled) {
+                console.log("callback", callbackPath, "\n alby url", albyUrl);
+              }
+              window.open(albyUrl, 'popup', 'width=600,height=800');
+              modalAddressAuthorize.textContent="De-Authorize";
+            }
+          }
+        } else if (debugEnabled) {
+          console.log("⚡️no authorize button");
+        }
+        if (v4vSettings && v4vStreamAuto){
+          v4vStreamAuto.checked = v4vSettings.streamAuto;
+        }
+        if (v4vGetBoosts){
+          v4vGetBoosts.onclick = async function () {
+            v4vGetBoosts.textContent="Getting...";
+            let getBoostApi = basePath + `/getboosts?page=${boostPage}`;
+            boostPage++;
+            if (boostIn.checked){
+              getBoostApi=getBoostApi+`&in=true`;
+            }
+            if (boostOut.checked){
+              getBoostApi=getBoostApi+`&out=true`;
+            }
+            let headers = { headers: await peertubeHelpers.getAuthHeader() }
+            let boosts;
+            let tableHtml = `<table>`;
+            try {
+              boosts = await axios.get(getBoostApi, headers);
+              if (boosts && boosts.data){
+                console.log(boosts.data,boosts.data.length,boostData.length);
+                boostData = [...boostData,...boosts.data];
+                console.log("----boosts",boostData.length,boostBoost.checked,boostStream.checked,boostAuto.checked,boostData);
+                let lastItem;
+                let lastAmount=0;
+                let runningTotalSats=0;
+                for (var invoice of boostData){
+                  if (invoice && invoice.boostagram){
+                    let action = invoice.boostagram.action;
+                    if ((action == "stream" && !boostStream.checked ) || 
+                        (action == "boost" && !boostBoost.checked) ||
+                        (action == "auto" && !boostAuto.checked)){
+                          continue;
+                        }
+                    let actionColor = `class="pt-badge badge-blue ng-star-inserted"` ;
+                    if (invoice && invoice.boostagram){
+                      //console.log(invoice);
+                      if (invoice.boostagram.action == 'stream'){
+                        actionColor = `class="pt-badge badge-purple ng-star-inserted"`
+                      }
+                      if (invoice.boostagram.action == 'auto'){
+                        actionColor = `class="pt-badge badge-yellow ng-star-inserted"`
+                      } 
+                      if (invoice.boostagram.action == 'boost'){
+                        actionColor = `class="pt-badge badge-green ng-star-inserted"`
+                      }
+                      console.log("matching",lastItem,invoice.creation_date)  
+                      if (Math.abs(lastItem-invoice.creation_date) > 30){
+                        tableHtml = tableHtml+`<tr><td colspan="2"><hr></td></tr>`;
+                        console.log("boost",runningTotalSats,lastAmount);
+                        runningTotalSats = 0;
+                        console.log(``)
+                        console.log(invoice.boostagram);
+                      }
+                      let mycash = (invoice.amount * convertRate).toFixed(2);
+                      let mysats= invoice.amount;
+                      let totalsats = invoice.boostagram.value_msat_total/1000;
+                      let totalcash = (totalsats * convertRate).toFixed(2);
+                      let splitderived = ((mysats/totalsats)*100).toFixed(2);
+                      console.log("figuring",mycash,mysats,totalsats,totalcash,splitderived,"boost",runningTotalSats,lastAmount);
+                      let row = `<tr><td ${actionColor}>${totalsats} ($ ${totalcash}) @ ${splitderived}% ${mysats} <b>($ ${mycash}</b> ${action} <td>From:${invoice.boostagram.sender_name} to ${invoice.boostagram.name}</tr>
+                                <tr><td colspan="2"><b>${invoice.boostagram.message}</b></td></tr>`
+                      tableHtml = tableHtml + row;
+                      runningTotalSats = runningTotalSats + mysats;
+                      lastAmount = totalsats
+                      lastItem = invoice.creation_date;
+                      
+                    }
+                  }
+                }
+                tableHtml = tableHtml + '</table>';
+                rootEl.innerHTML = v4vPanel+tableHtml;
+                activateHtml();
+                v4vGetBoosts.textContent="Get more Boosts";
+              }
+            } catch (e){
+              console.log("⚡️unable to get boosts",e);
+            }
+          }
+        }
+        if (v4vSettingsUpdate) {
+          v4vSettingsUpdate.onclick = async function () {
+            //let setWalletApi = basePath + "/setwallet?address=" + userAddress.value;
+            //console.log("⚡️api call to update user lightningAddress",setWalletApi);
+            v4vSettingsUpdate.value = "updating";
+            /*
+            try {
+              let userData = await axios.get(setWalletApi, { headers: await peertubeHelpers.getAuthHeader() });
+              if (userData && userData.data) {
+                console.log("⚡️user lightning address",userData.data);
+                userAddress.value = userData.data.address;
+                accountAddress = userData.data.address;
+                v4vSettings.boostBack=accountAddress;
+                notifier.success("updated " + userName + "'s lighting address to " + accountAddress);
+              } else {
+                console.log("⚡️didn't get good user address");
+                notifier.error("failed to udate " + userName + "'s lighting address to " + userAddress.value);
+              }
+            } catch (err) {
+              console.log("⚡️error attempting to update user wallet", setWalletApi, err);
+            }
+            */
+            let newV4v={
+              boostBack: userAddress.value,
+              streamAmount: modalSatStream.value,
+              streamAuto: v4vStreamAuto.checked,
+              boostFrom: v4vBoostName.value,
+              boostAmount: v4vBoostAmount.value,
+            }
+            v4vSettings = newV4v;
+            boostAmount = v4vSettings.boostAmount;
+            streamAmount = v4vSettings.streamAmount;
+            boostFrom = v4vSettings.boostFrom;
+            streamEnabled = v4vSettings.streamAuto;
+            accountAddress = v4vSettings.boostBack;
+            let v4vApi = basePath + "/updatev4v";
+            let result;
+            try {
+              if (debugEnabled){
+                console.log("trying to update v4v settings",result,v4vApi);
+              }
+              result = await axios.post(v4vApi,newV4v,{ headers: await peertubeHelpers.getAuthHeader() })
+            } catch (err){
+              console.log("⚡️error attempting to update v4v settings", v4vApi, err);
+              notifier.error("Unable to update V4V settings");
+            }
+            notifier.success(result.data)
+          }
+        }
+        if (modalSatStream) {
+          modalSatStream.onchange = async function () {
+            modalCashStream.value = (modalSatStream.value * convertRate).toFixed(2);
+            streamAmount = modalSatStream.value
             if (menuStreamAmount) {
               menuStreamAmount.value = streamAmount;
             }
-            let dialog2Element = document.getElementById("streamdialog");
-            if (dialog2Element) {
-              if (streamEnabled) {
-                dialog2Element.style.display = "block";
-              } else {
-                dialog2Element.style.display = "none"
-              }
+          }
+        }
+        if (modalSatBoost) {
+          modalSatBoost.onchange = async function () {
+            modalCashBoost.value = (modalSatBoost.value * convertRate).toFixed(2);
+          }
+        }
+        if (modalCashStream) {
+          modalCashStream.onchange = async function () {
+            modalSatStream.value = (modalCashStream.value / convertRate).toFixed();
+            streamAmount = modalSatStream.value;
+            if (menuStreamAmount) {
+              menuStreamAmount.value = streamAmount;
             }
-          } else {
-            console.log("⚡️really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
+          }
+        }
+        
+        if (modalChecker) {
+          if (streamEnabled) {
+            modalChecker.checked = true;
+          }
+          modalChecker.onclick = async function () {
+            //let modalChecker = document.getElementById("v4v-stream-auto");
+            let menuChecker = document.getElementById("streamsats");
+            let butt = document.getElementById("stream");
+            var streamButtonText = "";
+            if (streamEnabled) {
+              streamButtonText = "⚡️" + streamAmount + "/min";
+            } else {
+              streamButtonText = "⚡️V4V";
+            }
+            if (butt){
+              butt.textContent = streamButtonText;
+            }
+            if (menuChecker) {
+              menuChecker.checked = streamEnabled;
+            }
+            let currentStreamAmount = document.getElementById('v4v-stream-amount');
+
+            if (currentStreamAmount) {
+              streamAmount = parseInt(currentStreamAmount.value);
+              if (menuStreamAmount) {
+                menuStreamAmount.value = streamAmount;
+              }
+              let dialog2Element = document.getElementById("streamdialog");
+              if (dialog2Element) {
+                if (streamEnabled) {
+                  dialog2Element.style.display = "block";
+                } else {
+                  dialog2Element.style.display = "none"
+                }
+              }
+            } else {
+              console.log("⚡️really not sure how this error could logically be reached", currentStreamAmount, streamAmount);
+            }
           }
         }
       }
+      activateHtml();
     }
   })
   registerHook({
@@ -2424,7 +2502,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let parts = basePath.split("/");
           let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
 
-          let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=` + userName;
+          let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=` + userName;
           if (debugEnabled) {
             console.log("callback", callbackPath, "\n alby url", albyUrl);
           }
@@ -2951,30 +3029,28 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       console.log("settings when making page",v4vSettings,accountAddress,boostFrom,boostAmount,streamEnabled,streamAmount);
     }
     let html = `<div id="v4v-settings"><center><h1>Value 4 Value Settings</h1></center><table>
-      <tr><td><h4>Wallet</h4></td><td><b>Configure lightning wallets</b></td></tr>
-      <tr><td>  </td></tr>
-      <td>BoostBack:<input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
-      <td>${replyDescription}
-      </tr><tr><button id = "v4v-show-boosts" class="peertube-button orange-button ng-star-inserted">Show Boosts</button></tr><tr>
-      <td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
+      <tr><td><h4>Wallet</h4><td><td><b>Configure lightning wallets</b></td></tr>
+      <tr><td><td>BoostBack:<td><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
+      </td><td>${replyDescription}
+      </tr><tr>
+      <td><td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
       <td>${authorizeDescription}</td></tr>
-      </td><tr><td><h4>Boost</h4></td><td><b>Send sats to creators with a message</b></td></tr><td>
-      <td>From:<input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-boost-name" value="${boostFrom}">
-      <td>${fromDescription}
-      </tr><tr></tr><tr>
-      <td><td><input type="text" class="form-control  ng-pristine ng-valid ng-touched" id="v4v-def-boost-amount" value="${boostAmount}" size="6"> Currently worth 
-      $<input type="text" class="ng-untouched ng-pristine ng-invalid" id="v4v-def-boost-cash" disabled value="`+ (boostAmount * convertRate).toFixed(3) + `" size="6">
+      </td></tr><tr><td><h4>Boost</h4><td><td><b>Send sats to creators with a message</b></td></tr>
+      <td><td>default name:<td><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-boost-name" value="${boostFrom}">
+      <td>${fromDescription}</td></tr>
+      <tr><td><td>Default Boost:<td><input type="text" " id="v4v-def-boost-amount" value="${boostAmount}" size="6"> Currently worth 
+      $<input type="text" class="ng-untouched ng-pristine ng-invalid" id="v4v-def-boost-cash" disabled value="`+ (boostAmount * convertRate).toFixed(2) + `" size="6">
       <td>${boostAmountDescription}
-      </td><tr><td><h4>Streaming</h4></td><td><b>Stream sats for every minute watched</b></td></tr><td>
-      <td><input type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats"> Stream Automatically
+      </td><tr><td><h4>Streaming</h4><td><td><b>Stream sats for every minute watched</b></td></tr><td>
+      <td><td><input type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats"> Stream Automatically
       <td>${streamStateDescription}
       </tr><tr>
-      <td><td><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-stream-amount" name="v4v-stream-amount" value="${streamAmount}" size="6"> Currently worth  
-      $<input type="text" class="ng-untouched ng-pristine ng-invalid" disabled id="v4v-stream-cash" name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(3) + `" size="6">
+      <td><td>Stream Amount:<td><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-stream-amount" name="v4v-stream-amount" value="${streamAmount}" size="6"> Currently worth  
+      $<input type="text" class="ng-untouched ng-pristine ng-invalid" disabled id="v4v-stream-cash" name="v4v-stream-cash" value="`+ (streamAmount * convertRate).toFixed(2) + `" size="6">
       <td>${streamAmountDescription}
       </tr><tr>
 
-    </td><tr><td><h4>Patronage</h4></td><td><b>Send recurring SATs to creators</b></td></tr><td><td>`;
+    </td><tr><td><h4>Patronage</h4><td><td><b>Send recurring SATs to creators</b></td></tr><td><td>`;
     let subApi=basePath + `/getsubscriptions`;
     try {
       //console.log("⚡️trying to get subscription",subApi);
@@ -2987,7 +3063,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let startDate= new Date(sub.startdate).toLocaleDateString()
           let endDate = new Date(sub.startdate+(milliday*sub.paiddays)).toLocaleDateString();
           let link = "https://"+window.location.hostname+"/c/"+sub.channel;
-          html = html+ `<a href=${link}>${sub.channel}</a> <td>${startDate} to ${endDate}, ${sub.paiddays} days</td></tr><td><td>`;
+          html = html+ `<tr><td><td><td><a href=${link}>${sub.channel}</a> <td>${startDate} to ${endDate}, ${sub.paiddays} days</td></tr><td><td>`;
         }
         
       } else {
@@ -2997,6 +3073,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         console.log("⚡️error attempting to get subscribed status", subApi, err);
     }
     html=html+`</td></tr></table><p style="text-align:right;"><button id = "v4v-settings-update" class="peertube-button orange-button ng-star-inserted">Update</button></p></div>`;
+    html = html +`<button id = "v4v-show-boosts" class="peertube-button orange-button ng-star-inserted">Show Boosts</button>
+                  <input type="checkbox" id="v4v-invoice-in"> In
+                  <input type="checkbox" id="v4v-invoice-out" > out
+                  <input type="checkbox" id="v4v-invoice-stream"> Stream
+                  <input type="checkbox" id="v4v-invoice-boost"> Boost
+                  <input type="checkbox" id="v4v-invoice-auto"> Auto`
     return html;
   }
   async function loadV4vSettings(){

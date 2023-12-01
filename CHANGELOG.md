@@ -1,4 +1,13 @@
+V 5.2.7
+- fixed issue with corrupted episode plug-in data crashing node
+V 5.2.6
+- attempted hotfix for bug with 6.0
+
+v 5.2.5
+- added diagnostics to figure out alby authentication failure
+
 v 5.2.4
+- fixed bug in episode level splits
 
 v 5.2.3 
 - fixed logic error in remote boost name/image

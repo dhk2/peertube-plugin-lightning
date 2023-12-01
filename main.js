@@ -109,7 +109,7 @@ async function register({
     label: 'Enable logging in with alby wallet',
     type: 'input-checkbox',
     descriptionHTML: 'This will allow users to authenticate and create accounts using Alby Wallet credentials',
-    private: true
+    private: false
   })
   registerSetting({
     name: 'debug-enable',
@@ -301,7 +301,6 @@ async function register({
       //}
       let podreturn = [
         {
-          name: "podcast:value",
           attributes: {
             "type": "lightning",
             "method": "keysend",
@@ -423,7 +422,7 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️ remote split",blocks);
       }
       let customObjects = [];
-      let valueBlock;
+      let valueBlock
       if (blocks.length > 0) {
         valueBlock = {
           name: "podcast:value",
@@ -476,12 +475,28 @@ async function register({
       const itemTxt = body.pluginData['itemtxt'];
 
       //if (!value) return
-      storageManager.storeData('seasonnode-' + video.id, seasonNode)
-      storageManager.storeData('seasonname-' + video.id, seasonName)
-      storageManager.storeData('episodenode-' + video.id, episodeNode)
-      storageManager.storeData('episodename-' + video.id, episodeName)
-      storageManager.storeData('chapters-' + video.id, chapters)
-      storageManager.storeData('itemtxt-' + video.id, itemTxt)
+      try {
+        if (seasonNode){
+          storageManager.storeData('seasonnode-' + video.id, seasonNode)
+        }
+        if (seasonName){
+          storageManager.storeData('seasonname-' + video.id, seasonName)
+        }
+        if (episodeNode){
+          storageManager.storeData('episodenode-' + video.id, episodeNode)
+        }
+        if (episodeName){
+          storageManager.storeData('episodename-' + video.id, episodeName)
+        }
+        if (chapters) {
+          storageManager.storeData('chapters-' + video.id, chapters)
+        }
+        if (itemTxt){
+          storageManager.storeData('itemtxt-' + video.id, itemTxt)
+        }
+      } catch (err) {
+      console.log("⚡️⚡️error updating video plugin data\n",err,body);
+      }
       return;
     }
   })
@@ -623,7 +638,7 @@ async function register({
 
   router.use('/dirtyhack', async (req, res) => {
     console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack,req.query);
-    if (req.query.cp){
+     if (req.query.cp){
       console.log("⚡️⚡️⚡️⚡️ clearing patronage paid days");
       let subscriptions = await storageManager.getData('subscriptions');
       let list = [];
@@ -693,6 +708,10 @@ async function register({
         console.log("split",split);
         console.log("⚡️⚡️⚡️⚡️ remote split",remoteSplitBlock);
       }
+    }
+    if (req.query.status){
+      let wow = `Statuses:\nid:${client_id}\nlogon enabled:${enableAlbyAuth}\nkey length:${client_secret.length}`;
+      return res.status(200).send(wow);
     }
     return res.status(200).send(dirtyHack);
   });
@@ -1657,7 +1676,7 @@ async function register({
           saveWellKnownSplit(channel, split);
         }
         if (req.query.video) {
-          await saveSplit(video);
+          await saveSplit(video,split);
         }
       } catch {
         console.log("⚡️⚡️failed to store lightning split", req.query.video, channel, split);
@@ -1997,7 +2016,7 @@ async function register({
     }
     if (!client_id){
       console.log("⚡️⚡️ no client id configured, unable to authorize");
-      return res.status(420).send("This PeerTube instance has not configured an Alby API Key");
+      return res.status(420).send("This PeerTube instance has not configured an Alby API Key "+client_id+" "+enableAlbyAuth);
     }
     let userName;
     let user = await peertubeHelpers.user.getAuthUser(res);
@@ -2119,12 +2138,22 @@ async function register({
       let albyToken = albyData.access_token
       let albyWalletData,response;
       let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
-      let albyHook = `https://api.getalby.com/invoices/incoming?items=100`
+      let albyHook;
+      if (req.query.in && req.query.out){
+        albyHook = `https://api.getalby.com/invoices?items=1000`
+      } else if (req.query.out) {
+        albyHook = `https://api.getalby.com/invoices/outgoing?items=1000`
+      } else {
+        albyHook = `https://api.getalby.com/invoices/incoming?items=1000`
+      }
+      if (req.query.page){
+        albyHook = albyHook+`&page=${req.query.page}`;
+      }
       console.log("⚡️⚡️⚡️⚡️", headers, albyHook)
       try {
         response = await axios.get(albyHook, headers);
         if (response){
-          console.log("\n⚡️⚡️⚡️⚡️got incoming invoices", response)
+          console.log("\n⚡️⚡️⚡️⚡️got incoming invoices")
           return res.status(200).send(response.data);
         }
       } catch (err) {
@@ -2140,7 +2169,7 @@ async function register({
           try {
             response = await axios.get(albyHook, headers);
             if (response){
-              console.log("\n⚡️⚡️⚡️⚡️got incoming invoices with refreshed token", response)
+              console.log("\n⚡️⚡️⚡️⚡️got incoming invoices with refreshed token");
               return res.status(200).send(response.data);
             }
           } catch (err) {
@@ -2149,7 +2178,7 @@ async function register({
             return res.status(420).send(err);
           }
         } else {
-
+           return res.status(420).send("Authorization failure, try de-auth and re-auth");
         }
 
       }
@@ -2720,7 +2749,7 @@ async function register({
     }
     let v4vsettings;
     let user = await peertubeHelpers.user.getAuthUser(res);
-    let userName;
+    let userName,storedWallet;
     if (user && user.dataValues){
       userName  = user.dataValues.username;
     }
@@ -3076,10 +3105,10 @@ async function register({
     try {
       let clientResult = await axios.get(clientTokenPath);
       if (clientResult && clientResult.data) {
-        let clientId = clientResult.data.client_id;
+        let peertubeClientId = clientResult.data.client_id;
         let clientSecret = clientResult.data.client_secret;
         var data = new URLSearchParams();
-        data.append('client_id', clientId);
+        data.append('client_id', peertubeClientId);
         data.append('client_secret', clientSecret);
         data.append('grant_type', 'password');
         data.append('response_type', 'code');
@@ -3480,6 +3509,7 @@ async function register({
       }
     } catch (err) {
       console.log("\n⚡️⚡️⚡️⚡️axios failed to refresh alby token", err, albyUrl, form);
+      return undefined;
     }
     
   }
