@@ -21,7 +21,9 @@ function register({ registerHook, peertubeHelpers }) {
             let liveValueApi = basePath + `/getlivevalue?video=` + uuidFromUrl;
             try {
               let liveValueData = await axios.get(liveValueApi);
-              liveValue = liveValueData.data;
+              if (liveValueData){
+                liveValue = liveValueData.data;
+              }
               console.log("wtfbbq",liveValue,liveValueData);
             } catch (e) {
               console.log("⚡️⚡️ error getting livevalue", liveValueApi);
@@ -31,7 +33,9 @@ function register({ registerHook, peertubeHelpers }) {
             let splitKitApi = basePath + `/getsplitkitid?video=` + uuidFromUrl;
             try {
               let splitKitData = await axios.get(splitKitApi);
-              splitKitId = splitKitData.data;
+              if (splitKitData){
+                splitKitId = splitKitData.data;
+              }
               console.log("wtfbbq",splitKitId,splitKitData);
             } catch (e) {
               console.log("⚡️⚡️ error getting value time", splitKitApi);
@@ -43,7 +47,7 @@ function register({ registerHook, peertubeHelpers }) {
                 html = `<br><label _ngcontent-msy-c247="" for="Wallet">Episode Splits</label>`
                 html = html + await makePanelHtml(splitInfo,html);
             }
-            if (videoData.data.isLive){
+            if (videoData && videoData.data && videoData.data.isLive){
                 html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="livevalue" value="${liveValue}">`;
                 html = html +`<button id="update-live-value">Update Live Value</button>`;
             } else {
@@ -238,7 +242,9 @@ function register({ registerHook, peertubeHelpers }) {
                             await closeModal();
                             notifier.success("Removed split");
                             await addPanel(await makePanelHtml(await getSplit()));
-                            return removeResult.data;
+                            if (removeResult){
+                                return removeResult.data;
+                            }
                         } catch {
                             console.log("unable to remove split\n", removeApi);
                             notifier.error("unable to remove split");
@@ -390,7 +396,11 @@ function register({ registerHook, peertubeHelpers }) {
                     return;
                 }
                 console.log("got split info",splitData,splitApi);
-                return splitData.data;
+                if (splitData){
+                    return splitData.data;
+                } else {
+                    return;
+                }
             }
         }
 

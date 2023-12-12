@@ -278,6 +278,9 @@ async function register({
           newBlock.name = split.name;
           newBlock.type = "node";
           newBlock.split = split.split;
+          if (split.address && split.address != "custom"){
+            newBlock.lightning = split.address;
+          }
           if (split.fee) {
             newBlock.fee = split.fee;
           }
@@ -296,20 +299,23 @@ async function register({
       } else {
         console.log("⚡️⚡️ no split info for channel", channel);
       }
-      //if (blocks.length < 1) {
-      //  return result;
-      //}
-      let podreturn = [
-        {
-          attributes: {
-            "type": "lightning",
-            "method": "keysend",
-            "suggested": "0.00000005000"
-          },
-          value: blocks,
+      if (blocks.length > 0) {
+        let podreturn = [
+          {
+            name: "podcast:valueRecipient",
+            attributes: {
+              "type": "lightning",
+              "method": "keysend",
+              "suggested": "0.00000005000"
+            },
+            value: blocks,
+          }
+        ];
+        if (enableDebug) {
+          console.log("⚡️⚡️ channel level tags to add", podreturn);
         }
-      ];
-      return result.concat(podreturn)
+        return result.concat(podreturn)
+      }
     }
   })
   registerHook({
@@ -373,6 +379,9 @@ async function register({
           let newBlock = {};
           newBlock.name = split.name;
           newBlock.type = "node";
+          if (split.address && split.address !="custom"){
+            newBlock.lightning = split.address
+          }
           newBlock.split = split.split;
           if (split.fee) {
             newBlock.fee = split.fee;
@@ -2849,14 +2858,14 @@ async function register({
       console.log("⚡️⚡️ hard failed to get lightning split", uuid);
     }
     if (enableDebug){
-      console.log("⚡️ Got saved split ", uuid, storedSplitData);
+     // console.log("⚡️ Got saved split ", uuid, storedSplitData);
     }
     var splitTotal = 0;
     let missing = 0;
     if (storedSplitData) {
       for (var split of storedSplitData) {
         if (enableDebug) {
-          //console.log("⚡️ split math ", splitTotal, split);
+          console.log("⚡️ split math ", splitTotal, split);
         }
         if (!Number.isInteger(split.split)) {
           //console.log("⚡️ no split value found ", split);

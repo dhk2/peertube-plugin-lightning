@@ -1,5 +1,20 @@
+v 5.3.1
+- Fixed adding podcast:valuerecipient when there is no block.
+
+v 5.3.0
+- added lightning address to value block in addition to node address
+
+V 5.2.9
+- fixed possible bug with accessing .data of undefined variable
+- removed patronize button for non authorized users
+- made weblnSupport a global variable in client and improved checking frequency
+
+V 5.2.8
+- fixed bug with value block name
+
 V 5.2.7
 - fixed issue with corrupted episode plug-in data crashing node
+
 V 5.2.6
 - attempted hotfix for bug with 6.0
 

@@ -27,6 +27,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   let panelHack;
   let hostPath;
   let authorizationChecked = false;
+  let weblnSupport=await checkWebLnSupport();
   var streamButton;
   let remoteSplitBlock;
   let boostData = new Set;
@@ -210,12 +211,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             if (delta > 60 && delta < 64) {
               lastStream = currentTime;
               delta = 0;
-              let weblnSupported;
-              weblnSupported = checkWebLnSupport();
+              weblnSupport = await checkWebLnSupport();
               if (debugEnabled) {
-                console.log("⚡️webln support for streaming", weblnSupported, delta, lastStream, currentTime, lastStream - currentTime);
+                console.log("⚡️webln support for streaming", weblnSupport, delta, lastStream, currentTime, lastStream - currentTime);
               }
-              if (weblnSupported < 2) {
+              if (weblnSupport < 2) {
                 await alertUnsupported();
                 streamEnabled = false;
                /*
@@ -394,6 +394,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (debugEnabled) {
         console.log("⚡️ chanel loaded result ", result,"params:", params)
       }
+      weblnSupport= await checkWebLnSupport();
+      console.log("⚡️ patronage ",weblnSupport)
+      if (weblnSupport<69){
+        return;
+      }
       if (document.getElementById("patronize-channel")){
         return;
       }
@@ -509,11 +514,14 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               }
               await axios.get( subApi, { headers: await peertubeHelpers.getAuthHeader() });
               console.log("⚡️unsubscribed");
+              notifier.success(`patronage ended!`)
               //subscribeButton.style.visibility="visible";
               //manageButton.style.visibility="hidden";
               manageButton.innerText="Patronize"
+              closeModal();
             } catch (err) {
               console.log("⚡️error attempting to unsubscribe", subApi, err);
+              notifier.error(`⚡️error attempting to unsubscribe: ${err.message}`);
               //subscribeButton.style.visibility="hidden";
             }
           }
@@ -747,6 +755,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               }
               window.open(albyUrl, 'popup', 'width=600,height=800');
               modalAddressAuthorize.textContent="De-Authorize";
+              weblnSupport=undefined;
             }
           }
         } else if (debugEnabled) {
@@ -1292,7 +1301,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                 }
                 if (walletData && walletData.data) {
                   wallet = walletData.data;
-                  let weblnSupport = await checkWebLnSupport();
+                  //weblnSupport = await checkWebLnSupport();
                   if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
                     await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, 69, this.target, accountAddress);
                   } else if (wallet.lnurl && lnurlEnabled) {
@@ -1391,7 +1400,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                 }
                 if (walletData) {
                   wallet = walletData.data;
-                  let weblnSupport = await checkWebLnSupport();
+                  //weblnSupport = await checkWebLnSupport();
                   let threadId = this.id.split("-")[0];
                   let link = window.location.href + ";threadId=" + threadId;
                   if (debugEnabled) {
@@ -2112,12 +2121,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
-    let weblnSupport;
-    if (!walletAuthorized) {
-      weblnSupport = await checkWebLnSupport();
-    } else {
-      weblnSupport = 69
-    }
+    weblnSupport = await checkWebLnSupport();
     lastTip = amount;
     //notifier.success(weblnSupport);
     let result;
