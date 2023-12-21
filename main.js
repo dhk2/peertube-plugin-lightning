@@ -121,10 +121,11 @@ async function register({
   })
   var timeCheck=new Date().getDay();
   var checking=false;
-  ("⚡️⚡️⚡️⚡️ time stamp",timeCheck);
+  //("⚡️⚡️⚡️⚡️ time stamp",timeCheck);
   var base = await peertubeHelpers.config.getWebserverUrl();
   var serverConfig = await peertubeHelpers.config.getServerConfig();
   var hostName = serverConfig.instance.name;
+  var plugins = serverConfig.plugin.registered;
   let lightningAddress = await settingsManager.getSetting("lightning-address");
   let hostSplit = await settingsManager.getSetting("lightning-split");
   if (!lightningAddress) {
@@ -163,7 +164,7 @@ async function register({
   let hostParts= base.split('//');
   let hostDomain = hostParts.pop();
   if (enableDebug) {
-    console.log("⚡️⚡️ server settings loaded", hostName, hostDomain, base, hostSplit, lightningAddress);
+    console.log("⚡️⚡️ server settings loaded", hostName, hostDomain, base, hostSplit, lightningAddress,serverConfig.plugin.registered);
   }
   let hostWalletData = {};
   let dirtyHack;
@@ -185,6 +186,16 @@ async function register({
       hostWalletData.fee = true;
       hostWalletData.name = hostName;
     }
+  }
+  let podcast2;
+  let hiveTube;
+  for (var plugin of plugins){
+    switch (plugin.npmName){
+      case "peertube-plugin-podcast2" : podcast2=true;
+      break;
+      case "peertube-plugin-hive-tube" : hiveTube=true;
+      break;
+    } 
   }
   let invoices = [];
   //frequently called hook used for daily patronage processing
@@ -279,7 +290,7 @@ async function register({
           newBlock.type = "node";
           newBlock.split = split.split;
           if (split.address && split.address != "custom"){
-            newBlock.lightning = split.address;
+            newBlock.keysend = split.address;
           }
           if (split.fee) {
             newBlock.fee = split.fee;
@@ -302,7 +313,7 @@ async function register({
       if (blocks.length > 0) {
         let podreturn = [
           {
-            name: "podcast:valueRecipient",
+            name: "podcast:value",
             attributes: {
               "type": "lightning",
               "method": "keysend",
@@ -836,16 +847,7 @@ async function register({
     let feed;
     let parts = channel.split('@');
     if (parts.length > 1) {
-      let feedApi = "https://" + parts[1] + "/plugins/lightning/router/getfeedid?channel=" + parts[0];
-      try {
-        feed = await axios.get(feedApi);
-      } catch {
-        console.log("⚡️⚡️hard error getting feed id for ", channel, "from", parts[1], feedApi);
-      }
-      if (feed && feed.data) {
-        //console.log("⚡️⚡️ returning", feed.data, "for", channel,feed.data.toString());
-        return res.status(200).send(feed.data.toString());
-      }
+
       return res.status(420).send("remote channel returned no feed id");
     }
     if (channel) {
@@ -966,9 +968,29 @@ async function register({
       }
     }
   })
+  router.use('/setChannelGuid', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️setting channel guid", req.query);
+    }
+    let channel = req.query.channel;
+    let guid = req.query.guid;
+    if (channel && guid) {
+      try {
+        await storageManager.storeData("channelguid" + "-" + channel, guid);
+        return res.status(200).send();
+      } catch (err) {
+        console.log("⚡️⚡️ error storing feedid", channel, guid,err);
+        return res.status(400).send();
+      }
+    }
+  })
   router.use('/getchannelguid', async (req, res) => {
     if (enableDebug) {
       console.log("⚡️⚡️getting channel guid", req.query);
+    }
+    if (hiveTube){
+      console.log("⚡️⚡️Hive tube managing channel guids");
+      return res.status(420).send("hive in charge of channel GUID");
     }
     let host,channelOnly;
     let channel = req.query.channel;
@@ -982,11 +1004,19 @@ async function register({
       try {
         channelGuid = await storageManager.getData("channelguid" + "-" + channel)
       } catch (err) {
-        console.log("⚡️⚡️ error getting channel guid", channel);
+        console.log("⚡️⚡️ error getting channel guid with full channel", channel);
         return res.status(400).send();
       }
     }
-    if (!channelGuid && host){
+    if (channelOnly) {
+      try {
+        channelGuid = await storageManager.getData("channelguid" + "-" + channelOnly)
+      } catch (err) {
+        console.log("⚡️⚡️ error getting channel only without host", channelOnly,err);
+        return res.status(400).send();
+      }
+    }
+    if (!channelGuid && host && host !=hostDomain){
       apiUrl = `https://${host}/plugins/lightning/router/getchannelguid?channel=${channelOnly}`;
       try {
         console.log("⚡️⚡️ stuff",base,host,apiUrl);
@@ -999,16 +1029,21 @@ async function register({
         console.log("⚡️⚡️unable to load channel guid", apiUrl);
       }
     }
+
     if (channelGuid) {
       return res.status(200).send(channelGuid);
+    } else if (podcast2){
+      return res.status(420).send("no saved value, podcast2 should be in charge");
     } else {
       //TODO properly create guid
-      //let guidResolverUrl = "https://guid.peertube.support/"  
       let rssUrl;
       if (channelOnly){
         rssUrl= await getRss(channelOnly);
       } else {
         rssUrl = await getRss(channel);
+      }
+      if (enableDebug) {
+        console.log("⚡️⚡️creating channel guid", rssUrl);
       }
       channelGuid = await v5('url',rssUrl);
       if (channelGuid) {
@@ -1039,6 +1074,9 @@ async function register({
         let parts = req.query.channel.split("@");
         if (parts.length>1 && parts[1] != hostDomain){
           console.log("mismatched domaines",parts[1],hostDomain);
+          if (enableDebug){
+            console.log("⚡️⚡️- calling remote split from main getsplit for video⚡️⚡️");
+          }
           let remoteSplitApi = `https://${parts[1]}/plugins/lightning/router/getsplit?video=${req.query.video}`;
           console.log("remote split api",remoteSplitApi);
           try {
@@ -1124,6 +1162,9 @@ async function register({
         console.log("⚡️⚡️ looking for remote channel video splits",parts);
       }
       if (parts.length > 1) {
+        if (enableDebug){
+          console.log("⚡️⚡️- calling remote split from main getsplit ⚡️⚡️");
+        }
         var apiCall = `https://${parts[1]}/plugins/lightning/router/getsplit?video=${req.query.video}&channel=${req.query.channel}`; 
         let remoteSplit;
         try {
@@ -1179,6 +1220,9 @@ async function register({
           return res.status(200).send(storedSplitData);
         }
         if (videoHost != base) {
+          if (enableDebug){
+            console.log("⚡️⚡️- calling remote split for channel from main getsplit ⚡️⚡️");
+          }
           remoteWalletApi = videoHost + "/plugins/lightning/router/getsplit?channel=" + channel.name;
           let remoteSplitData;
           try {
@@ -1272,6 +1316,9 @@ async function register({
       var apiCall;
       if (remoteHost) {
         console.log("⚡️⚡️getting remote data");
+        if (enableDebug){
+          console.log("⚡️⚡️- calling remote split from main getsplit again! ⚡️⚡️");
+        }
         apiCall = "https://" + remoteHost + "/plugins/lightning/router/getsplit?channel=" + remoteChannel;
         let remoteSplit;
         try {
@@ -2092,6 +2139,16 @@ async function register({
       dirtyHack=data;
       try {
         albyWalletData = await axios.post(walletApiUrl, data, headers);
+        if (enableDebug) {
+          if (albyWalletData){
+            console.log("⚡️⚡️payment sending result", albyWalletData.data);
+          } else {
+            console.log("⚡️⚡️payment sending result is undefined?",walletApiUrl,data,headers);
+          }
+        }
+        if (albyWalletData.data && albyWalletData.data.error){
+          return res.status(420).send(albyWalletData.data);
+        }
         return res.status(200).send(true);
       } catch (err) {
         console.log("\n⚡️⚡️⚡️⚡️error attempting to send boost\n", err.response.status, err.response.data);
@@ -2242,6 +2299,9 @@ async function register({
 
   })
   router.use('/clearedinvoice', async (req, res) => {
+    if (enableDebug) {
+      console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️cleared invoice", req.query, req.body);
+    }
     let suid = req.body.payer_name + (Math.round(parseInt(req.body.creation_date) / 10));
     if (invoices.includes(suid)) {
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️duplicate payment ", suid);
@@ -2844,6 +2904,53 @@ async function register({
     }
      return res.status(420).send("generic failure to set patron levels");
   })
+  router.use('/getcurrentkeysend', async (req,res) => {
+    if (enableDebug){
+      console.log("⚡️⚡️⚡️⚡️get keysend", req.query);
+    }
+    let address;
+    if (req.query.address){
+      address=req.query.address;
+    } else {
+      return res.status(420).send("No address found in request");  
+    }
+    let walletParts = address.split("@");
+    let walletHost = walletParts[1];
+    let walletUser = walletParts[0];
+    let apiRequest = "https://" + walletHost + "/.well-known/keysend/" + walletUser
+    console.log("⚡️⚡️requesting wallet data from provider", apiRequest);
+    let walletData;
+    try {
+      walletData = await axios.get(apiRequest);
+    } catch (err) {
+      console.log("⚡️⚡️ error attempting to get wallet info", apiRequest, err.message)
+      return res.status(420).send(`error trying to get wallet data for ${address}`);
+    }
+    if (walletData.data.status != "OK") {
+      console.log("⚡️⚡️ Error in lightning address data", walletData.data);
+      return res.status(420).send(`failed to get OK requesting data for ${address}`);
+    }
+    walletData.data.cache = Date.now();
+    walletData.data.address =address;
+    console.log("⚡️⚡️ wallet data", walletData.data)
+    //TODO update wallet and well known info with fresh info
+    /*
+    let whatHappened;
+    try {
+      whatHappened = await storageManager.storeData(storageIndex, walletData.data);
+      //saveWellKnown(parts[0], walletData.data);
+    } catch {
+      console.log("⚡️⚡️failed to store lighting address", storageIndex, walletData.data);
+    }
+    
+    console.log("⚡️⚡️ stored keysend data", whatHappened, storageIndex, walletData.data);
+    */
+    if (walletData) {
+      return res.status(200).send(walletData.data);
+    } else {
+      return res.status(420).send(`failed to get wallet data for ${address}`);
+    }
+  })
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
@@ -3166,6 +3273,9 @@ async function register({
       if (channel.indexOf('@')>1){
         remoteChannel= channel.split('@')[0];
         host = channel.split('@')[1];
+        if (enableDebug){
+          console.log("⚡️⚡️- calling remote split from pay patron ⚡️⚡️");
+        }
         remoteApi = "https://"+host+"/plugins/lightning/router/getsplit?channel="+remoteChannel;
         if (enableDebug) {
           console.log("⚡️⚡️ user name and host", remoteChannel,host,remoteApi);

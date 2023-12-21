@@ -1,3 +1,29 @@
+
+v 5.3.8
+- enabled detection of HiveTube and Podcast 2 plugins
+- added ability to set channelGuid via route
+
+v 5.3.7
+- fixing podcast guid interaction with podcast2 plugin
+
+v 5.3.6
+- 5.2.5 fix didn't take, refixed
+
+v 5.3.5
+- fixed bug in guid diagnostic message
+
+v 5.3.4
+- fixed typo bug in value block
+- fallback keysend lightning support extended to patronage and streaming, webln and api
+
+v 5.3.3
+- renamed lightning address value in value blocks to keysend as per pod sage
+- added fallback to lightning address look up if static node info fails for integrated boosts
+- added route to get current keysend info for a lightning address.
+
+v 5.3.2
+- removed extraneous wallet authorization calls
+
 v 5.3.1
 - Fixed adding podcast:valuerecipient when there is no block.
 

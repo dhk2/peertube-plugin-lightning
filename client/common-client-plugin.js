@@ -27,7 +27,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   let panelHack;
   let hostPath;
   let authorizationChecked = false;
-  let weblnSupport=await checkWebLnSupport();
+  // let weblnSupport=await checkWebLnSupport();
+  let weblnSupport=-1;
   var streamButton;
   let remoteSplitBlock;
   let boostData = new Set;
@@ -70,6 +71,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
           if (authorized && authorized.data) {
             walletAuthorized = true;
+            weblnSupport = 69;
           } else {
             walletAuthorized = false;
           }
@@ -203,7 +205,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           if (videoEl){
             currentTime = videoEl.currentTime;
           }
-          if (streamEnabled && splitData) {
+          if (streamEnabled && splitData && weblnSupport>1) {
             delta = (currentTime - lastStream).toFixed();
             if (debugEnabled) {
               console.log("⚡️counting for stream payments", delta);
@@ -211,7 +213,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             if (delta > 60 && delta < 64) {
               lastStream = currentTime;
               delta = 0;
-              weblnSupport = await checkWebLnSupport();
+              //weblnSupport = await checkWebLnSupport();
               if (debugEnabled) {
                 console.log("⚡️webln support for streaming", weblnSupport, delta, lastStream, currentTime, lastStream - currentTime);
               }
@@ -270,7 +272,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                 let result;
                 if ((wallet.keysend && keysendEnabled) || walletAuthorized) {
  //                 result = await boost(wallet.keysend, amount, null, boostFrom, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress,remoteFeed,remoteItem);
-                  result = await boost(wallet.keysend,amount,"Streaming",userName,video.channel.dispayName,video.name,"stream",video.uuid,undefined,streamAmount,wallet.name,accountAddress,remoteFeed,remoteItem)
+                  result = await boost(wallet.keysend,amount,"Streaming",userName,video.channel.dispayName,video.name,"stream",video.uuid,undefined,streamAmount,wallet.name,accountAddress,remoteFeed,remoteItem,wallet.address)
                 } else if (wallet.lnurl && lnurlEnabled) {
                   result = await sendSats(wallet.lnurl, amount, "Streaming Sats", boostFrom);
                   //walletData = await refreshWalletInfo(walletData.address);
@@ -394,11 +396,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (debugEnabled) {
         console.log("⚡️ chanel loaded result ", result,"params:", params)
       }
-      weblnSupport= await checkWebLnSupport();
+      //weblnSupport= await checkWebLnSupport();
       console.log("⚡️ patronage ",weblnSupport)
-      if (weblnSupport<69){
-        return;
-      }
+     // if (weblnSupport<69){
+     //   return;
+    //  }
       if (document.getElementById("patronize-channel")){
         return;
       }
@@ -439,6 +441,14 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let manageButton = document.getElementById("manage-patronize-channel");
       if (manageButton) {
         manageButton.onclick = async function () {
+          if (weblnSupport<69){
+            weblnSupport= await checkWebLnSupport();
+            if (weblnSupport<69){
+              notifier.error("Patronage feature only available to authorized wallets. Click V4V button on left to authorize");
+              return;
+            }
+          }
+
           await peertubeHelpers.showModal({
             title: 'Configure Patronage for ' + channel,
             content: ` `,
@@ -702,6 +712,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           try {
             authorized = await axios.get(authorizedWalletApi, headers);
             walletAuthorized = true;
+            weblnSupport = 69;
             //console.log("----",authorized);
           } catch (e){
             console.log("⚡️unable to confirm authorized",authorized,e);
@@ -1018,6 +1029,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let channelUpdate = document.getElementsByClassName("form-group");
       let channel = (window.location.href).split("/").pop();
       channelName = channel;
+      if (debugEnabled){
+        console.log("⚡️⚡️- calling get split from action:video-channel-update.video-channel.loaded ⚡️⚡️");
+      }
       let splitData = await getSplit();
       //let walletInfo = await getWalletInfo(null, null, channel);
       let feedID = await getFeedID(channel);
@@ -1303,7 +1317,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                   wallet = walletData.data;
                   //weblnSupport = await checkWebLnSupport();
                   if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
-                    await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, 69, this.target, accountAddress);
+                    await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, 69, this.target, accountAddress,undefined,undefined,wallet.address);
                   } else if (wallet.lnurl && lnurlEnabled) {
                     await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
                   }
@@ -1407,7 +1421,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                     console.log("⚡️thread link", link, this.id);
                   }
                   if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
-                    await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, 69, this.target, accountAddress);
+                    await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, 69, this.target, accountAddress,undefined,undefined, wallet.address);
                   } else if (wallet.lnurl && lnurlEnabled) {
                     await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
                   }
@@ -1547,7 +1561,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       return;
     }
   }
-  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress,remoteFeed,remoteItem) {
+  async function boost(walletData, amount, message, from, channel, episode, type, episodeGuid, itemID, boostTotal, splitName, replyAddress,remoteFeed,remoteItem,keysendAddress) {
     if (debugEnabled) {
       console.log("⚡️boost called\n Authorized", walletAuthorized,"\nwalletData", walletData, "\namount",amount ,"\nmessage", message, "\nfrom",from, "\nchannel",channel, episode, "\ntype",type, episodeGuid, "\n channel",channelName, "\n item id",itemID,"\n boost total",boostTotal,"\nsplit name",splitName,"\nreply address:",replyAddress)
     }
@@ -1752,21 +1766,122 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         await doConfetti(boostTotal);
         return albyBoostResult;
       } catch (err) {
-        console.log("⚡️error attempting to send sats using integrated wallet", err);
-        notifier.error("⚡ not sent via integrated wallet");
-        return albyBoostResult;
+        console.log("⚡️error attempting to send sats using static address via integrated wallet", err);
+        //notifier.error("⚡ not sent via integrated wallet");
+      }
+      console.log("checking for updated wallet info");
+      if (keysendAddress){
+        let freshWalletData;
+        try {
+          let getFresh = basePath + `/getcurrentkeysend?address=${keysendAddress}`;
+          freshWalletData = await axios.get(getFresh);
+        } catch {
+          console.log("Unable to get current keysend data to try again");
+          return false;
+        }
+        console.log("got fresh",freshWalletData);
+        let freshWallet = freshWalletData.data;
+        console.log("working with",freshWallet);
+        if (freshWallet.customData) {
+          paymentInfo = {
+            destination: freshWallet.pubkey,
+            amount: amount,
+            customRecords: {
+              7629169: JSON.stringify(boost),
+              [customKeyHack]: freshWallet.customData[0].customValue,
+            }
+          };
+        } else {
+          paymentInfo = {
+            destination: freshWallet.pubkey,
+            amount: amount,
+            customRecords: {
+              7629169: JSON.stringify(boost),
+            }
+          };
+        }
+        console.log("⚡️payment info 2 ", paymentInfo);
+        try {
+          let sendBoostApi = basePath + "/sendalbypayment"
+          console.log("⚡️send boost api",sendBoostApi)
+          albyBoostResult = await axios.post(sendBoostApi, paymentInfo, { headers: await peertubeHelpers.getAuthHeader() });
+          if (debugEnabled) {
+            console.log("⚡️alby boost result",albyBoostResult);
+          }
+          var tipfixed = amount
+          await notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent via integrated wallet");
+          await doConfetti(boostTotal);
+          return albyBoostResult;
+        } catch (err) {
+          console.log("⚡️error attempting to send sats using static address via integrated wallet", err);
+          notifier.error("⚡ not sent via integrated wallet");
+          return;
+        }
+      } else {
+        notifier.error(`⚡ unable to ${tipVerb} via integrated wallet`);
+        return;
       }
     }
     try {
       result = await webln.keysend(paymentInfo);
       var tipfixed = amount
-      notifier.success("⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent");
+      let successMessage = "⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent"
+      notifier.success(successMessage);
       doConfetti(boostTotal);
       return result;
     } catch (err) {
-      notifier.error("⚡ error attempting to send sats using keysend", err.message);
-      return;
+      //notifier.error("⚡ error attempting to send sats using webLN", err.message);
+      //return;
+      console.log("⚡ error attempting to send sats using webLN", err.message);
     }
+          console.log("checking for updated wallet info");
+      if (keysendAddress){
+        let freshWalletData;
+        try {
+          let getFresh = basePath + `/getcurrentkeysend?address=${keysendAddress}`;
+          freshWalletData = await axios.get(getFresh);
+        } catch {
+          console.log("Unable to get current keysend data to try again");
+          return false;
+        }
+        console.log("got fresh",freshWalletData);
+        let freshWallet = freshWalletData.data;
+        console.log("working with",freshWallet);
+        if (freshWallet.customData) {
+          paymentInfo = {
+            destination: freshWallet.pubkey,
+            amount: amount,
+            customRecords: {
+              7629169: JSON.stringify(boost),
+              [customKeyHack]: freshWallet.customData[0].customValue,
+            }
+          };
+        } else {
+          paymentInfo = {
+            destination: freshWallet.pubkey,
+            amount: amount,
+            customRecords: {
+              7629169: JSON.stringify(boost),
+            }
+          };
+        }
+        console.log("⚡️payment info 2 ", paymentInfo);
+        try {
+          result = await webln.keysend(paymentInfo);
+          var tipfixed = amount
+          let successMessage = "⚡" + tipfixed + "($" + (tipfixed * convertRate).toFixed(2) + ") " + tipVerb + " sent"
+          notifier.success(successMessage);
+          doConfetti(boostTotal);
+          return result;
+        } catch (err) {
+          console.log("⚡️error attempting to send sats using dynamic address via webln", err);
+          notifier.error("⚡ not sent via integrated wallet");
+          return;
+        }
+      } else {
+        notifier.error(`⚡ unable to ${tipVerb} via webLN`);
+        return;
+      }
   }
   function doConfetti(boost) {
     switch (boost) {
@@ -2121,7 +2236,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let amount = document.getElementById('modal-sats').value;
     let message = document.getElementById('modal-message').value;
     let from = document.getElementById('modal-from').value;
-    weblnSupport = await checkWebLnSupport();
+    if (weblnSupport<1){
+      weblnSupport = await checkWebLnSupport();
+      if (weblnSupport<1){
+        notifier.error("no wallet authorized and no browser extension, unable to proceed");
+        return;
+      }
+    }
     lastTip = amount;
     //notifier.success(weblnSupport);
     let result;
@@ -2133,7 +2254,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (debugEnabled) {
           console.log("⚡️sending keysend boost", wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, channelName, itemID, amount, wallet.name)
         }
-        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress,remoteFeed,remoteItem);
+        result = await boost(wallet.keysend, splitAmount, message, from, displayName, episodeName, "boost", episodeGuid, itemID, amount, wallet.name, accountAddress,remoteFeed,remoteItem,wallet.address);
       } else if (wallet.lnurl && lnurlEnabled) {
         if (debugEnabled) {
           console.log("⚡️sending lnurl boost", wallet.lnurl, splitAmount, message, from);
@@ -2461,6 +2582,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       try {
         authorized = await axios.get(authorizedWalletApi, headers);
         walletAuthorized = true;
+        weblnSupport = 69;
       } catch {
         console.log("⚡️unable to confirm authorized");
         walletAuthorized = false;
@@ -2626,6 +2748,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         channelUpdate[0].appendChild(newPanel);
         panelHack = newPanel;
         await assignEditButtons(updateResult, channel);
+        closeModal();
       }
     }
     let removeSplit = document.getElementById("remove-split")
@@ -2638,6 +2761,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         channelUpdate[0].appendChild(newPanel);
         panelHack = newPanel;
         await assignEditButtons(removeResult, channel);
+        closeModal();
       }
     }
     let manualKeysend = document.getElementById("manualkeysend");
@@ -2680,7 +2804,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             title: 'Add Split for ' + channel,
             content: ` `,
             close: true,
-            confirm: { value: 'X', action: () => { } },
+            confirm: { value: 'X', action: () => {} },
 
           })
           let modal = (document.getElementsByClassName('modal-body'))
