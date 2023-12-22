@@ -347,6 +347,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               tipButton.textContent = "Boosting...";
               await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
               tipButton.textContent = oldValue
+              closeModal();
             }
           }
         }
@@ -2724,7 +2725,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let butts = document.getElementsByClassName("ng-star-inserted")
     for (var butt of butts) {
       let iconName = butt.getAttribute("iconname");
-      if (iconName == "cross") {
+      let buttTitle = butt.getAttribute('title')
+      if (iconName == "cross" || buttTitle =='Close this modal') {
         butt.click();
         return true;
       }

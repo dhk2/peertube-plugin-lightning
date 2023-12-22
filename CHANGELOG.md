@@ -1,3 +1,5 @@
+v 5.3.9
+- fixed problem with modal not closign after boosting
 
 v 5.3.8
 - enabled detection of HiveTube and Podcast 2 plugins
