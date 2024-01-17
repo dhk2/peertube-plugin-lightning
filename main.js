@@ -372,15 +372,18 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
-      //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params,params.video.dataValues);
-      //console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
+      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params);
+     // console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
       if (liveItem) {
       }
       var videoUuid = params.video.dataValues.uuid;
       var storedSplitData = await getSavedSplit(videoUuid);
       let remoteSplitData = await getRemoteSplit(videoUuid);
       if (remoteSplitData && !storedSplitData){
-        console.log(console.log("⚡️⚡️⚡️⚡️ remote split without stored split, param data",params,params.video.dataValues));
+        console.log(console.log("⚡️⚡️⚡️⚡️ remote split without stored split, param data",params,params.video.dataValues.videoChannel));
+      }
+      if (remoteSplitData && !storedSplitData){
+        console.log("⚡️⚡️⚡️⚡️ need to get channel split because apps are whack",params.video.videoChannel.dataValues);
       }
       var blocks = []
       //var videoJSON = await peertubeHelpers.videos.loadByIdOrUUID(videoUuid);
@@ -1384,7 +1387,7 @@ async function register({
             splitData.push(hostWalletData);
             try {
               await storageManager.storeData("lightningsplit" + "-" + req.query.channel.replace(/\./g, "-"), splitData);
-              saveWellKnownSplit(req.query.channel, splitData);
+              await saveWellKnownSplit(req.query.channel, splitData);
             } catch {
               console.log("⚡️⚡️failed to store lightning split", req.query.channel, splitData);
             }
@@ -1412,7 +1415,7 @@ async function register({
     var split = new Array();
     var newAddress = req.query.splitaddress;
     var newSplit = req.query.split;
-    var channel = req.query.channel
+    var channel = req.query.channel;
     var name = req.query.name;
     var customKey = req.query.customkey;
     var customValue = req.query.customvalue;
@@ -1584,13 +1587,13 @@ async function register({
 
     let creatorSplit = split[0].split - newSplit
     split[0].split = parseInt(creatorSplit);
-    console.log("⚡️⚡️split about to be written to storage manager", split);
+    console.log("⚡️⚡️split about to be written to storage manager",channel,req.query.channel,video, split);
     try {
       if (!req.query.channel && req.query.video) {
-        storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
+        await storageManager.storeData("lightningsplit" + "-" + req.query.video, split);
       } else {
-        storageManager.storeData("lightningsplit" + "-" + channel.replace(/\./g, "-"), split);
-        saveWellKnownSplit(channel, split);
+        await storageManager.storeData("lightningsplit" + "-" + channel.replace(/\./g, "-"), split);
+        await saveWellKnownSplit(channel, split);
 
       }
     } catch {
@@ -1729,7 +1732,7 @@ async function register({
       try {
         if (req.query.channel) {
           await saveSplit(channel, split);
-          saveWellKnownSplit(channel, split);
+          await saveWellKnownSplit(channel, split);
         }
         if (req.query.video) {
           await saveSplit(video,split);
@@ -1758,6 +1761,7 @@ async function register({
     var slot = req.query.slot;
     var channel = req.query.channel;
     var video = req.query.video;
+    console.log("⚡️⚡️data for remove split", req.query, slot,channel,video,req.query.channel);
     if (!slot) {
       return res.status(400).send("no slot to remove specified");
     }
@@ -1811,13 +1815,15 @@ async function register({
         }
       }
       console.log("⚡️⚡️othersplit", otherSplit);
+      console.log("⚡️⚡️data for remove split", req.query, slot,channel,video);
       let creatorSplit = 100 - otherSplit
       newSplit[0].split = parseInt(creatorSplit);
-      console.log("⚡️⚡️split about to be writ", video, newSplit.length);
+      console.log("⚡️⚡️split about to be writ", channel, req.query.channel, newSplit.length);
+      console.log("⚡️⚡️data for remove split brefore", req.query, slot,channel,video,req.query.key);
       try {
         if (req.query.channel) {
           await saveSplit(channel, newSplit);
-          saveWellKnownSplit(channel, split);
+          await saveWellKnownSplit(channel, newSplit);
         }
         if (req.query.video) {
           await saveSplit(video, newSplit);
@@ -1918,10 +1924,11 @@ async function register({
       }
     } else if (channel) {
       if (newAddress.length === 66) {
+        console.log("⚡️⚡️66 chars, probably a node key\n", newAddress);
       }
       storedSplitData = await getSavedSplit(channel);
       if (storedSplitData) {
-        console.log("⚡️⚡️add split retrieved chaNNEL split info", req.query.channel, "\n", storedSplitData.length);
+        console.log("⚡️⚡️create split retrieved existing channel split info", req.query.channel, "\n", storedSplitData.length);
         console.log('⚡️⚡️already existing splitData for', req.query.channel, storedSplitData);
         return res.status(400).send();
       } else {
@@ -1978,6 +1985,7 @@ async function register({
         console.log("⚡️⚡️saving created channel split\n", channel, split)
       }
       await saveSplit(channel, split);
+      await saveWellKnownSplit(channel,split);
       await pingPI(channel);
       return res.status(200).send(split);
     } else {
@@ -3176,33 +3184,49 @@ async function register({
       console.error("⚡️⚡️ trouble saving the lnurl info to peertube folder", err, account);
     }
   }
-  async function saveWellKnownSplit(account, splits) {
-    return;
-    const folderName = '/var/www/peertube/storage/well-known/keysendsplit/';
+  async function saveWellKnownSplit(channel, splits) {
+    const folderName = '/var/www/peertube/storage/well-known/split/';
+    console.log("⚡️⚡️⚡️⚡️ saving well known split",folderName,channel,splits);
     let knownSplits = [];
     for (const split of splits) {
       let newSplit = {};
+      console.log("⚡️⚡️⚡️⚡️ old split info",split);
       newSplit.name = split.name;
       newSplit.split = split.split;
       newSplit.keysend = split.keysend;
+      newSplit.type='node';
+      if (newSplit.keysend.cache){
+        delete newSplit.keysend.cache;
+      }
+            if (newSplit.keysend.status){
+        delete newSplit.keysend.status;
+      }
+            if (newSplit.keysend.tag){
+        delete newSplit.keysend.tag;
+      }
       if (split.fee) {
         newSplit.fee = split.fee;
       }
+      if (split.address && split.address !='' && split.address !='custom'){
+        newSplit.keysend.keysend = split.address;
+      }
+      console.log("⚡️⚡️⚡️⚡️ new split info",newSplit);
       knownSplits.push(newSplit);
     }
-    console.log("⚡️⚡️ new split data", knownSplits, "⚡️⚡️ account:", account, "⚡️⚡️ raw splits", splits);
+    console.log("⚡️⚡️ new split data", knownSplits, "⚡️⚡️ channel:", channel, "⚡️⚡️ raw splits", splits);
     try {
       if (!fs.existsSync(folderName)) {
         fs.mkdirSync(folderName);
       }
     } catch (err) {
-      console.error("⚡️⚡️ problem with well known keysend split folder", err, account);
+      console.error("⚡️⚡️ problem with well known keysend split folder", err, channel);
     }
     try {
-      fs.writeFileSync(folderName + account, JSON.stringify(knownSplits));
+      fs.writeFileSync(folderName + channel, JSON.stringify(knownSplits));
     } catch (err) {
-      console.error("⚡️⚡️ trouble saving the keysend split info to peertube folder", err, account);
+      console.error("⚡️⚡️ trouble saving the keysend split info to peertube folder", err, channel);
     }
+    console.log("⚡️⚡️ saved ⚡️⚡️ saved ⚡️⚡️ saved ⚡️⚡️", knownSplits);
   }
   async function buildFormData(formData, data, parentKey) {
     if (data && typeof data === 'object' && !(data instanceof Date)) {

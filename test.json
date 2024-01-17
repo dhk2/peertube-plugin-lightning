@@ -1,0 +1,407 @@
+{
+  "id": 190162,
+  "uuid": "04cd600f-a50c-402c-a130-c9f8e5850c21",
+  "shortUUID": "1AoRN33YMGUuTxrE8gFvvk",
+  "url": "https://peertube.biz/videos/watch/04cd600f-a50c-402c-a130-c9f8e5850c21",
+  "name": "Netflix ROASTED For Most INSANE Race Swap Yet! Busted ERASING White Heroes",
+  "category": { "id": null, "label": "Unknown" },
+  "licence": { "id": null, "label": "Unknown" },
+  "language": { "id": null, "label": "Unknown" },
+  "privacy": { "id": 1, "label": "Public" },
+  "nsfw": false,
+  "truncatedDescription": "Netflix has hit rock bottom Get PIA https://www.privateinternetaccess.com/TheQuarteringYT",
+  "description": "Netflix has hit rock bottom Get PIA https://www.privateinternetaccess.com/TheQuarteringYT",
+  "isLocal": true,
+  "duration": 718,
+  "views": 0,
+  "viewers": 0,
+  "likes": 0,
+  "dislikes": 0,
+  "thumbnailPath": "/lazy-static/thumbnails/3bf5ef9f-0e4e-4f85-835a-c937842854bf.jpg",
+  "previewPath": "/lazy-static/previews/8b7cada1-f1b3-4ce5-a758-8eff1f8e9e61.jpg",
+  "embedPath": "/videos/embed/04cd600f-a50c-402c-a130-c9f8e5850c21",
+  "createdAt": "2023-12-12T21:18:45.729Z",
+  "updatedAt": "2024-01-05T07:29:42.532Z",
+  "publishedAt": "2023-12-12T21:18:45.267Z",
+  "originallyPublishedAt": "2023-12-12T00:00:00.000Z",
+  "isLive": false,
+  "account": {
+    "url": "https://peertube.biz/accounts/jeremy",
+    "name": "jeremy",
+    "host": "peertube.biz",
+    "avatars": [
+      {
+        "width": 48,
+        "path": "/lazy-static/avatars/c4b424f5-271e-447c-ae4a-e1052f54ba8c.jpg",
+        "createdAt": "2023-11-22T14:51:50.533Z",
+        "updatedAt": "2023-11-22T14:51:50.533Z"
+      },
+      {
+        "width": 120,
+        "path": "/lazy-static/avatars/afc7fe2c-4346-47ab-a0c8-d577d7e43ebe.jpg",
+        "createdAt": "2023-11-22T14:51:50.531Z",
+        "updatedAt": "2023-11-22T14:51:50.531Z"
+      }
+    ],
+    "id": 5,
+    "hostRedundancyAllowed": false,
+    "followingCount": 0,
+    "followersCount": 0,
+    "createdAt": "2023-11-22T14:10:27.876Z",
+    "banners": [],
+    "displayName": "Jeremy",
+    "description": "Quartering account",
+    "updatedAt": "2023-11-22T14:50:48.825Z",
+    "userId": 4
+  },
+  "channel": {
+    "url": "https://peertube.biz/video-channels/thequartering",
+    "name": "thequartering",
+    "host": "peertube.biz",
+    "avatars": [
+      {
+        "width": 48,
+        "path": "/lazy-static/avatars/0948c0bd-e997-4778-b1d9-edf8ed689b0a.jpg",
+        "createdAt": "2023-11-22T14:10:52.552Z",
+        "updatedAt": "2023-11-22T14:10:52.552Z"
+      },
+      {
+        "width": 120,
+        "path": "/lazy-static/avatars/1333a23b-921b-41c5-bd81-4bfb84ae408e.jpg",
+        "createdAt": "2023-11-22T14:10:52.550Z",
+        "updatedAt": "2023-11-22T14:10:52.550Z"
+      }
+    ],
+    "id": 4,
+    "hostRedundancyAllowed": false,
+    "followingCount": 0,
+    "followersCount": 1,
+    "createdAt": "2023-11-22T14:10:27.878Z",
+    "banners": [],
+    "displayName": "The Quartering",
+    "description": "Enjoyed this channel? Join my Locals community for exclusive content at thequartering.locals.com!",
+    "support": null,
+    "isLocal": true,
+    "updatedAt": "2023-11-22T14:11:25.891Z",
+    "ownerAccount": {
+      "url": "https://peertube.biz/accounts/jeremy",
+      "name": "jeremy",
+      "host": "peertube.biz",
+      "avatars": [
+        {
+          "width": 48,
+          "path": "/lazy-static/avatars/c4b424f5-271e-447c-ae4a-e1052f54ba8c.jpg",
+          "createdAt": "2023-11-22T14:51:50.533Z",
+          "updatedAt": "2023-11-22T14:51:50.533Z"
+        },
+        {
+          "width": 120,
+          "path": "/lazy-static/avatars/afc7fe2c-4346-47ab-a0c8-d577d7e43ebe.jpg",
+          "createdAt": "2023-11-22T14:51:50.531Z",
+          "updatedAt": "2023-11-22T14:51:50.531Z"
+        }
+      ],
+      "id": 5,
+      "hostRedundancyAllowed": false,
+      "followingCount": 0,
+      "followersCount": 0,
+      "createdAt": "2023-11-22T14:10:27.876Z",
+      "banners": [],
+      "displayName": "Jeremy",
+      "description": "Quartering account",
+      "updatedAt": "2023-11-22T14:50:48.825Z",
+      "userId": 4
+    }
+  },
+  "pluginData": {},
+  "blacklisted": false,
+  "blacklistedReason": null,
+  "streamingPlaylists": [
+    {
+      "id": 237382,
+      "type": 1,
+      "playlistUrl": "https://peertube.biz/static/streaming-playlists/hls/04cd600f-a50c-402c-a130-c9f8e5850c21/4481bdbb-63b4-4221-a50a-b49b37335d26-master.m3u8",
+      "segmentsSha256Url": "https://peertube.biz/static/streaming-playlists/hls/04cd600f-a50c-402c-a130-c9f8e5850c21/b3d03c95-fefb-4bef-8eb9-ef07e5a041b8-segments-sha256.json",
+      "redundancies": [],
+      "files": [
+        {
+          "id": 591490,
+          "resolution": { "id": 144, "label": "144p" },
+          "magnetUri": "magnet:?xs=https%3A%2F%2Fpeertube.biz%2Flazy-static%2Ftorrents%2F515d04fc-bfa8-4280-8124-cb72102c8eb1-144-hls.torrent&xt=urn:btih:95ba2bbbc1389ed4c67de7d547055ab127fc91d0&dn=Netflix+ROASTED+For+Most+INSANE+Race+Swap+Yet!+Busted+ERASING+White+Heroes&tr=https%3A%2F%2Fpeertube.biz%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.biz%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube-videos.cdn.peertube.biz%2Fbizhls-hls%2F04cd600f-a50c-402c-a130-c9f8e5850c21%2Fe9f1bdc2-61dc-4e4f-b8ce-cff5a0cb5cfe-144-fragmented.mp4",
+          "size": 14813684,
+          "fps": 30,
+          "torrentUrl": "https://peertube.biz/lazy-static/torrents/515d04fc-bfa8-4280-8124-cb72102c8eb1-144-hls.torrent",
+          "torrentDownloadUrl": "https://peertube.biz/download/torrents/515d04fc-bfa8-4280-8124-cb72102c8eb1-144-hls.torrent",
+          "fileUrl": "https://peertube-videos.cdn.peertube.biz/bizhls-hls/04cd600f-a50c-402c-a130-c9f8e5850c21/e9f1bdc2-61dc-4e4f-b8ce-cff5a0cb5cfe-144-fragmented.mp4",
+          "fileDownloadUrl": "https://peertube.biz/download/streaming-playlists/hls/videos/04cd600f-a50c-402c-a130-c9f8e5850c21-144-fragmented.mp4",
+          "metadataUrl": "https://peertube.biz/api/v1/videos/04cd600f-a50c-402c-a130-c9f8e5850c21/metadata/591490"
+        },
+        {
+          "id": 591493,
+          "resolution": { "id": 0, "label": "Audio" },
+          "magnetUri": "magnet:?xs=https%3A%2F%2Fpeertube.biz%2Flazy-static%2Ftorrents%2F851e0d08-1a61-4a82-93c9-6db438c6d65d-0-hls.torrent&xt=urn:btih:34cd086f041eed87fdd5c4163f4ad1f0dd446707&dn=Netflix+ROASTED+For+Most+INSANE+Race+Swap+Yet!+Busted+ERASING+White+Heroes&tr=https%3A%2F%2Fpeertube.biz%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.biz%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube-videos.cdn.peertube.biz%2Fbizhls-hls%2F04cd600f-a50c-402c-a130-c9f8e5850c21%2Fdab89d30-f889-45e5-856f-6f56505b75b1-0-fragmented.mp4",
+          "size": 8767891,
+          "fps": 0,
+          "torrentUrl": "https://peertube.biz/lazy-static/torrents/851e0d08-1a61-4a82-93c9-6db438c6d65d-0-hls.torrent",
+          "torrentDownloadUrl": "https://peertube.biz/download/torrents/851e0d08-1a61-4a82-93c9-6db438c6d65d-0-hls.torrent",
+          "fileUrl": "https://peertube-videos.cdn.peertube.biz/bizhls-hls/04cd600f-a50c-402c-a130-c9f8e5850c21/dab89d30-f889-45e5-856f-6f56505b75b1-0-fragmented.mp4",
+          "fileDownloadUrl": "https://peertube.biz/download/streaming-playlists/hls/videos/04cd600f-a50c-402c-a130-c9f8e5850c21-0-fragmented.mp4",
+          "metadataUrl": "https://peertube.biz/api/v1/videos/04cd600f-a50c-402c-a130-c9f8e5850c21/metadata/591493"
+        }
+      ]
+    }
+  ],
+  "files": [],
+  "support": null,
+  "descriptionPath": "/api/v1/videos/04cd600f-a50c-402c-a130-c9f8e5850c21/description",
+  "tags": [],
+  "commentsEnabled": true,
+  "downloadEnabled": true,
+  "waitTranscoding": true,
+  "inputFileUpdatedAt": null,
+  "state": { "id": 6, "label": "To move to an external storage" },
+  "trackerUrls": [
+    "https://peertube.biz/tracker/announce",
+    "wss://peertube.biz:443/tracker/socket"
+  ]
+}
+
+
+
+    {"format":{"size":8767891,"tags":{"encoder":"Lavf60.17.100","major_brand":"iso5","minor_version":"512","compatible_brands":"iso5iso6mp41"},"bit_rate":97713,"duration":717.844898,"nb_streams":1,"start_time":0,"format_name":"mov,mp4,m4a,3gp,3g2,mj2","nb_programs":0,"probe_score":100,"format_long_name":"QuickTime / MOV"},"streams":[{"id":"N/A","tags":{"language":"und","vendor_id":"[0][0][0][0]","handler_name":"SoundHandler"},"index":0,"profile":"LC","bit_rate":95759,"channels":2,"duration":717.844898,"codec_tag":"0x6134706d","nb_frames":"N/A","start_pts":0,"time_base":"1/44100","codec_name":"aac","codec_type":"audio","sample_fmt":"fltp","start_time":0,"disposition":{"dub":0,"forced":0,"lyrics":0,"comment":0,"default":1,"karaoke":0,"original":0,"attached_pic":0,"clean_effects":0,"visual_impaired":0,"hearing_impaired":0,"timed_thumbnails":0},"duration_ts":31656960,"sample_rate":44100,"max_bit_rate":"N/A","r_frame_rate":"0/0","avg_frame_rate":"0/0","channel_layout":"stereo","nb_read_frames":"N/A","bits_per_sample":0,"codec_long_name":"AAC (Advanced Audio Coding)","nb_read_packets":"N/A","codec_tag_string":"mp4a","bits_per_raw_sample":"N/A"}],"chapters":[]}
+
+
+
+    [
+      {
+        "name": "marc",
+        "split": 95,
+        "keysend": {
+          "tag": "keysend",
+          "cache": 1678685294787,
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Matt Christiansen Media",
+        "split": 5,
+        "keysend": {
+          "tag": "keysend",
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+          ]
+        },
+        "fee": true
+      }
+    ]
+
+    {
+      "status": "OK",
+      "tag": "keysend",
+      "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+      "customData": [
+        {
+          "customKey": "696969",
+          "customValue": "3P8KWfGoiW30lLIBAc5d"
+        }
+      ]
+    }\
+
+
+    {
+      "status": "OK",
+      "tag": "payRequest",
+      "commentAllowed": 255,
+      "callback": "https://getalby.com/lnurlp/alexgleason/callback",
+      "metadata": "[[\"text/identifier\",\"alexgleason@getalby.com\"],[\"text/plain\",\"Sats for alexgleason\"]]",
+      "minSendable": 1000,
+      "maxSendable": 100000000,
+      "payerData": {
+        "name": {
+          "mandatory": false
+        },
+        "email": {
+          "mandatory": false
+        },
+        "pubkey": {
+          "mandatory": false
+        }
+      },
+      "nostrPubkey": "79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f432",
+      "allowsNostr": true
+    }
+
+
+
+
+    [
+      {
+        "name": "marc",
+        "split": 95,
+        "keysend": {
+          "tag": "keysend",
+          "cache": 1678685294787,
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Matt Christiansen Media",
+        "split": 5,
+        "keysend": {
+          "tag": "keysend",
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+          ]
+        },
+        "fee": true
+      }
+    ]
+
+
+
+
+    [
+      {
+        "name": "marc",
+        "split": 95,
+        "keysend": {
+          "tag": "keysend",
+          "cache": 1678685294787,
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Matt Christiansen Media",
+        "split": 5,
+        "keysend": {
+          "tag": "keysend",
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+          ]
+        },
+        "fee": true
+      }
+    ]
+
+
+    [
+      {
+        "name": "marc",
+        "split": 95,
+        "keysend": {
+          "tag": "keysend",
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ],
+          "keysend": "errhead@getalby.com"
+        }
+      },
+      {
+        "name": "Matt Christiansen Media",
+        "split": 5,
+        "keysend": {
+          "tag": "keysend",
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "status": "OK",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+          ],
+          "keysend": "mcduquesne@getalby.com"
+        },
+        "fee": true
+      }
+    ]
+
+
+    [
+      {
+        "name": "errhead",
+        "split": 94,
+        "keysend": {
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ],
+          "keysend": "errhead@getalby.com"
+        },
+        "type": "node"
+      },
+      {
+        "name": "Matt Christiansen Media",
+        "split": 5,
+        "keysend": {
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "ukPtJhg4rq1RaSdQlrYs"
+            }
+          ],
+          "keysend": "mcduquesne@getalby.com"
+        },
+        "type": "node",
+        "fee": true
+      },
+      {
+        "name": "err head (PeerTube Dev)",
+        "split": 1,
+        "keysend": {
+          "pubkey": "030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3",
+          "customData": [
+            {
+              "customKey": "696969",
+              "customValue": "LiPQ3WVvdeEFnuhcWNLy"
+            }
+          ],
+          "keysend": "errhead@getalby.com"
+        },
+        "type": "node"
+      }
+    ]
