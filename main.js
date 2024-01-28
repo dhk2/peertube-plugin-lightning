@@ -200,6 +200,16 @@ async function register({
   let invoices = [];
   //frequently called hook used for daily patronage processing
   registerHook({
+    target: 'filter:api.video-threads.list.result',
+    handler: async (result,params ) => {
+      console.log("⚡️⚡️⚡️⚡️ threads", params,result);
+    return(results);
+  }
+  })
+
+
+
+  registerHook({
     target: 'action:activity-pub.remote-video.updated',
     handler: async (video) => {
       
@@ -638,7 +648,7 @@ async function register({
         }
         if (!foundLightningAddress && account.fields) {
           for (var field of account.fields) {
-            if (field.name.toLowerCase() === "lightning address" || field.name.toLowerCase() === "lud16") {
+            if (field.name.toLowerCase() === "lightning address" || field.name.toLowerCase() === "lud16" || field.name.toLowerCase() === "⚡️") {
               foundLightningAddress = field.value;
             }
           }
@@ -2818,6 +2828,15 @@ async function register({
       console.log ("⚡️⚡️  settings",v4vsettings,"\n new v4v settings",req.body);
     }
     storageManager.storeData('v4vsettings-'+userName.replace(/\./g, "-"), req.body);
+    let newWallet = await createWalletObject(req.body.boostBack);
+    console.log ("⚡️⚡️ new wallet",newWallet,req.body);
+    if (newWallet.keysend){
+      saveWellKnown(userName, newWallet.keysend);
+    }
+    if (newWallet.lnurl){
+      saveWellKnownLnurl(userName, newWallet.lnurl);
+    }
+    storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), newWallet);
     return res.status(200).send("v4v settings updated");
   })
   router.use('/getv4v', async (req, res) => {
