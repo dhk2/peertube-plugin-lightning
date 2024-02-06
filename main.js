@@ -552,7 +552,7 @@ async function register({
         if (enableDebug) {
           console.log(`⚡️⚡️ found cached wallet data for ${req.query.address} from ${timePassed} days ago`,storedWallet)
         }
-        if (timePassed < 7){
+        if (timePassed < 1){
           return res.status(200).send(storedWallet);
         }
       }
@@ -561,7 +561,7 @@ async function register({
         console.log(`⚡️⚡️ created new wallet`,newWallet)
       }
       if (newWallet && (newWallet.lnurl || newWallet.keysend)){
-        await storageManager.storeData("lightning-" + req.query.address(/\./g, "-"), newWallet);
+        await storageManager.storeData("lightning-" + req.query.address.replace(/\./g, "-"), newWallet);
         return res.status(200).send(newWallet);
       }
       return res.status(400).send(`Error creating wallet info object for ${address}`);
@@ -593,6 +593,7 @@ async function register({
             saveWellKnownLnurl(req.query.account, newWallet.lnurl);
           }
           await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
+          
           return res.status(200).send(newWallet);
         } else {
           console.log("no stored address to update wallet");
@@ -620,6 +621,7 @@ async function register({
           }
           if (remoteWalletInfo.data.lnurl || remoteWalletInfo.data.kesend){
             console.log("⚡️⚡️verified wallet config");
+            await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
             return res.status(200).send(remoteWalletInfo.data);
           } else {
             console.log("⚡️⚡️peertube plugin response fails to pass validation");

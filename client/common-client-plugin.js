@@ -1326,9 +1326,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                   wallet = walletData.data;
                   //weblnSupport = await checkWebLnSupport();
                   if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
-                    await boost(wallet.keysend, 69, "Keysend Cross App Comment Zap", userName, userName, null, "boost", null, null, 69, this.target, accountAddress,undefined,undefined,wallet.address);
+                    await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, 69, this.target, accountAddress,undefined,undefined, wallet.address);
                   } else if (wallet.lnurl && lnurlEnabled) {
-                    await sendSats(wallet.lnurl, 69, "Cross App Comment Zap from " + userName, userName);
+                    await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
                   }
                 }
                 this.innerHTML = "⚡️";
@@ -1336,7 +1336,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             }
           } else {
             if (debugEnabled) {
-              console.log("⚡️wallet doesn't support required address type", walletData.data.address);
+              console.log("⚡️wallet doesn't support required address type, no zap button", walletData.data);
             }
           }
         } else {

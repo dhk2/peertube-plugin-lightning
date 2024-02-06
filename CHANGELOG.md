@@ -1,3 +1,11 @@
+v 5.4.3
+- cleaned up caching issues
+- synched up comment and reply zaps
+
+v 5.4.2
+- fixed some issues with wallet caching
+- fixed some logic issues with cross app comment zaps
+
 V 5.4.1
 - enable lightning bolt in fields for cross app comment zaps
 
