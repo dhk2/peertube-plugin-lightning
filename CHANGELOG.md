@@ -1,3 +1,5 @@
+v 5.4.4
+- theoretically fixed some federated wallet lookup issues.
 v 5.4.3
 - cleaned up caching issues
 - synched up comment and reply zaps

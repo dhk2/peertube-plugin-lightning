@@ -891,9 +891,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             let v4vApi = basePath + "/updatev4v";
             let result;
             try {
-              if (debugEnabled){
-                console.log("trying to update v4v settings",result,v4vApi);
-              }
+              console.log("trying to update v4v settings",v4vApi);
               result = await axios.post(v4vApi,newV4v,{ headers: await peertubeHelpers.getAuthHeader() })
             } catch (err){
               console.log("⚡️error attempting to update v4v settings", v4vApi, err);
