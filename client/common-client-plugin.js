@@ -1244,6 +1244,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   registerHook({
     target: 'action:video-watch.video-threads.loaded',
     handler: async () => {
+      if (debugEnabled) {
+        console.log("⚡️thread action unexpanded");
+      }
       let comments = document.getElementsByClassName("comment-account-fid");
       let dates = document.getElementsByClassName("comment-date");
       for (var com in comments) {
@@ -1253,11 +1256,15 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-          //console.log("⚡️no thread id", date);
+          console.log("⚡️no thread id", date);
           continue;
+        }
+        if (debugEnabled) {
+          console.log("⚡️comment data", com, comment.innerText, date.href);
         }
         let walletApi, walletData, wallet;
         if (comment.wallet) {
+          console.log("⚡️comment.wallet is already there, continuing", comment.wallet);
           continue;
         }
         if (comment.innerText) {
@@ -1265,6 +1272,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             walletApi = basePath + "/walletinfo?account=" + comment.innerText
             walletData = await axios.get(walletApi);
             comment.wallet = walletData.data
+            console.log("⚡️got comment wallet info from instance", comment.wallet);
           } catch {
             console.log("⚡️error trying to get wallet info", walletApi);
           }
@@ -1272,11 +1280,11 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
             if (debugEnabled) {
-              console.log("⚡️wallet found", walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
+              console.log("⚡️wallet found from api call", walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
             }
             let precheck = document.getElementById(thread);
             if (precheck) {
-              //console.log("⚡️found zap");
+              console.log("⚡️found zap");
               continue;
             }
 
@@ -1333,7 +1341,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           }
         } else {
           if (debugEnabled) {
-            console.log("⚡️didn't find wallet data", walletApi)
+            console.log("⚡️didn't find wallet data via api", walletApi)
           }
         }
       }
@@ -1354,7 +1362,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (date && date.href) {
           thread = date.href.split("=")[1];
         } else {
-         // console.log("⚡️no thread id", date);
+          console.log("⚡️no thread id", date);
           continue;
         }
         if (debugEnabled) {
@@ -1376,6 +1384,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             console.log("⚡️error trying to get wallet info", walletApi);
           }
         }
+
         if (walletData && walletData.data) {
           if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
             if (debugEnabled) {
@@ -1396,7 +1405,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             let grandParent = comment.parentElement.parentElement;
             let greatGrandParent = comment.parentElement.parentElement.parentElement;
             if (debugEnabled) {
-              console.log(zap);
+              console.log("⚡️comment zap data", zap);
             }
             greatGrandParent.insertBefore(zap, grandParent);
             let zapButton = document.getElementById(zap.id);
@@ -1432,7 +1441,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             }
           } else {
             if (debugEnabled) {
-              console.log("⚡️wallet doesn't support required address type", walletData.data.address);
+              console.log("⚡️wallet doesn't support required address type", walletData.data,lnurlEnabled,keysendEnabled);
             }
           }
         } else {

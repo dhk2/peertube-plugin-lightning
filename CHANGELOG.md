@@ -1,3 +1,6 @@
+V 5.4.1
+- enable lightning bolt in fields for cross app comment zaps
+
 v 5.4.0
 - enabled first version of well-known/split
 

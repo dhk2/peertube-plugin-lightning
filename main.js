@@ -203,7 +203,7 @@ async function register({
     target: 'filter:api.video-threads.list.result',
     handler: async (result,params ) => {
       console.log("⚡️⚡️⚡️⚡️ threads", params,result);
-    return(results);
+    return(result);
   }
   })
 
@@ -560,7 +560,7 @@ async function register({
       if (enableDebug) {
         console.log(`⚡️⚡️ created new wallet`,newWallet)
       }
-      if (newWallet){
+      if (newWallet && (newWallet.lnurl || newWallet.keysend)){
         await storageManager.storeData("lightning-" + req.query.address(/\./g, "-"), newWallet);
         return res.status(200).send(newWallet);
       }
@@ -569,7 +569,7 @@ async function register({
     if (req.query.account) {
       var storedWallet
       storedWallet = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
-      if (storedWallet && !req.query.refresh) {
+      if (storedWallet && !req.query.refresh && (storedWallet.lnurl || storedWallet.keySend)) {
         if (enableDebug) {
           console.log("⚡️⚡️ successfully found stored wallet data for account", req.query.account, storedWallet);
         }
@@ -604,9 +604,9 @@ async function register({
       }
       let parts = req.query.account.split("@")
       if (parts.length >1){
-        remoteWalletInfoApi = `https://${parts[1]}/plugins/lightning/router/walletinfo?account=${parts[0]}`;
+        let remoteWalletInfoApi = `https://${parts[1]}/plugins/lightning/router/walletinfo?account=${parts[0]}`;
         if (enableDebug){
-          console.log("⚡️⚡️checking for remote instance wallet info via plugin");
+          console.log("⚡️⚡️checking for remote instance wallet info via plugin",remoteWalletInfoApi);
         }
         let remoteWalletInfo;
         try {
@@ -614,8 +614,16 @@ async function register({
         } catch (e){
            console.log("⚡️⚡️ error requesting remote wallet info",e);
         }
-        if (remoteWalletInfo){
-          return res.status(200).send(remoteWalletInfo.data);
+        if (remoteWalletInfo && remoteWalletInfo.data){
+          if (enableDebug) {
+            console.log("⚡️⚡️got wallet info via  peertube api",remoteWalletInfoApi, remoteWalletInfo.data.length);
+          }
+          if (remoteWalletInfo.data.lnurl || remoteWalletInfo.data.kesend){
+            console.log("⚡️⚡️verified wallet config");
+            return res.status(200).send(remoteWalletInfo.data);
+          } else {
+            console.log("⚡️⚡️peertube plugin response fails to pass validation");
+          }
         }
       }
       if (parts.length > 1) {
@@ -641,30 +649,46 @@ async function register({
       if (accountData) {
         let account = accountData.data
         if (enableDebug) {
-          console.log("⚡️⚡️account to search for address", account);
+          console.log("⚡️⚡️account to search for address", account);///////////////
         }
+        console.log("⚡️⚡️ description to search",account.description);
         if (account.description) {
           foundLightningAddress = await findLightningAddress(account.description);
         }
+        console.log("⚡️⚡️ fields to search",account.fields);
         if (!foundLightningAddress && account.fields) {
           for (var field of account.fields) {
-            if (field.name.toLowerCase() === "lightning address" || field.name.toLowerCase() === "lud16" || field.name.toLowerCase() === "⚡️") {
+            console.log("⚡️⚡️ checking",field.name.charCodeAt(0),'⚡️'.charCodeAt(0));
+            if (field.name.toLowerCase() === "lightning address" || field.name.toLowerCase() == "lud16" || field.name.charCodeAt(0) == 9889) {
               foundLightningAddress = field.value;
+            } else {
+              console.log("⚡️⚡️ no match",` >${field.name}< != >⚡️<`);
             }
           }
         }
+        console.log("⚡️⚡️ notes to search",account.note);
         if (!foundLightningAddress && account.note) {
           foundLightningAddress = await findLightningAddress(account.note);
         }
+        if (!foundLightningAddress){
+          console.log("⚡️⚡️ no lightning address found");
+          return res.status(420).send();
+        }
+        console.log("⚡️⚡️lightning address found", foundLightningAddress);
         let newWallet = await createWalletObject(foundLightningAddress);
-        if (newWallet.keysend){
-          saveWellKnown(req.query.account, newWallet.keysend);
+        if (newWallet && (newWallet.lnurl || newWallet.keysend)){
+          if (newWallet.keysend){
+            saveWellKnown(req.query.account, newWallet.keysend);
+          }
+          if (newWallet.lnurl){
+            saveWellKnownLnurl(req.query.account, newWallet.lnurl);
+          }
+          console.log("⚡️⚡️wallet being saved and returned", newWallet);///////////////
+          await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
+          return res.status(200).send(newWallet);
+        } else {
+          console.log("⚡️⚡️new wallet failed validation", newWallet);///////////////
         }
-        if (newWallet && newWallet.lnurl){
-          saveWellKnownLnurl(req.query.account, newWallet.lnurl);
-        }
-        await storageManager.storeData("lightning-" + req.query.account.replace(/\./g, "-"), newWallet);
-        return res.status(200).send(newWallet);
       }
     }
   })
@@ -1099,7 +1123,7 @@ async function register({
             }
             console.log("live remote split",liveRemoteSplit);
           } catch (e){
-            console.log("erorred getting remote split from ",parts[1],e);
+            console.log("erorred getting remote split from ",parts[1]);
           }
         } else {
           console.log("matched domaines",parts[1],hostDomain);
@@ -3647,6 +3671,7 @@ async function register({
         }
       }
     }
+    console.log("⚡️⚡️returning wallet data", address, walletData);
     return walletData;
   }
   async function refreshAlbyToken(albyData,userName) {
