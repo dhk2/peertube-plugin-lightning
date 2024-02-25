@@ -54,19 +54,22 @@ function register({ registerHook }) {
                 let zapButton=document.getElementById("zap-send");
                 let zapHandle = document.getElementById("zap-from")
                 zapButton.onclick = async function () {
-                    
+                    let message= document.getElementById('zap-message').value
                     let creator = video.channel.name + "@" + video.channel.host;
                     let wallet = await getWalletInfo(creator);
+                    if (!wallet){
+                        console.log("unable to get wallet info for ",creator);
+                        message.innerText = `Unable to send boost to ${creator}, they don't appear to have a wallet configured`;
+                    }
                     let tb =  document.getElementById('zap-sats').value;
                     console.log(tb);
                     let totalBoost=parseInt(tb);
                     console.log(totalBoost);
                     let from = document.getElementById('zap-from').value;
-                    let message= document.getElementById('zap-message').value
                     for (var split of wallet){
-                        zapButton.innerText="sending";
+                        zapButton.innerText="sending split "+totalBoost;
                         let splitAmount = (totalBoost*split.split)/100
-                        console.log("trying ",splitAmount,split);
+                        console.log("trying ",totalBoost,split.split,splitAmount);
                         if (split.keysend){
                             console.log("trying keysend",split);
                             await boost(split,splitAmount,totalBoost,from,message);
@@ -106,7 +109,7 @@ function register({ registerHook }) {
                     value_msat: amount * 1000,
                     value_msat_total: totalAmount * 1000,
                     app_name: "PeerTube",
-                    app_version: "4.2.0",
+                    app_version: "5.4.8",
                     name: walletData.name,
                 };
                 boost.message = message;
@@ -174,6 +177,7 @@ function register({ registerHook }) {
                         walletData = await response.json();
                     } else {
                         console.log("response not ok", response);
+                        return;
                     }
                 } catch (err) {
                     console.log("client unable to fetch wallet data\n", walletApi, err);

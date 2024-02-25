@@ -1,5 +1,24 @@
+v 5.4.9
+- fixed error with nonlogged in users sending boosts
+
+v 5.4.8
+- added error messaging to embedded player unable to get split for creator
+
+v 5.4.7
+- fixed issue with podcast2/lightning channelguid conflict
+ 
+v 5.4.6
+- various wallet caching fixes
+- changes in way zap buttun injected into comment header
+- more debug information added
+
+v 5.4.5
+- fixed federated wallet lookup bug exposed by 5.4.4
+- clarified split creation dialog
+
 v 5.4.4
 - theoretically fixed some federated wallet lookup issues.
+
 v 5.4.3
 - cleaned up caching issues
 - synched up comment and reply zaps
