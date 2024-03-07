@@ -6,7 +6,11 @@ function register({ registerHook, peertubeHelpers }) {
             const { notifier } = peertubeHelpers;
             const basePath = await peertubeHelpers.getBaseRouterRoute();
             let uuidFromUrl = (window.location.href).split("/").pop();
-            console.log("url",window.location.href);
+            console.log("⚡️⚡️ url for page",uuidFromUrl,window.location.href);
+            //upload dialog doesn't need to be able to set splitkit id before creation of video
+            if (uuidFromUrl == `upload#upload`){
+                return;
+            }
             var apiCall = "/api/v1/videos/" + uuidFromUrl;
             let videoData;
             try {
@@ -49,10 +53,10 @@ function register({ registerHook, peertubeHelpers }) {
             }
             if (videoData && videoData.data && videoData.data.isLive){
                 html = html+ `<br><label for="livevalue">Live Value URL</label><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="livevalue" value="${liveValue}">`;
-                html = html +`<button id="update-live-value">Update Live Value</button>`;
+                html = html +`<button id="update-live-value" class="peertube-button orange-button ng-star-inserted">Update Live Value</button>`;
             } else {
                 html = html+ `<br><label for="splitkit">Split kit import ID</label><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="splitkit" value="${splitKitId}">`;
-                html = html +`<button id="update-split-kit">Update Split Kit Import ID</button>`;
+                html = html +`<button id="update-split-kit" class="peertube-button orange-button ng-star-inserted">Update Split Kit Import ID</button>`;
             }
             await addPanel(html);
             let updateButton = document.getElementById("update-live-value");

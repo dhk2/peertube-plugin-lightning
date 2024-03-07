@@ -1,3 +1,6 @@
+v 5.5.0
+- fixed split kit id field edit showing up on video upload dialog
+
 v 5.4.9
 - fixed error with nonlogged in users sending boosts
 
