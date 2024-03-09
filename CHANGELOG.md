@@ -1,3 +1,6 @@
+v 5.5.1
+- force complete item level value block when using VTS
+
 v 5.5.0
 - fixed split kit id field edit showing up on video upload dialog
 

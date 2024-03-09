@@ -378,18 +378,22 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
-      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params);
+      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params.video.VideoChannel,params.video.VideoChannel.Actor);
      // console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
       if (liveItem) {
       }
       var videoUuid = params.video.dataValues.uuid;
       var storedSplitData = await getSavedSplit(videoUuid);
-      let remoteSplitData = await getRemoteSplit(videoUuid);
-      if (remoteSplitData && !storedSplitData){
-        console.log(console.log("⚡️⚡️⚡️⚡️ remote split without stored split, param data",params,params.video.dataValues.videoChannel));
+      if (!storedSplitData){
+        storedSplitData = await getSavedSplit(params.video.VideoChannel.Actor.preferredUsername);
       }
+      let remoteSplitData = await getRemoteSplit(videoUuid);
+      /*if (remoteSplitData && !storedSplitData){
+        console.log(console.log("⚡️⚡️⚡️⚡️ remote split without stored split, param data",params,params.video.videoChannel));
+      }
+      */
       if (remoteSplitData && !storedSplitData){
-        console.log("⚡️⚡️⚡️⚡️ need to get channel split because apps are whack",params.video.videoChannel.dataValues);
+        console.log("⚡️⚡️⚡️⚡️ need to get channel split because apps are whack",params.video.videoChannel);
       }
       var blocks = []
       //var videoJSON = await peertubeHelpers.videos.loadByIdOrUUID(videoUuid);
