@@ -1,3 +1,6 @@
+v 5.5.2
+- Fix fallback to QR code if no other option available
+
 v 5.5.1
 - force complete item level value block when using VTS
 

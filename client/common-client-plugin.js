@@ -2263,7 +2263,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     if (weblnSupport<1){
       weblnSupport = await checkWebLnSupport();
       if (weblnSupport<1){
-        notifier.error("no wallet authorized and no browser extension, unable to proceed");
+        //disabled for fallback support
+        //notifier.error("no wallet authorized and no browser extension, unable to proceed");
        // return;
       }
     }
@@ -2289,13 +2290,14 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         }
       }
     }
+    //disabled for fallback 
     if (result) {
       //
       //closeModal();
-      return;
+      //return;
     } else {
-      notifier.error("error attempting send " + tipVerb + " to " + displayName);
-      return;
+      //notifier.error("error attempting send " + tipVerb + " to " + displayName);
+      //return;
     }
   }
   async function makeQrDialog(invoice,name,amount) {
@@ -2313,27 +2315,29 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let html = "<h1>No WebLN Found</h1>" + navigator.userAgentData.mobile + "<br>" +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
-      `<br> If you have a wallet you can scan this qr code, open a local wallet, or copy/paste the ` +
-      `provided code to a wallet` +
+      `<br> If you have an Alby wallet you can authorize it on the <a href="/p/lightning/settings">v4V settings page</a> to improve this process as well. If you have a wallet you can scan this qr code` +
       `<center><div id="qr-holder"></canvas></div>` +
       `<a href="lightning:` + invoice + `"><button type="button" id="launch" name="launch" class="peertube-button orange-button ng-star-inserted">open local wallet</button></a>` +
       `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button></center>`;
 
     let modal = (document.getElementsByClassName('modal-body'))
     if (!document.getElementById('qr-holder')){
-      await peertubeHelpers.showModal({
-        title: 'zap',
-        content: "",
-        close: true,
-        // confirm: { value: 'X', action: () => { } },
-      })
       modal = (document.getElementsByClassName('modal-body'))
       if (modal[0]) {
         modal[0].innerHTML = html;
       } else {
-        console.log("⚡️unable to find new modal window");
-        return;
+        try{
+          await peertubeHelpers.showModal({
+            title: 'zap',
+            content: html,
+            close: true,
+            // confirm: { value: 'X', action: () => { } },
+          })
+        } catch (err) {
+          console.log("⚡️errjor opening modal");
+        }
       }
+
     } else {
       if (debugEnabled) {
         console.log("⚡️adding qr image to existing", invoice);
