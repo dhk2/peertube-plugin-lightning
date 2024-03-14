@@ -275,7 +275,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
  //                 result = await boost(wallet.keysend, amount, null, boostFrom, video.channel.displayName, video.name, "stream", video.uuid, video.channel.name + "@" + video.channel.host, video.channel.name, null, streamAmount, wallet.name, accountAddress,remoteFeed,remoteItem);
                   result = await boost(wallet.keysend,amount,"Streaming",userName,video.channel.dispayName,video.name,"stream",video.uuid,undefined,streamAmount,wallet.name,accountAddress,remoteFeed,remoteItem,wallet.address)
                 } else if (wallet.lnurl && lnurlEnabled) {
-                  result = await sendSats(wallet.lnurl, amount, "Streaming Sats", boostFrom);
+                  result = await sendSats(wallet, amount, "Streaming Sats", boostFrom);
                   //walletData = await refreshWalletInfo(walletData.address);
                 }
                 if (debugEnabled) {
@@ -348,7 +348,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               tipButton.textContent = "Boosting...";
               await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
               tipButton.textContent = oldValue
-              closeModal();
+              //await closeModal();
             }
           }
         }
@@ -1556,7 +1556,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     if (debugEnabled) {
       console.log("⚡️webln enabled:", supported);
     }
-    let urlCallback = encodeURI(walletData.callback);
+    let urlCallback = encodeURI(walletData.lnurl.callback);
     let urlComment = encodeURIComponent(comment);
     let invoiceApi = basePath + "/getinvoice?callback=" + urlCallback + "&amount=" + amount;
     if (comment != "") {
@@ -1577,8 +1577,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         doConfetti(amount);
         return result;
       } else {
-        makeQrDialog(invoice);
-        return;
+        await makeQrDialog(invoice,walletData.name,amount);
+        //return true;
       }
     } catch (err) {
       notifier.error("failed sending " + tipVerb + "\n" + err.message);
@@ -2264,7 +2264,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       weblnSupport = await checkWebLnSupport();
       if (weblnSupport<1){
         notifier.error("no wallet authorized and no browser extension, unable to proceed");
-        return;
+       // return;
       }
     }
     lastTip = amount;
@@ -2283,21 +2283,22 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         if (debugEnabled) {
           console.log("⚡️sending lnurl boost", wallet.lnurl, splitAmount, message, from);
         }
-        result = await sendSats(wallet.lnurl, splitAmount, message, from);
+        result = await sendSats(wallet, splitAmount, message, from);
         if (!result) {
           console.log("⚡️error sending lnurl boost", wallet.lnurl, splitAmount, message, from);
         }
       }
     }
     if (result) {
-      closeModal();
+      //
+      //closeModal();
       return;
     } else {
       notifier.error("error attempting send " + tipVerb + " to " + displayName);
       return;
     }
   }
-  async function makeQrDialog(invoice) {
+  async function makeQrDialog(invoice,name,amount) {
     if (debugEnabled) {
       console.log("⚡️making qr dialog", invoice);
     }
@@ -2319,10 +2320,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       `<button type="button" id="copy" name="copy" class="peertube-button orange-button ng-star-inserted">Copy to clipboard</button></center>`;
 
     let modal = (document.getElementsByClassName('modal-body'))
-
-    if (modal[0]) {
-      modal[0].innerHTML = html;
-    } else {
+    if (!document.getElementById('qr-holder')){
       await peertubeHelpers.showModal({
         title: 'zap',
         content: "",
@@ -2336,6 +2334,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         console.log("⚡️unable to find new modal window");
         return;
       }
+    } else {
+      if (debugEnabled) {
+        console.log("⚡️adding qr image to existing", invoice);
+      }
     }
     var qr = await new QRious({
       element: document.querySelector('qr'),
@@ -2344,7 +2346,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     });
     let qrHolder = document.getElementById('qr-holder')
     if (qrHolder) {
+      let qrLabel =  document.createElement("div");
+      qrLabel.innerHTML = `<h2>${amount/1000} for ${name}<p></h2>`; 
       qrHolder.appendChild(qr.image);
+      qrHolder.appendChild(qrLabel);
     }
     let copyButton = document.getElementById('copy');
     if (copyButton) {
@@ -2751,6 +2756,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
   }
   async function closeModal() {
+    if (debugEnabled) {
+      console.log("⚡️closing modal");
+    }
     let butts = document.getElementsByClassName("ng-star-inserted")
     for (var butt of butts) {
       let iconName = butt.getAttribute("iconname");
@@ -2779,7 +2787,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         channelUpdate[0].appendChild(newPanel);
         panelHack = newPanel;
         await assignEditButtons(updateResult, channel);
-        closeModal();
+        await closeModal();
       }
     }
     let removeSplit = document.getElementById("remove-split")
@@ -2792,7 +2800,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         channelUpdate[0].appendChild(newPanel);
         panelHack = newPanel;
         await assignEditButtons(removeResult, channel);
-        closeModal();
+        await closeModal();
       }
     }
     let manualKeysend = document.getElementById("manualkeysend");
@@ -3184,10 +3192,23 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let streamAmountDescription = `Amount of sats to stream every minute of content. Dollar equivelency will change over time.`
     let boostAmountDescription = `Amount of SATS for ${tipVerb}`
     let fromDescription = `Name to use when sending SATs`
+    let lnurlAvailable, keysendAvailable, authorizedAddress,v4vStatus;
     if (debugEnabled){
       console.log("settings when making page",v4vSettings,accountAddress,boostFrom,boostAmount,streamEnabled,streamAmount);
+      console.log("settings when making page 2",weblnSupport,authorizationChecked,walletAuthorized);
     }
-    let html = `<div id="v4v-settings"><center><h1>Value 4 Value Settings</h1></center><table>
+    try {
+      await webln.enable()
+      if (typeof webln.keysend === 'function') {
+          v4vStatus='⚡️✅ webln with keysend support';
+      } else {
+          v4vStatus = "⚡️✅ webln supported ⛔️ keysend not supported";
+      }
+    } catch {
+        v4vStatus = "⚡️⛔️ webln not supported";
+    }
+    let html = `<div id="v4v-settings"><center><h1>Value 4 Value Settings</h1>
+      <h2>${v4vStatus}</h2><table>
       <tr><td><h4>Wallet</h4><td><td><b>Configure lightning wallets</b></td></tr>
       <tr><td><td>BoostBack:<td><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
       </td><td>${replyDescription}
@@ -3350,7 +3371,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
                 if ((wallet.keysend && (weblnSupport > 1) && keysendEnabled) || walletAuthorized) {
                   await boost(wallet.keysend, 69, "Keysend Zap: " + link, userName, userName, null, "boost", null, null, 69, this.target, accountAddress,undefined,undefined, wallet.address);
                 } else if (wallet.lnurl && lnurlEnabled) {
-                  await sendSats(wallet.lnurl, 69, "LNURL Zap: " + link, userName);
+                  await sendSats(wallet, 69, "LNURL Zap: " + link, userName);
                 }
               }
               this.innerHTML = "⚡️";
