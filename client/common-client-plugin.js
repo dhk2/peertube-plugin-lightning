@@ -13,6 +13,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
   const milliday = 24*60*60*1000;
   let tipVerb = "tip";
   let keysendEnabled, lnurlEnabled, legacyEnabled, debugEnabled, rssEnabled;
+  //somehow this got hosed, TODO fix reading setting
+  debugEnabled=true
   let v4vSettings;
   let streamAmount = 69;
   let boostAmount = 69;   
@@ -1005,6 +1007,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           console.log("streamButton settings",streamEnabled,autoplay);
         }
       } 
+      addZapButtons();
     }
   })
   /*
@@ -1223,7 +1226,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       softwareVersion = versionResult.data;
     }
   } catch (err) {
-    console.log("⚡️error getting software version", basePath, err);
+    console.log("⚡️software init error getting software version", basePath, err);
   }
   registerHook({
     target: 'action:auth-user.logged-out',
@@ -1652,7 +1655,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         version = versionResult.data;
       }
     } catch (err) {
-      console.log("⚡️error getting software version", basePath, err);
+      console.log("⚡️boost error getting software version", basePath, err);
     }
     var boost = {
       action: type,
@@ -3295,8 +3298,13 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
   }
   async function addZapButtons(){
+    debugEnabled = true;
+    if (debugEnabled) {
+      console.log("⚡️adding zap buttons");
+    }
     let comments = document.getElementsByClassName("comment-account-fid");
     let dates = document.getElementsByClassName("comment-date");
+    console.log("\n comments\n",comments,"\n dates \n",dates)
     for (var com in comments) {
       let comment = comments[com];
       let date = dates[com];
@@ -3304,16 +3312,16 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (date && date.href) {
         thread = date.href.split("=")[1];
       } else {
-        console.log("⚡️no thread id", date);
+        //console.log("⚡️adding zap failed, no thread id", date);
         continue;
       }
       if (debugEnabled) {
-        console.log("⚡️comment data", com, comment.innerText, date.href);
+        console.log("⚡️adding zap comment data", com, comment.innerText, date.href);
       }
       let walletApi, walletData, wallet;
       if (comment.wallet) {
         if (debugEnabled) {
-          console.log("⚡️wallet already set for comment", comment.wallet);
+          console.log("⚡️no need to add zap to comment, wallet already set", comment.wallet);
         }
         continue;
       }
@@ -3321,13 +3329,22 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         try {
           walletApi = basePath + "/walletinfo?account=" + comment.innerText
           walletData = await axios.get(walletApi);
-          comment.wallet = walletData.data
+          if (!comment.wallet){
+            comment.wallet = walletData.data
+          } else {
+            if (debugEnabled) {
+              console.log("⚡️no need to add zap to comment, last ditch check shows wallet already set", comment.wallet);
+            }
+          }
+          if (debugEnabled) {
+            console.log("⚡️adding zap, got wallet data", comment.wallet);
+          }
         } catch {
           console.log("⚡️error trying to get wallet info", walletApi);
         }
       }
-
-      if (walletData && walletData.data) {
+      //tag checking added to prevent false positive on cached data that's happening to remote users
+      if (walletData && walletData.data && walletData.data.keysend && walletData.data.keysend.tag) {
         if ((walletData.data.keysend && keysendEnabled) || (walletData.data.lnurl && lnurlEnabled)) {
           if (debugEnabled) {
             console.log("⚡️zap compatibility matching",walletData.data.keysend, keysendEnabled, walletData.lnurl, lnurlEnabled)
@@ -3346,11 +3363,20 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           zap.style = "cursor:pointer";
           let grandParent = comment.parentElement.parentElement;
           let greatGrandParent = comment.parentElement.parentElement.parentElement;
+          let zapButton = document.getElementById(zap.id);
+          if (zapButton){
+            if (debugEnabled) {
+              console.log("⚡️no need to add zap to comment, last ditch check shows wallet already set", comment.wallet);
+            }
+            continue;
+          }
+
+          
           if (debugEnabled) {
-            console.log("⚡️comment zap data", zap);
+            console.log("⚡️adding zap data to comment", zap);
           }
           greatGrandParent.insertBefore(zap, grandParent);
-          let zapButton = document.getElementById(zap.id);
+          zapButton = document.getElementById(zap.id);
           //console.log("⚡️zapButton",zapButton);
           if (zapButton) {
             zapButton.onclick = async function () {

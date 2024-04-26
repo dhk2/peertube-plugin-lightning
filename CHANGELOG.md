@@ -1,3 +1,8 @@
+v 5.5.3
+- cleaned up intermittant cross app comment bugs
+- fixed remote split caching
+- cleaned up wallet caching issues
+
 v 5.5.2
 - Fix fallback to QR code if no other option available
 

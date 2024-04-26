@@ -1,7 +1,7 @@
 {
   "name": "peertube-plugin-lightning",
   "description": "adds bitcoin lighting integration, allows a variety of V4V support options for creators and hosts using WebLN, more advanced support for Alby wallets. ",
-  "version": "5.5.2",
+  "version": "5.5.3",
   "author": "DHK2",
   "license": "AGPL-3.0",
   "bugs": "https://github.com/dhk2/peertube-plugin-lightning/issues",
@@ -58,6 +58,7 @@
     "esbuild-plugin-external-global": "^1.0.1"
   },
   "dependencies": {
+    "@getalby/sdk": "^3.4.3",
     "axios": "^0.27.2",
     "debug": "^4.3.4",
     "fs": "^0.0.1-security",

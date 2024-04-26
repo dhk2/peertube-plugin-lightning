@@ -8,6 +8,7 @@ const { waitForDebugger } = require('inspector');
 var v5 = require('uuidv5');
 const io = require("socket.io-client");
 const { enabled } = require('debug/src/browser');
+const { NostrWebLNProvider } = require("@getalby/sdk");
 async function register({
   registerHook,
   registerSetting,
@@ -160,7 +161,7 @@ async function register({
       console.log("⚡️⚡️⚡️⚡️ error attempting to log bot on",err);
     }
   }
-  console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug);
+  console.log("⚡️⚡️⚡️⚡️ Lightning plugin started", enableDebug,version);
   let hostParts= base.split('//');
   let hostDomain = hostParts.pop();
   if (enableDebug) {
@@ -205,6 +206,7 @@ async function register({
     return(result);
   }
   })
+
   registerHook({
     target: 'action:activity-pub.remote-video.updated',
     handler: async (video) => {
@@ -378,7 +380,7 @@ async function register({
     handler: async (result, params) => {
       // { video: VideoModel, liveItem: boolean }
       const { video, liveItem } = params
-      console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params.video.VideoChannel,params.video.VideoChannel.Actor);
+      //console.log("⚡️⚡️⚡️⚡️ initial video values ⚡️⚡️⚡️⚡️",result,params.video.VideoChannel,params.video.VideoChannel.Actor);
      // console.log("⚡️⚡️⚡️⚡️ initial video values 2⚡️⚡️⚡️⚡️",params,params.video.VideoChannel.dataValues);
       if (liveItem) {
       }
@@ -423,12 +425,12 @@ async function register({
       }
       let remoteSplitBlock= [];
       if (remoteSplitData){
-        console.log("⚡️⚡️⚡️⚡️ remote split data",remoteSplitData);
+        //console.log("⚡️⚡️⚡️⚡️ remote split data",remoteSplitData);
         for (var valueSplit of remoteSplitData.blocks){
           if (!valueSplit){
             continue;
           }
-          console.log("⚡️⚡️⚡️⚡️ remote split ",valueSplit.title,valueSplit.feedGuid,valueSplit.itemGuid,valueSplit.duration,valueSplit.startTime)
+         //console.log("⚡️⚡️⚡️⚡️ remote split ",valueSplit.title,valueSplit.feedGuid,valueSplit.itemGuid,valueSplit.duration,valueSplit.startTime)
           if (valueSplit.startTime && valueSplit.duration){
             let remoteSplit ={};
             remoteSplit.name = "podcast:valueTimeSplit"
@@ -452,7 +454,7 @@ async function register({
             blocks.push(remoteSplit);
           }
         }
-        console.log("⚡️⚡️⚡️⚡️ remote split",blocks);
+        //console.log("⚡️⚡️⚡️⚡️ remote split",blocks);
       }
       let customObjects = [];
       let valueBlock
@@ -466,8 +468,8 @@ async function register({
           },
           value: blocks,
         }
-        console.log("⚡️⚡️ value block",JSON.stringify(valueBlock, null, 4));
-        console.log("⚡️⚡️ blocks",JSON.stringify(blocks, null, 4));
+        //console.log("⚡️⚡️ value block",JSON.stringify(valueBlock, null, 4));
+        //console.log("⚡️⚡️ blocks",JSON.stringify(blocks, null, 4));
         customObjects.push(valueBlock);
         dirtyHack=valueBlock;
       }
@@ -587,6 +589,7 @@ async function register({
         if (enableDebug){
           console.log(`⚡️⚡️ storing updatyed wallet`,account,newWallet);
         }
+        newWallet.retrieved = Date.now();
         await storageManager.storeData("lightning-" + account.replace(/\./g, "-"), newWallet);
         return res.status(200).send(newWallet);
       } else {
@@ -619,6 +622,7 @@ async function register({
           }
           if (remoteWalletInfo.data.lnurl || remoteWalletInfo.data.keysend){
             console.log("⚡️⚡️verified wallet config has some lightning data, saving");
+            remoteWalletInfo.data.retrieved = Date.now();
             await storageManager.storeData("lightning-" + account.replace(/\./g, "-"), remoteWalletInfo.data);
             return res.status(200).send(remoteWalletInfo.data);
           } else {
@@ -693,6 +697,7 @@ async function register({
             saveWellKnownLnurl(account, newWallet.lnurl);
           }
           console.log("⚡️⚡️wallet being saved and returned", newWallet);///////////////
+          newWallet.retrieved = Date.now();
           await storageManager.storeData("lightning-" + account.replace(/\./g, "-"), newWallet);
           return res.status(200).send(newWallet);
         } else {
@@ -809,6 +814,26 @@ async function register({
       let wow = `Statuses:\nid:${client_id}\nlogon enabled:${enableAlbyAuth}\nkey length:${client_secret.length}`;
       return res.status(200).send(wow);
     }
+    if (req.query.nwc){
+      const authClient = new auth.OAuth2User({
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        callback: "http://localhost:8080/callback",
+        scopes: [
+          "invoices:read",
+          "account:read",
+          "balance:read",
+          "invoices:create",
+          "invoices:read",
+          "payments:send",
+        ],
+        token: {
+          access_token: undefined,
+          refresh_token: undefined,
+          expires_at: undefined,
+        }, // initialize with existing token
+      });
+    }
     return res.status(200).send(dirtyHack);
   });
   router.use('/setWallet', async (req, res) => {
@@ -891,10 +916,15 @@ async function register({
     res.set('location', redirect);
     return res.status(301).send()
   })
+  router.use(`/nwcallback`, async (req,res) => {
+    console.log("⚡️⚡️ callback from nwc", req.query);
+
+    return res.status(301).send()
+  })
   router.use('/getinvoice', async (req, res) => {
     //  console.log(req);
     if (enableDebug) {
-      console.log("⚡️⚡️ getting lnurl invoice", req.query);
+      console.log("⚡️⚡️ getting lnurl invoice", req.query,req.body);
     }
     if (!enableLnurl) {
       return res.status(503).send();
@@ -1231,8 +1261,32 @@ async function register({
       if (enableDebug){
         console.log("⚡️⚡️ found stored channel split",storedSplitData);
       }
-      if (storedSplitData) {
-        return res.status(200).send(storedSplitData);
+      if (Array.isArray(storedSplitData)){
+        if (storedSplitData && storedSplitData[0].retrieved){
+          if (req.query.channel.indexOf("@")>1){
+            let timePassed = (now - storedSplitData[0].retrieved)/milliday;
+            let now = Date.now();
+            let cacheDate = new Date(storedSplitData[0].retrieved);
+            if (enableDebug){
+              console.log(`⚡️⚡️ saved remote split ${timePassed} days ago on ${cacheDate.toLocaleDateString()}`);
+            }
+            if (timePassed < 1){
+              if (enableDebug){
+                console.log(`⚡️⚡️ returning cached split`,storedSplitData);
+              }
+              return res.status(200).send(storedSplitData);
+            } else {
+              if (enableDebug){
+                console.log(`⚡️⚡️ saved wallet data expired after ${timePassed} days`);
+              }
+            }
+          }
+          return res.status(200).send(storedSplitData);
+        } else {
+          console.log("missing retrieve date",storedSplitData[0])
+          storedSplitData[0].retrieved = Date.now();
+          saveSplit(req.query.channel,storedSplitData);
+        }
       }
       console.log("⚡️⚡️ failed to get channel stored split",req.query.channel);
     }
@@ -1367,7 +1421,7 @@ async function register({
           console.log("⚡️⚡️ found cached channel split",apiCall,remoteSplit.data);
         }
       } catch {
-        console.log("⚡️⚡️failed to get channel onlylightning split", req.query.channel);
+        console.log("⚡️⚡️failed to get channel only lightning split", req.query.channel);
       }
       if (storedSplitData) {
         let expired=false;
@@ -2401,30 +2455,39 @@ async function register({
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ not a boostagram ", suid);
       return res.status(200).send(); 
     }
-    let tip = req.body.fiat_in_cents.toString();
-    if (simpletipToken && tip > 1000) {
-
+    let tipSat = (req.body.boostagram.value_msat_total/1000).toString();
+    let tipMultiplier = (req.body.boostagram.value_msat_total/req.body.boostagram.value_msat);
+    let tipCents = req.body.fiat_in_cents;
+    let fullTipCents = (tipCents*tipMultiplier).toFixed();
+    let tip = tipCents*tipMultiplier
+    if (enableDebug) {
+      console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents);
+    }
+    if (simpletipToken && tip > 100) {
 
       let simpleTip = {
         "Source": simpletipToken,
         "SourceID": req.body.identifier,
         "UserName": req.body.payer_name,
         "TextContent": req.body.boostagram.message,
-        "PaymentAmount": tip
+        "PaymentAmount": fullTipCents
       }
-      console.log("simple tip ", simpleTip)
+      console.log("⚡️⚡️simple tip ", simpleTip)
       let tipApi;
       if (simpletipToken) {
         tipApi = "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
       } else {
         tipApi = base + "/plugins/lightning/router/dirtyhack"
-      } let simpleTipResult
+      }
+      let simpleTipResult
       try {
         simpleTipResult = await axios.post(tipApi, simpleTip);
       } catch (err) {
         console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed", tipApi, err.response.data);
       }
       console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip", simpleTipResult);
+    } else {
+      console.log("⚡️⚡️ no simpletip", simpletipToken,tip);
     }
     if (botToken && req.body.boostagram && req.body.boostagram.message) {
       let source = "";
