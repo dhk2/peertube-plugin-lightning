@@ -1,3 +1,9 @@
+v 5.5.5
+-fixed issues with podcast2 lightning interaction
+
+v 5.5.4
+- fixed simple tip updates
+
 v 5.5.3
 - cleaned up intermittant cross app comment bugs
 - fixed remote split caching

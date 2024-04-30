@@ -494,6 +494,7 @@ async function register({
       return result.concat(customObjects);
     }
   })
+  /*
   registerHook({
     target: 'action:api.video.updated',
     handler: ({ video, body }) => {
@@ -501,14 +502,14 @@ async function register({
         console.log("⚡️⚡️updating video\n",body.pluginData);
       }
       //if (!body.pluginData) return
-
-      const seasonNode = body.pluginData['seasonnode'];
-      const seasonName = body.pluginData['seasonname'];
-      const episodeNode = body.pluginData['episodenode'];
-      const episodeName = body.pluginData['episodename'];
-      const chapters = body.pluginData['chapters'];
-      const itemTxt = body.pluginData['itemtxt'];
-
+      if (body.pluginData){
+        const seasonNode = body.pluginData['seasonnode'];
+        const seasonName = body.pluginData['seasonname'];
+        const episodeNode = body.pluginData['episodenode'];
+        const episodeName = body.pluginData['episodename'];
+        const chapters = body.pluginData['chapters'];
+        const itemTxt = body.pluginData['itemtxt'];
+      }
       //if (!value) return
       try {
         if (seasonNode){
@@ -535,7 +536,7 @@ async function register({
       return;
     }
   })
-
+*/
   const router = getRouter();
   //TODO normalize behavior for account and address
   router.use('/walletinfo', async (req, res) => {
@@ -2459,6 +2460,7 @@ async function register({
     let tipMultiplier = (req.body.boostagram.value_msat_total/req.body.boostagram.value_msat);
     let tipCents = req.body.fiat_in_cents;
     let fullTipCents = (tipCents*tipMultiplier).toFixed();
+    let fullTipDollars = fullTipCents/100;
     let tip = tipCents*tipMultiplier
     if (enableDebug) {
       console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents);
@@ -2470,7 +2472,7 @@ async function register({
         "SourceID": req.body.identifier,
         "UserName": req.body.payer_name,
         "TextContent": req.body.boostagram.message,
-        "PaymentAmount": fullTipCents
+        "PaymentAmount": fullTipDollars
       }
       console.log("⚡️⚡️simple tip ", simpleTip)
       let tipApi;
