@@ -344,13 +344,17 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           splitData = await makeTipDialog(displayName, splitData);
           let tipButton = document.getElementById('modal-satbutton');
           let oldValue;
+          let tipResult;
           if (tipButton) {
             tipButton.onclick = async function () {
               oldValue = tipButton.textContent;
               tipButton.textContent = "Boosting...";
-              await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
+              tipResult = await buildTip(splitData, displayName, episodeName, episodeGuid, itemID);
               tipButton.textContent = oldValue
-              //await closeModal();
+              console.log("⚡️ tipresult ", tipResult)
+              if (tipResult){
+                closeModal();
+              }
             }
           }
         }
@@ -1903,10 +1907,12 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         } catch (err) {
           console.log("⚡️error attempting to send sats using dynamic address via webln", err);
           notifier.error("⚡ not sent via integrated wallet");
+          await makeQrDialog(invoice,walletData.name,amount);
           return;
         }
       } else {
         notifier.error(`⚡ unable to ${tipVerb} via webLN`);
+        await makeQrDialog(invoice,walletData.name,amount);
         return;
       }
   }
@@ -2293,6 +2299,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         }
       }
     }
+    return result;
     //disabled for fallback 
     if (result) {
       //
@@ -2315,7 +2322,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     }
     */
     //console.log(navigator.userAgent);
-    let html = "<h1>No WebLN Found</h1>" + navigator.userAgentData.mobile + "<br>" +
+    let html = "<h1>No WebLN Found</h1>"  +
       `We were unable to find a WebLN provider in your browser to automate the ` + tipVerb +
       ` process. This is much easier if you get the <a href="https://getalby.com">Alby browser plug-in</a>` +
       `<br> If you have an Alby wallet you can authorize it on the <a href="/p/lightning/settings">v4V settings page</a> to improve this process as well. If you have a wallet you can scan this qr code` +

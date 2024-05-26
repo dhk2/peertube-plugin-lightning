@@ -373,7 +373,6 @@ async function register({
       return;
     }
   })
-
   // For item level value tags
   registerHook({
     target: 'filter:feed.podcast.video.create-custom-tags.result',
@@ -406,7 +405,7 @@ async function register({
           newBlock.name = split.name;
           newBlock.type = "node";
           if (split.address && split.address !="custom"){
-            newBlock.lightning = split.address
+            newBlock.keysend = split.address
           }
           newBlock.split = split.split;
           if (split.fee) {
@@ -448,7 +447,7 @@ async function register({
               }
               let hack = [];
               hack.push(remoteItem);
-              console.log("hack",hack);
+              //console.log("hack",hack);
               remoteSplit.value = hack;
             }
             blocks.push(remoteSplit);
@@ -2463,9 +2462,9 @@ async function register({
     let fullTipDollars = fullTipCents/100;
     let tip = tipCents*tipMultiplier
     if (enableDebug) {
-      console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents);
+      console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents,fullTipDollars,tip);
     }
-    if (simpletipToken && tip > 100) {
+    if (simpletipToken && tip > 1000) {
 
       let simpleTip = {
         "Source": simpletipToken,
@@ -2477,6 +2476,7 @@ async function register({
       console.log("⚡️⚡️simple tip ", simpleTip)
       let tipApi;
       if (simpletipToken) {
+
         tipApi = "https://simpletipapi.azurewebsites.net/Nugget/ExternalNugget"
       } else {
         tipApi = base + "/plugins/lightning/router/dirtyhack"
@@ -2484,6 +2484,7 @@ async function register({
       let simpleTipResult
       try {
         simpleTipResult = await axios.post(tipApi, simpleTip);
+        console.log("⚡️⚡️ sending simple tip alert", simpleTip)
       } catch (err) {
         console.log("⚡️⚡️\n\n\n\n\n⚡️⚡️ simple tip failed", tipApi, err.response.data);
       }

@@ -1,3 +1,9 @@
+v 5.5.7
+- cleaned up logging issues
+
+v 5.5.6
+- fixed closemodal interaction with fallback qr codes
+
 v 5.5.5
 -fixed issues with podcast2 lightning interaction
 
