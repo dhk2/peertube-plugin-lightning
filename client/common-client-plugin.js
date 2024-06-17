@@ -68,6 +68,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           
           try {
             authorized = await axios.get(authorizedWalletApi, headers);
+            console.log("⚡️ authorized", authorized.data);
           } catch {
             console.log ("error attempting to verify wallet authorization",authorizedWalletApi);
           }
@@ -80,7 +81,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         } 
         if (debugEnabled) {
           // authorized undefined errors
-         //console.log(`⚡️ ${user.username} account wallet info, account address:${accountAddress} authorized:${authorized.data} v4v:${v4vSettings}`);
+         console.log(`⚡️ ${user.username} account wallet info, account address:${accountAddress} authorized:${authorized.data} v4v:${v4vSettings}`);
         }
       }
     }
@@ -681,6 +682,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       let v4vBoostAmount = document.getElementById('v4v-def-boost-amount');
       let v4vStreamAuto = document.getElementById('v4v-stream-auto');
       let v4vBoostName = document.getElementById('v4v-boost-name');
+      let modalAddressHiveAuthorize = document.getElementById("hive-wallet-authorize");
       let modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
       let v4vGetBoosts = document.getElementById('v4v-show-boosts')
       let modalChecker = document.getElementById("v4v-stream-auto");
@@ -703,6 +705,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         v4vStreamAuto = document.getElementById('v4v-stream-auto');
         v4vBoostName = document.getElementById('v4v-boost-name');
         modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
+        modalAddressHiveAuthorize = document.getElementById("hive-wallet-authorize");
         v4vGetBoosts = document.getElementById('v4v-show-boosts')
         modalChecker = document.getElementById("v4v-stream-auto");
         boostIn = document.getElementById("v4v-invoice-in");
@@ -711,31 +714,30 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         boostStream = document.getElementById("v4v-invoice-stream");
         boostAuto = document.getElementById("v4v-invoice-auto");
         //console.log("-----",wallet);
+        let authorizedWalletApi = basePath + "/checkauthorizedwallet";
+        //console.log("⚡️authorized wallet api:",authorizedWalletApi);
+        let headers = { headers: await peertubeHelpers.getAuthHeader() }
+        //console.log("⚡️headers",headers)
+        let authorized;
+        try {
+          authorized = await axios.get(authorizedWalletApi, headers);
+          walletAuthorized = true;
+          weblnSupport = 69;
+          //console.log("----",authorized);
+        } catch (e){
+          console.log("⚡️unable to confirm authorized",authorized,e);
+          walletAuthorized = false;
+        }
         if (modalAddressAuthorize) {
-          let authorizedWalletApi = basePath + "/checkauthorizedwallet";
-          //console.log("⚡️authorized wallet api:",authorizedWalletApi);
-          let headers = { headers: await peertubeHelpers.getAuthHeader() }
-          //console.log("⚡️headers",headers)
-          let authorized;
-          try {
-            authorized = await axios.get(authorizedWalletApi, headers);
-            walletAuthorized = true;
-            weblnSupport = 69;
-            //console.log("----",authorized);
-          } catch (e){
-            console.log("⚡️unable to confirm authorized",authorized,e);
-            walletAuthorized = false;
-          }
-          //console.log("⚡️authorized result",authorized);
-          let newUserAddress = userAddress.value;
-          //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
           modalAddressAuthorize.style.visible = false;
           if (client_id && peertubeHelpers.isLoggedIn()) {
-            modalAddressAuthorize.style.visible = true;
-            if (!walletAuthorized) {
-              modalAddressAuthorize.textContent = "Authorize"
-            } else {
-              modalAddressAuthorize.textContent = "De-Authorize";
+            if (authorized && authorized.data && authorized.data.status && authorized.data.wallet == "alby"){
+              modalAddressAuthorize.style.visible = true;
+              modalAddressAuthorize.textContent = "De-Authorize Alby";
+            }
+            if (authorized && authorized.data && !authorized.data.status){
+              modalAddressAuthorize.style.visible = true;
+              modalAddressAuthorize.textContent = "Authorize Alby";
             }
             modalAddressAuthorize.onclick = async function () {
               if (debugEnabled) {
@@ -768,17 +770,70 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
               let parts = basePath.split("/");
               let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
 
-              let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=` + userName;
+              let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=alby-` + userName;
               if (debugEnabled) {
                 console.log("callback", callbackPath, "\n alby url", albyUrl);
               }
               window.open(albyUrl, 'popup', 'width=600,height=800');
-              modalAddressAuthorize.textContent="De-Authorize";
+              modalAddressAuthorize.textContent="De-Authorize Alby";
               weblnSupport=undefined;
             }
           }
         } else if (debugEnabled) {
           console.log("⚡️no authorize button");
+        }
+        if (modalAddressHiveAuthorize) {
+          modalAddressHiveAuthorize.style.visible = false;
+          if (client_id && peertubeHelpers.isLoggedIn()) {
+            if (authorized && authorized.data && authorized.data.status && authorized.data.wallet == "hive"){
+              modalAddressAuthorize.style.visible = true;
+              modalAddressAuthorize.textContent = "De-Authorize Hive";
+            }
+            if (authorized && authorized.data && !authorized.data.status){
+              modalAddressAuthorize.style.visible = true;
+              modalAddressAuthorize.textContent = "Authorize Hive";
+            }
+            modalAddressHiveAuthorize.onclick = async function () {
+              if (debugEnabled) {
+                console.log("⚡️authorize hive button clicked", walletAuthorized);
+              }
+              if (walletAuthorized) {
+                try {
+                  await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
+                  notifier.success("De-Authorized hive wallet");
+                  walletAuthorized = false;
+                  modalAddressHiveAuthorize.textContent="Authorize";
+                } catch {
+                  notifier.error("error trying to deauthorize hive wallet")
+                }
+                return;
+              }
+              let authorizeReturned;
+              let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value
+              let headers = { headers: await peertubeHelpers.getAuthHeader() }
+              if (debugEnabled) {
+                console.log("attempting to authorize hive wallet", authorizationUrl, headers);
+              }
+              try {
+                authorizeReturned = await axios.get(authorizationUrl, headers);
+              } catch (err) {
+                notifier.error("error trying to inform peertube of incoming hive authorization");
+                console.log("error with hive authorization", err, authorizationUrl, headers);
+              }
+              let parts = basePath.split("/");
+              let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
+
+              let hiveUrl = `https://dev.v4v.app/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=hive-` + userName;
+              if (debugEnabled) {
+                console.log("callback", callbackPath, "\n hive url", hiveUrl);
+              }
+              window.open(hiveUrl, 'popup', 'width=600,height=800');
+              modalAddressHiveAuthorize.textContent="De-Authorize Hive";
+              weblnSupport=undefined;
+            }
+          }
+        } else if (debugEnabled) {
+          console.log("⚡️no hive authorize button");
         }
         if (v4vSettings && v4vStreamAuto){
           v4vStreamAuto.checked = v4vSettings.streamAuto;
@@ -1061,7 +1116,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (createButton) {
         createButton.onclick = async function () {
           await peertubeHelpers.showModal({
-            title: 'Add Lightning Address for' + channel,
+            title: 'Add Lightning Address for ' + channel,
             content: ` `,
             close: true,
             confirm: { value: 'X', action: () => { } },
@@ -2583,7 +2638,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     <button id = "v4v-settings-update" class="peertube-button orange-button ng-star-inserted">Update</button>`;
     if (peertubeHelpers.isLoggedIn() && client_id) {
       html = html + `<br>Authorizing an Alby Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
-      <button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>`;
+      <button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Alby Wallet</button>`;
+      html = html + `<br>Authorizing a Hive Wallet address allows for easy boosting and streaming payments without needing a browser extension<br>
+      <button id = "hive-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Hive Wallet</button>`;
     }
     html = html + `<hr>
     <input class="form-control d-block ng-pristine ng-valid ng-touched" type="checkbox" id="v4v-stream-auto" name="v4v-stream-auto" value="streamsats">
@@ -2622,6 +2679,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
     let modalAddressUpdate = document.getElementById('v4v-settings-update');
     let userAddress = document.getElementById('v4v-boost-back');
     let modalAddressAuthorize = document.getElementById("v4v-wallet-authorize");
+    let modalAddressHiveAuthorize = document.getElementById("hive-wallet-authorize");
     if (modalAddressAuthorize) {
       let authorizedWalletApi = basePath + "/checkauthorizedwallet";
       //console.log("⚡️authorized wallet api:",authorizedWalletApi);
@@ -2643,9 +2701,9 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       if (client_id && peertubeHelpers.isLoggedIn()) {
         modalAddressAuthorize.style.visible = true;
         if (!walletAuthorized && newUserAddress.indexOf('getalby.com') > 1) {
-          modalAddressAuthorize.textContent = "Authorize" 
+          modalAddressAuthorize.textContent = "Authorize Alby" 
         } else {
-          modalAddressAuthorize.textContent = "De-Authorize";
+          modalAddressAuthorize.textContent = "De-Authorize Alby";
         }
         modalAddressAuthorize.onclick = async function () {
           if (debugEnabled) {
@@ -2663,8 +2721,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
             return;
           }
           let authorizeReturned;
-          let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value
-          let headers = { headers: await peertubeHelpers.getAuthHeader() }
+          let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value;
+          let headers = { headers: await peertubeHelpers.getAuthHeader() };
           if (debugEnabled) {
             console.log("attempting to authorize", authorizationUrl, headers);
           }
@@ -2677,7 +2735,7 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
           let parts = basePath.split("/");
           let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
 
-          let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=` + userName;
+          let albyUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=hive-` + accountName;
           if (debugEnabled) {
             console.log("callback", callbackPath, "\n alby url", albyUrl);
           }
@@ -2686,7 +2744,73 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
         }
       }
     } else {
-      console.log("⚡️no authorize button");
+      console.log("⚡️no authorize alby button");
+    }
+    if (modalAddressHiveAuthorize) {
+      let authorizedWalletApi = basePath + "/checkauthorizedwallet";
+      //console.log("⚡️authorized wallet api:",authorizedWalletApi);
+      let headers = { headers: await peertubeHelpers.getAuthHeader() }
+      //console.log("⚡️headers",headers)
+      let authorized;
+      try {
+        authorized = await axios.get(authorizedWalletApi, headers);
+        walletAuthorized = true;
+        weblnSupport = 69;
+      } catch {
+        console.log("⚡️unable to confirm hive wallet authorized");
+        walletAuthorized = false;
+      }
+      //console.log("⚡️authorized result",authorized);
+      let newUserAddress = userAddress.value;
+      //console.log("⚡️wallet authorized",walletAuthorized,"newAddress",newUserAddress,"button",modalAddressAuthorize);
+      modalAddressHiveAuthorize.style.visible = false;
+      if (client_id && peertubeHelpers.isLoggedIn()) {
+        modalAddressHiveAuthorize.style.visible = true;
+        if (!walletAuthorized && newUserAddress.indexOf('v4v.app') > 1) {
+          modalAddressHiveAuthorize.textContent = "Authorize Hive" 
+        } else {
+          modalAddressHiveAuthorize.textContent = "De-Authorize Hive";
+        }
+        modalAddressHiveAuthorize.onclick = async function () {
+          if (debugEnabled) {
+            console.log("⚡️authorize hive button clicked", walletAuthorized);
+          }
+          if (walletAuthorized) {
+            try {
+              await axios.get(basePath + "/setauthorizedwallet?clear=true", { headers: await peertubeHelpers.getAuthHeader() });
+              notifier.success("De-Authorized Hive wallet");
+              walletAuthorized = false;
+            } catch {
+              notifier.error("error trying to deauthorize hive wallet")
+            }
+            closeModal();
+            return;
+          }
+          let authorizeReturned;
+          let authorizationUrl = basePath + "/setauthorizedwallet?address=" + userAddress.value;
+          let headers = { headers: await peertubeHelpers.getAuthHeader() };
+          if (debugEnabled) {
+            console.log("attempting to authorize hive wallet", authorizationUrl, headers);
+          }
+          try {
+            authorizeReturned = await axios.get(authorizationUrl, headers);
+          } catch (err) {
+            notifier.error("error trying to inform peertube of incoming hive authorization");
+            console.log("error with hive authorization ", err, authorizationUrl, headers);
+          }
+          let parts = basePath.split("/");
+          let callbackPath = "https://" + hostPath + "/" + parts[1] + "/" + parts[2] + "/" + parts[4] + "/callback";
+
+          let hiveUrl = `https://dev.v4v.app/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackPath + `&scope=account:read%20invoices:create%20invoices:read%20payments:send%20transactions:read&state=hive-` + accountName;
+          if (debugEnabled) {
+            console.log("callback", callbackPath, "\n alby url", hiveUrl);
+          }
+          window.open(hiveUrl, 'popup', 'width=600,height=800');
+          closeModal();
+        }
+      }
+    } else {
+      console.log("⚡️no authorize hive button");
     }
     if (modalAddressUpdate) {
       modalAddressUpdate.onclick = async function () {
@@ -3201,7 +3325,8 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       displayAddress = "";
     }
     let replyDescription = `Lightning address for boostbacks and cross app zaps. Works best with an address that supports keysend, which is currently <a href="https://getalby.com/podcast-wallet" target="_blank" rel="noopener noreferrer">Alby</a>, <a href="http://signup.hive.io/" target="_blank" rel="noopener noreferrer">Hive</a>, or <a href="https://support.fountain.fm/category/51-your-account-wallet" target="_blank" rel="noopener noreferrer">Fountain</a>`
-    let authorizeDescription = `Authorize Alby Wallet for easy payments without needing a browser extension`
+    let authorizeDescription = `Authorize Alby Wallet for easy payments without needing a browser extension for micropayments`
+    let authorizeHiveDescription = "authorize v4v.app hive wallet gateway for micropayments"
     let streamStateDescription = `Stream channels that have a V4V split configured`
     let streamAmountDescription = `Amount of sats to stream every minute of content. Dollar equivelency will change over time.`
     let boostAmountDescription = `Amount of SATS for ${tipVerb}`
@@ -3227,8 +3352,10 @@ async function register({ registerHook, peertubeHelpers, registerVideoField, reg
       <tr><td><td>BoostBack:<td><input class="form-control d-block ng-pristine ng-valid ng-touched" type="text" id="v4v-boost-back" name="v4v-boost-back" value="${displayAddress}">
       </td><td>${replyDescription}
       </tr><tr>
-      <td><td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Payments</button>
+      <td><td><td><button id = "v4v-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Alby Wallet</button>
       <td>${authorizeDescription}</td></tr>
+      <td><td><td><button id = "hive-wallet-authorize" class="peertube-button orange-button ng-star-inserted">Authorize Hive Wallet</button>
+      <td>${authorizeHiveDescription}</td></tr>
       </td></tr><tr><td><h4>Boost</h4><td><td><b>Send sats to creators with a message</b></td></tr>
       <td><td>default name:<td><input type="text" class="form-control d-block ng-pristine ng-valid ng-touched" id="v4v-boost-name" value="${boostFrom}">
       <td>${fromDescription}</td></tr>

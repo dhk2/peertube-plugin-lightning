@@ -1,3 +1,6 @@
+v 5.5.8 
+ - fixed simpletip format
+ 
 v 5.5.7
 - cleaned up logging issues
 

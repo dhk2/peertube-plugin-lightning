@@ -190,11 +190,17 @@ async function register({
   }
   let podcast2;
   let hiveTube;
+  let podPing;
+  let liveChat;
   for (var plugin of plugins){
     switch (plugin.npmName){
       case "peertube-plugin-podcast2" : podcast2=true;
       break;
       case "peertube-plugin-hive-tube" : hiveTube=true;
+      break;
+      case "peertube-plugin-podping" : podPing = true;
+      break;
+      case "peertube-plugin-livechat" : liveChat = true;
       break;
     } 
   }
@@ -206,7 +212,7 @@ async function register({
     return(result);
   }
   })
-
+  let hiveAuthorized, albyAuthorized;
   registerHook({
     target: 'action:activity-pub.remote-video.updated',
     handler: async (video) => {
@@ -738,8 +744,9 @@ async function register({
   })
 
   router.use('/dirtyhack', async (req, res) => {
+    dirtyHack = `alby ${albyAuthorized} hive ${hiveAuthorized} hivetube ${hiveTube} podcast2 ${podcast2} podping ${podPing} livechat ${liveChat}`+dirtyHack;
     console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack,req.query);
-     if (req.query.cp){
+    if (req.query.cp){
       console.log("⚡️⚡️⚡️⚡️ clearing patronage paid days");
       let subscriptions = await storageManager.getData('subscriptions');
       let list = [];
@@ -833,6 +840,14 @@ async function register({
           expires_at: undefined,
         }, // initialize with existing token
       });
+    }
+    if (req.query.account){
+      let albyData = await storageManager.getData("alby-" + req.query.account.replace(/\./g, "-"));
+      let hiveData = await storageManager.getData("hive-" + req.query.account.replace(/\./g, "-"));
+      let walletData = await storageManager.getData("wallet-" + req.query.account.replace(/\./g, "-"));
+      let lightData = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
+      let v4vData = await storageManager.getData("v4vsettings-" + req.query.account.replace(/\./g, "-"));
+      console.log("⚡️⚡️alby",albyData, "hive", hiveData, "wallet",walletData,"light",lightData,"v4v", v4vData);
     }
     return res.status(200).send(dirtyHack);
   });
@@ -1128,6 +1143,7 @@ async function register({
       } else {
         apiUrl = `https://${host}/plugins/podcast2/router/getchannelguid?channel=${channelOnly}`;
       }
+
       try {
         console.log("⚡️⚡️ stuff",base,host,apiUrl);
         let guidData = await axios.get(apiUrl);
@@ -1169,6 +1185,8 @@ async function register({
         return res.status(400).send();
       }
     }
+    console.log("⚡️⚡️ unable to find channel guiid",channel,host,channelOnly,channelGuid);
+    return res.status(420).send("fall through getting channelguid");
   })
   router.use('/getsplit', async (req, res) => {
     if (enableDebug) {
@@ -1249,7 +1267,7 @@ async function register({
       } 
       storedSplitData = await storageManager.getData("lightningsplit" + "-" + req.query.video);
       if (enableDebug){
-        console.log("⚡️⚡️ found stored video split",storedSplitData);
+        console.log("⚡️⚡️ found stored video split");
       }
       if (storedSplitData) {
         return res.status(200).send(storedSplitData);
@@ -1264,8 +1282,8 @@ async function register({
       if (Array.isArray(storedSplitData)){
         if (storedSplitData && storedSplitData[0].retrieved){
           if (req.query.channel.indexOf("@")>1){
-            let timePassed = (now - storedSplitData[0].retrieved)/milliday;
             let now = Date.now();
+            let timePassed = (now - storedSplitData[0].retrieved)/milliday;
             let cacheDate = new Date(storedSplitData[0].retrieved);
             if (enableDebug){
               console.log(`⚡️⚡️ saved remote split ${timePassed} days ago on ${cacheDate.toLocaleDateString()}`);
@@ -1285,10 +1303,15 @@ async function register({
         } else {
           console.log("missing retrieve date",storedSplitData[0])
           storedSplitData[0].retrieved = Date.now();
-          saveSplit(req.query.channel,storedSplitData);
+
+          console.log("missing retrieve date",storedSplitData[0])
+          await storageManager.storeData(req.query.channel.replace(/\./g, "-"),storedSplitData);
         }
+        return res.status(200).send(storedSplitData);
+      } else {
+        console.log("⚡️⚡️ not an array?!",storedSplitData);
+        //await storageManager.storeData(req.query.channel.replace(/\./g, "-"),null);
       }
-      console.log("⚡️⚡️ failed to get channel stored split",req.query.channel);
     }
     let parts;
     if (req.query.channel) {
@@ -1309,6 +1332,27 @@ async function register({
           }
         } catch {
           console.log("⚡️⚡️unable to fetch remote split data", apiCall);
+        }
+        // hive stuff
+        if (!remoteSplit){
+          apiCall = `https://${parts[1]}/api/v1/videos/${req.query.video}`; 
+          let remoteVideo, userDisplay,hostDisplay;
+          try {
+            remoteVideo = await axios.get(apiCall);
+            if (enableDebug && remoteVideo){
+              console.log("⚡️⚡️ found remote video data",apiCall);
+            }
+          } catch {
+            console.log("⚡️⚡️unable to fetch remote split data", apiCall);
+          }
+          if (remoteVideo && remoteVideo.data && remoteVideo.data.pluginData){
+            let userDisplay = remoteVideo.data.channel.displayName;
+            let hostDisplay = remoteVideo.data.channel.host;
+            let hiveSplit = await hiveSplit2LightningSplit(remoteVideo.data.pluginData, userDisplay, hostDisplay);
+            console.log("⚡️⚡️hived",hiveSplit, hiveSplit[0].keysend.customData,hiveSplit[1].keysend.customData);
+            remoteSplit ={};
+            remoteSplit.data = hiveSplit;
+          }
         }
         if (remoteSplit) {
           if (enableDebug) {
@@ -2129,10 +2173,21 @@ async function register({
   router.use('/callback', async (req, res) => {
     console.log("\n⚡️⚡️\n callback", req.query, req.body);
     var state;
-    if (req.query.state && req.query.state != 'peertube') {
+    var wallet,parts;
+    if (req.query.state.indexOf("-")>0){
+      parts = req.query.state.split("-");
+      wallet = parts[0];
+      req.query.state = parts[1];
+    }
+    console.log("\n⚡️⚡️ fixed state", state,"fixed wallet",wallet,"fixed req state", req.query.state);
+    if (req.query.state && req.query.state != 'peertube' && wallet == "hive") {
+      state = await storageManager.getData("hive-" + req.query.state.replace(/\./g, "-"));
+      console.log("\n⚡️⚡️\ncurrent hive wallet value", state, req.query.state);
+    }
+    if (req.query.state && req.query.state != 'peertube' && wallet == "alby") {
       state = await storageManager.getData("alby-" + req.query.state.replace(/\./g, "-"));
-      console.log("\n⚡️⚡️\ncurrent wallet value", state, req.query.state);
-    } 
+      console.log("\n⚡️⚡️ current alby wallet value", state, req.query.state);
+    }  
     if (state == 'pending'  || req.query.state == 'peertube') {
       let callbackUrl = base + "/plugins/lightning/router/callback";
       var formFull = new URLSearchParams();
@@ -2143,39 +2198,69 @@ async function register({
       formFull.append('client_id', client_id);
       formFull.append('client_secret', client_secret);
 
-      let url = "https://api.getalby.com/oauth/token";
+      let url;
+      if (wallet == "hive"){
+        url = "https://devapi.v4v.app/alby/oauth/token";
+      }
+      if (wallet == "alby"){
+        url = "https://api.getalby.com/oauth/token";
+      }
       let response;
       let albyWalletData;
       try {
         response = await axios.post(url, formFull, { auth: { username: client_id, password: client_secret } });
       } catch (err) {
-        console.log("\n⚡️⚡️⚡️⚡️axios failed to post to alby", err, url, formFull)
+        console.log("\n⚡️⚡️⚡️⚡️axios failed to post to", wallet, url, formFull, err)
       }
       if (response && response.data) {
         console.log("\n⚡️⚡️⚡️⚡️response to token request axios", response.data);
-        storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
+        storageManager.storeData(wallet + "-" + req.query.state.replace(/\./g, "-"), response.data);
         let albyToken = response.data.access_token
         
         let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
-        let walletApiUrl = "https://api.getalby.com/user/me"
+        let walletApiUrl;
+        if (wallet == "hive"){
+          walletApiUrl = "https://devapi.v4v.app/alby/user/me";
+        }
+        if (wallet == "alby"){
+          walletApiUrl = "https://api.getalby.com/user/me";
+        }
         try {
-
           albyWalletData = await axios.get(walletApiUrl, headers);
         } catch (err) {
           console.log("\n⚡️⚡️⚡️⚡️error attempting to get wallet data\n", walletApiUrl, headers, err);
         }
-        console.log("\n⚡️⚡️⚡️⚡️wallet data:\n", albyWalletData.data);
-        
-      }
-      if (req.query.state == 'peertube' && enableAlbyAuth){
-        let userName = albyWalletData.data.email.split("@")[0];
-        let userEmail = albyWalletData.data.email;
-        let displayName = albyWalletData.data.name;
-        let lightning = albyWalletData.data.lightning_address;
-        if (!displayName) {
-          displayName=userName;
+        if (albyWalletData){
+          console.log("\n⚡️⚡️⚡️⚡️wallet data:⚡️⚡️⚡️⚡️\n", albyWalletData.data);
         }
-        if (!userName || !userEmail){return}
+      }
+      if (req.query.state == 'peertube' && enableAlbyAuth && albyWalletData && albyWalletData.data){
+        let userName, userEmail, displayName, lightning;
+        if (wallet == "alby"){
+          userName = albyWalletData.data.email.split("@")[0];
+          userEmail = albyWalletData.data.email;
+          displayName = albyWalletData.data.name;
+          lightning = albyWalletData.data.lightning_address;
+          if (!displayName) {
+            displayName=userName;
+          }
+        }
+        if (wallet == "hive"){
+          userName = albyWalletData.data.identifier;
+          userEmail = albyWalletData.data.email;
+          if (!userEmail && userName){
+            userEmail = userName+"@v4v.app"
+          }
+          displayName = albyWalletData.data.name;
+          lightning = albyWalletData.data.lightning_address;
+          if (!displayName && userName) {
+            displayName=userName;
+          }
+        }
+        if (!userName || !userEmail){
+          return res.status(420).send(`missing info for account creation, username:${userName} email ${userEmail} display name ${displayName} lightning ${lightning}`); 
+
+        }
         let newWallet = await createWalletObject(lightning);
         if (newWallet.keysend){
           saveWellKnown(userName, newWallet.keysend);
@@ -2184,7 +2269,7 @@ async function register({
           saveWellKnownLnurl(userName, newWallet.lnurl);
         }
         storageManager.storeData("lightning-" + userName.replace(/\./g, "-"), newWallet);
-        storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+        storageManager.storeData(wallet +"-" + userName.replace(/\./g, "-"), response.data);
         console.log("⚡️⚡️ returned user data",userName,userEmail,displayName,lightning,newWallet,response.data);
         let returnData = {
           req,
@@ -2194,13 +2279,34 @@ async function register({
           role: 2,
           displayName: displayName,
         }
+        console.log("⚡️⚡️ returning logon ", returnData);
+        if (wallet == "hive"){
+          hiveAuthorized = true;
+        }
+        if (wallet="alby"){
+          albyAuthorized = true;
+        }
         return result.userAuthenticated(returnData);
       }
-      storageManager.storeData("alby-" + req.query.state.replace(/\./g, "-"), response.data);
-      storageManager.storeData("lightning-" + req.query.state.replace(/\./g, "-"), albyWalletData.data.lightning_address);
-      return res.status(200).send(`<h1>User authorized to boost</h1>hr<div class="callout" data-closable>
-        <img src="https://media.tenor.com/bwNyT4OBWz4AAAAC/yay-surprise.gif">
-        </div>`);
+      if (response && albyWalletData){
+        console.log("⚡️⚡️ fall through ", response.data,albyWalletData.data,req.query.state);
+      } else {
+        console.log("⚡️⚡️ fall through fao;ire", response,albyWalletData,req.query.state);
+      }
+      if (response && response.data && albyWalletData && albyWalletData.data && albyWalletData.data.lightning_address){
+        storageManager.storeData(wallet +"-" + req.query.state.replace(/\./g, "-"), response.data);
+        storageManager.storeData("lightning-" + req.query.state.replace(/\./g, "-"), albyWalletData.data.lightning_address);
+        if (wallet == "hive"){
+          hiveAuthorized = true;
+        }
+        if (wallet="alby"){
+          albyAuthorized = true;
+        }
+        return res.status(200).send(`<h1>User authorized to boost with ${wallet}</h1>hr<div class="callout" data-closable><br>
+          <img src="https://media.tenor.com/bwNyT4OBWz4AAAAC/yay-surprise.gif"><br>
+          <a href="${base}">return to peertube</a>
+          </div>`);
+      }
     }
     //TODO fix this
     //return res.redirect(base);
@@ -2225,13 +2331,20 @@ async function register({
       console.log("⚡️⚡️ not a valid user");
       return res.status(200).send("not a logged in PeerTube user (" + req.query + ") [" + user + ")");
     }
-    if (req.query.clear) {
+    //TODO fix for hive
+    if (req.query.clear && albyAuthorized) {
       storageManager.storeData("alby-" + userName.replace(/\./g, "-"), "cleared");
       console.log("⚡️⚡️cleared", userName);
-    } else {
-      storageManager.storeData("alby-" + userName.replace(/\./g, "-"), "pending");
-      console.log("⚡️⚡️set", userName, "to pending");
+      return res.status(200).send(true);
     }
+    if (req.query.clear && hiveAuthorized) {
+      storageManager.storeData("hive-" + userName.replace(/\./g, "-"), "cleared");
+      console.log("⚡️⚡️cleared", userName);
+      return res.status(200).send(true);
+    }
+    storageManager.storeData("alby-" + userName.replace(/\./g, "-"), "pending");
+    storageManager.storeData("hive-" + userName.replace(/\./g, "-"), "pending");
+    console.log("⚡️⚡️set", userName, "to pending");
     return res.status(200).send(true);
   })
   router.use('/checkauthorizedwallet', async (req, res) => {
@@ -2246,14 +2359,25 @@ async function register({
       console.log("⚡️⚡️no user found in header");
       return res.status(420).send(` user ${req}`);
     }
+    let response = {status: true};
+    console.log("⚡️⚡️user data when checking for wallet authorization", user.dataValues);
     let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
-    console.log("⚡️⚡️stored data", albyData);
+    console.log("⚡️⚡️stored alby wallet data", albyData);
     if (albyData && albyData.access_token) {
-      return res.status(200).send(true);
-    } else {
-      console.log("failed to get alby data", albyData);
-      return res.status(420).send(`no stored alby access token for ${userName}`);
+      albyAuthorized = true;
+      response.wallet ="alby"
+      return res.status(200).send(response);
+    } 
+    console.log("failed to get stored alby data", albyData);
+    albyData = await storageManager.getData("hive-" + userName.replace(/\./g, "-"));
+    console.log("⚡️⚡️stored hive wallet data", albyData);
+    if (albyData && albyData.access_token) {
+      hiveAuthorized = true;
+      response.wallet="hive";
+      return res.status(200).send(response);
     }
+    return res.status(420).send(`no stored access tokens for ${userName}`);
+    
   })
   router.use('/sendalbypayment', async (req, res) => {
     if (enableDebug) {
@@ -2265,15 +2389,29 @@ async function register({
       userName = user.dataValues.username;
     } else {
       console.log("⚡️⚡️no user found");
-      return res.status(420).send();
+      return res.status(404).send("no user found");
     }
-    let albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
+    let albyData,wallet
+    if (albyAuthorized){
+      albyData = await storageManager.getData("alby-" + userName.replace(/\./g, "-"));
+      wallet = "alby";
+    }
+    if (hiveAuthorized){
+      albyData = await storageManager.getData("hive-" + userName.replace(/\./g, "-"));
+      wallet = "hive"
+    }
     //console.log("⚡️⚡️stored data", albyData);
     if (albyData && albyData.access_token) {
       let albyToken = albyData.access_token
       let albyWalletData
       let headers = { headers: { "Authorization": `Bearer ` + albyToken } }
-      let walletApiUrl = "https://api.getalby.com/payments/keysend"
+      let walletApiUrl;
+      if (hiveAuthorized){
+        walletApiUrl = "https://devapi.v4v.app/alby/payments/keysend"
+      }
+      if (albyAuthorized){
+        walletApiUrl = "https://api.getalby.com/payments/keysend"
+      } 
       let data = req.body;
       console.log("-=--=-=-=-=-", data, headers, walletApiUrl)
       dirtyHack=data;
@@ -2296,7 +2434,13 @@ async function register({
       }
       if (albyWalletData == 401) {
         console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        let albyUrl = 'https://api.getalby.com/oauth/token'
+        let albyUrl;
+        if (hiveAuthorized){
+          albyUrl = "https://devapi.v4v.app/alby/oauth/token"
+        }
+        if (albyAuthorized){
+          albyUrl = "https://api.getalby.com/oauth/token"
+        } 
         var form = new URLSearchParams();
         form.append('refresh_token', albyData.refresh_token);
         form.append('grant_type', "refresh_token");
@@ -2309,7 +2453,7 @@ async function register({
         }
         if (response && response.data && response.data.access_token) {
           //console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
-          await storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+          await storageManager.storeData(wallet + "-" + userName.replace(/\./g, "-"), response.data);
           headers = { headers: { "Authorization": `Bearer ` + response.data.access_token } }
           try {
             albyWalletData = await axios.post(walletApiUrl, data, headers)
@@ -2459,10 +2603,17 @@ async function register({
     let tipMultiplier = (req.body.boostagram.value_msat_total/req.body.boostagram.value_msat);
     let tipCents = req.body.fiat_in_cents;
     let fullTipCents = (tipCents*tipMultiplier).toFixed();
-    let fullTipDollars = fullTipCents/100;
+    let fullTipDollars = (fullTipCents/100).toFixed(2);
     let tip = tipCents*tipMultiplier
     if (enableDebug) {
-      console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents,fullTipDollars,tip);
+      //console.log("⚡️⚡️⚡️⚡️ simple dimple parts", tipSat,tipMultiplier,tipCents,fullTipCents,fullTipDollars,tip);
+      console.log(`⚡️⚡️ simple tip parts
+      tipSat ${tipSat}
+      tipMultiplier ${tipMultiplier}
+      tipCents ${tipCents}
+      fullTipCents ${fullTipCents}
+      fullTipDollars ${fullTipDollars}
+      tip ${tip}`);
     }
     if (simpletipToken && tip > 1000) {
 
@@ -3112,6 +3263,68 @@ async function register({
       return res.status(420).send(`failed to get wallet data for ${address}`);
     }
   })
+  async function hiveSplit2LightningSplit(plugin,userDisplay,hostDisplay){
+    let hiveUser, hiveHost, userCut, hostCut, valueBlock;
+    if (plugin){
+      hiveUser = plugin.usernameObj;
+      hiveHost = plugin.defaultObj;
+      userCut = plugin.additionalPercent;
+      console.log("parts to make split",hiveUser,hiveHost,userCut,userDisplay,hostDisplay);
+    } else {
+      console.log("⚡️⚡️ no plugin data to make value block",plugin);
+      return;
+    }
+    //console.log("⚡️⚡️requesting wallet data from provider", apiRequest);
+    hostCut = 100-userCut;
+    userKeysend = hiveUser+"@v4v.app"
+    hostKeysend = hiveHost+"@v4v.app"
+    if (!userDisplay){
+      userDisplay = hiveUser;
+    }
+    if (!hostDisplay){
+      hostDisplay = hiveHost;
+    }
+    let cache = Date.now();
+    valueBlock=[]
+    valueBlock.push({
+          "name": userDisplay,
+          "split": userCut,
+          "address": userKeysend,
+          "keysend": {
+              "pubkey": "0266ad2656c7a19a219d37e82b280046660f4d7f3ae0c00b64a1629de4ea567668",
+              "keysend": userKeysend,
+              "customData": [
+                  {
+                      "customKey": "818818",
+                      "customValue": hiveUser
+                  }
+              ]
+          },
+          "customKeysend": false,
+          "retrieved": cache
+      }
+    );
+    valueBlock.push({
+          "name": hostDisplay,
+          "split": hostCut,
+          "address": hostKeysend,
+          "keysend": {
+              "pubkey": "0266ad2656c7a19a219d37e82b280046660f4d7f3ae0c00b64a1629de4ea567668",
+              "keysend": hostKeysend,
+              "customData": [
+                  {
+                      "customKey": "818818",
+                      "customValue": hiveHost
+                  }
+              ]
+          },
+          "customKeysend": false,
+          "retrieved": cache
+      }
+    );
+    console.log("⚡️⚡️ value block", valueBlock);
+    return valueBlock;
+}
   async function saveSplit(uuid, split) {
     try {
       storageManager.storeData("lightningsplit-" + uuid, split);
@@ -3133,7 +3346,7 @@ async function register({
     if (storedSplitData) {
       for (var split of storedSplitData) {
         if (enableDebug) {
-          console.log("⚡️ split math ", splitTotal, split);
+          //console.log("⚡️ split math ", splitTotal, split);
         }
         if (!Number.isInteger(split.split)) {
           //console.log("⚡️ no split value found ", split);
@@ -3155,7 +3368,7 @@ async function register({
       }
     }
     if (enableDebug) {
-      console.log("⚡️ returned saved split ", storedSplitData);
+      //console.log("⚡️ returned saved split ", storedSplitData);
     }
     return storedSplitData;
   }
@@ -3646,7 +3859,7 @@ async function register({
       }
       if (albyWalletData == 401) {
         console.log("need to refresh token!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        let albyUrl = 'https://api.getalby.com/oauth/token'
+        let albyUrl = 'https://devapi.v4v.app/alby/oauth/token'
         var form = new URLSearchParams();
         form.append('refresh_token', albyData.refresh_token);
         form.append('grant_type', "refresh_token");
@@ -3789,17 +4002,25 @@ async function register({
     if (enableDebug) {
       console.log(`⚡️⚡️ refreshing token for `,userName );
     }
-    let albyUrl = 'https://api.getalby.com/oauth/token'
+    let v4vUrl, wallet
+    if (hiveAuthorized){
+      v4vUrl = 'https://devapi.v4v.app/alby/oauth/token'
+      wallet = "hive"
+    }
+    if (albyAuthorized){
+      v4vUrl = 'https://api.getalby.com/oauth/token'
+      wallet = "alby"
+    }   
     var form = new URLSearchParams();
     form.append('refresh_token', albyData.refresh_token);
     form.append('grant_type', "refresh_token");
     let headers = { auth: { username: client_id, password: client_secret } };
 
     try {
-      response = await axios.post(albyUrl, form, headers);
+      response = await axios.post(v4vUrl, form, headers);
       if (response.data){
         //console.log("\n⚡️⚡️⚡️⚡️response to token refreshrequest axios", response.data);
-        await storageManager.storeData("alby-" + userName.replace(/\./g, "-"), response.data);
+        await storageManager.storeData(wallet +"-" + userName.replace(/\./g, "-"), response.data);
         return response.data;
       } else {
         console.log("\n⚡️⚡️⚡️⚡️failed to get refresh token", albyUrl,form,headers);
@@ -3839,12 +4060,23 @@ async function register({
       getWeight: () => 60,
       onAuthRequest: async (req, res) => {
         let callbackUrl = base + "/plugins/lightning/router/callback";
-        let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=peertube`;
+        let albyAuthUrl = `https://getalby.com/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=alby-peertube`;
         console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", albyAuthUrl, callbackUrl);
         return res.redirect(albyAuthUrl)
       },
     });
   }
+  result = registerExternalAuth({
+    authName: 'hive',
+    authDisplayName: () => 'Hive Authentication',
+    getWeight: () => 60,
+    onAuthRequest: async (req, res) => {
+      let callbackUrl = base + "/plugins/lightning/router/callback";
+      let hiveAuthUrl = `https://dev.v4v.app/oauth?client_id=` + client_id + `&response_type=code&redirect_uri=` + callbackUrl + `&scope=account:read%20invoices:create%20invoices:read%20payments:send&state=hive-peertube`;
+      console.log("\n⚡️⚡️⚡️⚡️\n\n\n\n trying to authenticate\n\n\n", hiveAuthUrl, callbackUrl);
+      return res.redirect(hiveAuthUrl)
+    },
+  });
 
 }
 
