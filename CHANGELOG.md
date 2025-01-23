@@ -1,3 +1,10 @@
+v 5.5.9
+- added support for v4v.app wallet
+- added support for supporting hive-tube creators and hosts with the v4v.app hive/lightning gateway
+- fixed caching splits for remote videos and channels
+- Simpletip fixups
+- added diagnostics for stored local and remote data
+
 v 5.5.8 
  - fixed simpletip format
  

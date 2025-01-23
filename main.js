@@ -101,7 +101,7 @@ async function register({
     default: true,
     label: 'Enable LNURL lightning wallet transactions',
     type: 'input-checkbox',
-    descriptionHTML: 'This will enable LNURL lightning wallet transactions, lacks any metadata and is much more data intensive but supports less advanced lighting wallets',
+    descriptionHTML: 'This will enable LNURL lightning wallet transactions, lacks any metadata and is much more data intensive but supports less advanced lightning wallets',
     private: false
   })
   registerSetting({
@@ -742,9 +742,8 @@ async function register({
       return res.status(420).send(`Error creating wallet info object for ${address}`);
     }
   })
-
   router.use('/dirtyhack', async (req, res) => {
-    dirtyHack = `alby ${albyAuthorized} hive ${hiveAuthorized} hivetube ${hiveTube} podcast2 ${podcast2} podping ${podPing} livechat ${liveChat}`+dirtyHack;
+    dirtyHack = `\nalby ${albyAuthorized} hive ${hiveAuthorized} hivetube ${hiveTube} podcast2 ${podcast2} podping ${podPing} livechat ${liveChat}`+dirtyHack;
     console.log("⚡️⚡️⚡️⚡️ dirty hack",dirtyHack,req.query);
     if (req.query.cp){
       console.log("⚡️⚡️⚡️⚡️ clearing patronage paid days");
@@ -842,12 +841,75 @@ async function register({
       });
     }
     if (req.query.account){
+      try {
+        let getwalletinfoData = await axios.get(base + "/plugins/lightning/router/walletinfo?account=" + req.query.channel);
+        let walletinfoString = JSON.stringify(getwalletinfoData.data, null, 2);
+        dirtyHack = "<br>wallet info api:"+walletinfoString + dirtyHack;
+      } catch (err){
+        console.log("⚡️⚡️⚡️⚡️ thrown err",err);
+      }
       let albyData = await storageManager.getData("alby-" + req.query.account.replace(/\./g, "-"));
+      let albyString = JSON.stringify(albyData, null, 2);
+      dirtyHack = "<br>alby:"+albyString + dirtyHack;
       let hiveData = await storageManager.getData("hive-" + req.query.account.replace(/\./g, "-"));
+      let hiveString = JSON.stringify(hiveData, null, 2);
+      dirtyHack = "<br>hive:"+ hiveString + dirtyHack;
       let walletData = await storageManager.getData("wallet-" + req.query.account.replace(/\./g, "-"));
+      let walletString = JSON.stringify(walletData, null, 2);
+      dirtyHack = "<br>wallet:"+ walletString + dirtyHack;
       let lightData = await storageManager.getData("lightning-" + req.query.account.replace(/\./g, "-"));
+      let lightString = JSON.stringify(lightData, null, 2);
+      dirtyHack = "<br>lightning:"+lightString+dirtyHack;
       let v4vData = await storageManager.getData("v4vsettings-" + req.query.account.replace(/\./g, "-"));
-      console.log("⚡️⚡️alby",albyData, "hive", hiveData, "wallet",walletData,"light",lightData,"v4v", v4vData);
+      let v4vString = JSON.stringify(v4vData, null, 2);
+      dirtyHack = `<br>account : ${req.query.account}` + "<br>v4v:" +v4vString+dirtyHack;
+      //console.log("⚡️⚡️alby",albyData, "hive", hiveData, "wallet",walletData,"light",lightData,"v4v", v4vData);
+    }
+    if (req.query.channel){
+      try {
+        let getwalletinfoData = await axios.get(base + "/plugins/lightning/router/getwallet?channel=" + req.query.channel);
+        let walletinfoString = JSON.stringify(getwalletinfoData.data, null, 2);
+        dirtyHack = "<br>wallet info api:"+walletinfoString + dirtyHack;
+      } catch (err){
+        console.log("⚡️⚡️⚡️⚡️ thrown err",err);
+      }
+      try {
+        let feedidData = await axios.get(base + "/plugins/lightning/router/getfeedid?channel=" + req.query.channel);
+        dirtyHack = "<br>feed id:"+feedidData + dirtyHack;
+
+      } catch (err){
+        console.log("⚡️⚡️⚡️⚡️ thrown err",err);
+      }
+      try {
+        let channelguidData = await axios.get(base + "/plugins/lightning/router/getchannelguid?channel=" + req.query.channel);
+        dirtyHack = "<br>channel guid api:"+channelguidData.data + dirtyHack;
+      } catch (err){
+        console.log("⚡️⚡️⚡️⚡️ thrown err",err);
+      }
+      try {
+        let getsplitData = await axios.get(base + "/plugins/lightning/router/getsplit?channel=" + req.query.channel);
+        let getsplitString = JSON.stringify(getsplitData.data, null, 2);
+        dirtyHack = "<br>wallet info api:"+getsplitString + dirtyHack;
+      } catch (err){
+        console.log("⚡️⚡️⚡️⚡️ thrown err",err);
+      }
+      
+      let albyData = await storageManager.getData("alby-" + req.query.channel.replace(/\./g, "-"));
+      let albyString = JSON.stringify(albyData, null, 2);
+      dirtyHack = "<br>alby:"+albyString + dirtyHack;
+      let hiveData = await storageManager.getData("hive-" + req.query.channel.replace(/\./g, "-"));
+      let hiveString = JSON.stringify(hiveData, null, 2);
+      dirtyHack = "<br>hive:"+ hiveString + dirtyHack;
+      let walletData = await storageManager.getData("wallet-" + req.query.channel.replace(/\./g, "-"));
+      let walletString = JSON.stringify(walletData, null, 2);
+      dirtyHack = "<br>wallet:"+ walletString + dirtyHack;
+      let lightData = await storageManager.getData("lightning-" + req.query.channel.replace(/\./g, "-"));
+      let lightString = JSON.stringify(lightData, null, 2);
+      dirtyHack = "<br>lightning:"+lightString+dirtyHack;
+      let v4vData = await storageManager.getData("v4vsettings-" + req.query.channel.replace(/\./g, "-"));
+      let v4vString = JSON.stringify(v4vData, null, 2);
+      dirtyHack = `<br>channel : ${req.query.channel}` + "<br>v4v:" +v4vString+dirtyHack;
+      //console.log("⚡️⚡️alby",albyData, "hive", hiveData, "wallet",walletData,"light",lightData,"v4v", v4vData);
     }
     return res.status(200).send(dirtyHack);
   });
@@ -1193,7 +1255,7 @@ async function register({
       console.log("⚡️⚡️Request for split info\n", req.query)
     }
     if (!enableKeysend && !enableLnurl) {
-      console.log("⚡️⚡️No lighting support")
+      console.log("⚡️⚡️No lightning support")
       return res.status(503).send();
     }
     var storedSplitData;
@@ -2769,6 +2831,7 @@ async function register({
         console.log("⚡️⚡️⚡️⚡️ user", userName);
       }
     }
+    //TODO change this to use v4vinfo and deprecate walletinfo
     let replyTo;
     let walletApi = base+`/plugins/lightning/router/walletinfo?account=${userName}`;
     let walletData;
@@ -3252,7 +3315,7 @@ async function register({
       whatHappened = await storageManager.storeData(storageIndex, walletData.data);
       //saveWellKnown(parts[0], walletData.data);
     } catch {
-      console.log("⚡️⚡️failed to store lighting address", storageIndex, walletData.data);
+      console.log("⚡️⚡️failed to store lightning address", storageIndex, walletData.data);
     }
     
     console.log("⚡️⚡️ stored keysend data", whatHappened, storageIndex, walletData.data);
@@ -3429,7 +3492,7 @@ async function register({
     try {
       storedLightning = await storageManager.getData(storageIndex);
     } catch {
-      console.log("⚡️⚡️failed to get stored lighting address", storageIndex);
+      console.log("⚡️⚡️failed to get stored lightning address", storageIndex);
     }
     if (storedLightning) {
       console.log("⚡️⚡️returning stored lightning address", storageIndex);
@@ -3463,7 +3526,7 @@ async function register({
       whatHappened = await storageManager.storeData(storageIndex, walletData.data);
       //saveWellKnown(parts[0], walletData.data);
     } catch {
-      console.log("⚡️⚡️failed to store lighting address", storageIndex, walletData.data);
+      console.log("⚡️⚡️failed to store lightning address", storageIndex, walletData.data);
     }
     console.log("⚡️⚡️ stored keysend data", whatHappened, storageIndex, walletData.data);
 
